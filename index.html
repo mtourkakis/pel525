@@ -73,7 +73,7 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
 </head>
 <body>
 <div class="wrap">
-<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v8</span></header>
+<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v9</span></header>
 
 <details id="exBox">
 <summary>Εγώ · Examiner <em id="exSum">ρύθμιση</em></summary>
@@ -330,7 +330,14 @@ async function build(){
  const {PDFDocument,StandardFonts,rgb,degrees}=PDFLib;const doc=await PDFDocument.load(b64ToBytes(PDF_B64));
  const f=await doc.embedFont(StandardFonts.Helvetica),fb=await doc.embedFont(StandardFonts.HelveticaBold);
  const H=C.H,ink=rgb(0.05,0.12,0.45),P=doc.getPages();
- const put=(pg,x,top,text,o={})=>{text=clean(text);if(!text)return;P[pg].drawText(text,{x,y:H-top-(o.off??5.5),size:o.size||8.5,font:o.bold?fb:f,color:ink});};
+ const put=(pg,x,top,text,o={})=>{text=clean(text);if(!text)return;const fn=o.bold?fb:f;let z=o.size||8.5;
+  if(o.maxW){while(z>6.5&&fn.widthOfTextAtSize(text,z)>o.maxW)z-=0.25;
+   if(fn.widthOfTextAtSize(text,z)>o.maxW&&text.length>3){ // doesn't fit: two lines, top and bottom
+    let cut=-1,best=1e9;for(let i=1;i<text.length;i++)if("/ ".includes(text[i-1])&&Math.abs(i-text.length/2)<best){best=Math.abs(i-text.length/2);cut=i;}
+    if(cut<0)cut=Math.ceil(text.length/2);const a=text.slice(0,cut).trim(),b=text.slice(cut).trim();
+    let y=7.5;while(y>4.5&&Math.max(fn.widthOfTextAtSize(a,y),fn.widthOfTextAtSize(b,y))>o.maxW)y-=0.25;
+    const base=H-top-(o.off??5.5);P[pg].drawText(a,{x,y:base+4,size:y,font:fn,color:ink});P[pg].drawText(b,{x,y:base-4.6,size:y,font:fn,color:ink});return;}}
+  P[pg].drawText(text,{x,y:H-top-(o.off??5.5)-((o.size||8.5)-z)*0.35,size:z,font:fn,color:ink});};
  const X=(pg,x,top,small)=>P[pg].drawText("X",small?{x:x+1.8,y:H-top-13,size:10,font:fb,color:ink}:{x:x+2.3,y:H-top-14.2,size:11,font:fb,color:ink});
  const v=id=>$(id).value,c=k=>$("c_"+k).value,ch=S.chips;
  const name=clean(upper(c("surname"))+" "+upper(c("first"))).trim(),dob=dmy(c("dob")),d=dmy(v("date")),ac=upper(v("actype"));
@@ -343,7 +350,7 @@ async function build(){
  for(const k in C.boxes)if(ch[k]){const[x,t]=C.boxes[k];X(0,x,t);}
  /* headers */
  for(const pg in C.hdr){const[xn,xd,t]=C.hdr[pg],p=+pg-1;if(name)put(p,xn,t,name,{off:6.8});if(dob)put(p,xd,t,dob,{off:6.8});}
- if(name)put(1,C.p2name[0],C.p2name[1],name);
+
  /* section 5 */
  put(2,C.p3date[0],C.p3date[1],d,{off:6.8});
  put(2,378,327.5,upper(v("diffDoc")),{off:6.8});
@@ -353,11 +360,11 @@ async function build(){
  put(2,342,529,dmy(v("a5date")),{off:6.8});
  /* section 6 */
  const T=C.p4t,o={off:6.8};
- put(3,...T.actype,upper(v("actype6"))||ac,o);put(3,...T.reg,upper(v("reg")),o);put(3,...T.date,d,o);
+ put(3,...T.actype,upper(v("actype6"))||ac,{...o,maxW:129});put(3,...T.reg,upper(v("reg")),{...o,maxW:156});put(3,...T.date,d,{...o,maxW:92});
  if(v("off2")||v("on2")){const so={size:7.5,off:7};put(3,T.off[0],237.6,v("off"),so);put(3,T.off[0],247.6,v("off2"),so);put(3,T.on[0],237.6,v("on"),so);put(3,T.on[0],247.6,v("on2"),so);
   P[3].drawLine({start:{x:244,y:H-247},end:{x:305,y:H-247},thickness:0.4,color:rgb(0.6,0.6,0.6)});P[3].drawLine({start:{x:394,y:H-247},end:{x:462,y:H-247},thickness:0.4,color:rgb(0.6,0.6,0.6)});}
- else{put(3,...T.off,v("off"),o);put(3,...T.on,v("on"),o);}put(3,...T.total,v("total"),o);
- put(3,...T.from,upper(v("from")),o);put(3,246,T.to[1],upper(v("to")),o);put(3,...T.rwy,upper(v("rwy")),o);put(3,...T.proc,upper(v("proc")),o);
+ else{put(3,...T.off,v("off"),{...o,maxW:58});put(3,...T.on,v("on"),{...o,maxW:64});}put(3,...T.total,v("total"),{...o,maxW:50});
+ put(3,...T.from,upper(v("from")),{...o,maxW:92});put(3,246,T.to[1],upper(v("to")),{...o,maxW:58});put(3,...T.rwy,upper(v("rwy")),{...o,maxW:64});put(3,...T.proc,upper(v("proc")),{...o,maxW:50});
  const r6=[ch.r6sep&&"SEP(LAND)",ch.r6mep&&"MEP(LAND)"].filter(Boolean),i6=[ch.ir6se&&"IR(A)/SP/SE",ch.ir6me&&"IR(A)/SP/ME"].filter(Boolean);
  const o6=r6.length||i6.length?{off:5.5}:o;
  put(3,T.ctVal[0],r6.length?360.5:T.ctVal[1],dmy(v("ctVal")),o6);put(3,T.irVal[0],i6.length?360.5:T.irVal[1],dmy(v("irVal")),o6);
@@ -370,7 +377,7 @@ async function build(){
   if(!words.length){ry+=11.5;continue;}
   for(const w of words){const t=line?line+" "+w:w;if(f.widthOfTextAtSize(t,9)>RW&&line){flush();line=w;}else line=t;}
   if(line)flush();}
- put(3,...T.exName,upper(S.ex.exName||DEF_EX.exName),o);put(3,...T.exCert,upper(S.ex.exCert),o);put(3,...T.exExp,dmy(S.ex.exExp),o);
+ put(3,...T.exName,upper(S.ex.exName||DEF_EX.exName),{...o,maxW:136});put(3,...T.exCert,upper(S.ex.exCert),{...o,maxW:86});put(3,...T.exExp,dmy(S.ex.exExp),{...o,maxW:65});
  for(const k in C.p4b)if(ch[k]){const[x,t,s]=C.p4b[k];X(3,x,t,s);}
  /* section 8 */
  const ini=clean(upper(S.ex.exInit||DEF_EX.exInit)),ds=dmy(v("date"),true),mk=v("mark")||"✓",mk2=v("mark2");
@@ -379,7 +386,7 @@ async function build(){
  const mark=(p,x,top,m)=>{if(!m)return;if(m==="✓")tick(p,x,top);else put(p,x+3,top,m,{size:7.5,off:7,bold:true});};
  C.items.forEach(it=>{const st=S.items[it.id];if(!st)return;const[a,b]=C.cols[it.pg],p=it.pg-1;
   if(st==="na"){put(p,b+3,it.top,"N/A",{size:7.5,off:7,bold:true});return;}
-  mark(p,a,it.top,mk);mark(p,A2[it.pg],it.top,mk2);put(p,b+3,it.top,(ini?ini+" ":"")+(S.idates[it.id]?dmy(S.idates[it.id],true):ds),{size:7.5,off:7});});
+  mark(p,a,it.top,mk);mark(p,A2[it.pg],it.top,mk2);put(p,b+2.5,it.top,(ini?ini+" ":"")+(S.idates[it.id]?dmy(S.idates[it.id],true):ds),{size:7,off:7});});
  /* stamp */
  const s1=clean(upper(S.ex.st1||DEF_EX.st1)),s2=clean(upper(S.ex.st2||DEF_EX.st2)),sc=rgb(0.08,0.16,0.55);
  const stamp=(pg,cx,top,vert)=>{if(!ch.stamp||!(s1||s2))return;const z1=6.6,z2=6.1,tw=Math.max(fb.widthOfTextAtSize(s1,z1),fb.widthOfTextAtSize(s2,z2)),L=tw+7,W=17.5,pp=P[pg];
@@ -392,7 +399,7 @@ async function build(){
  // items pages: vertical stamp at right side of examiner column, centred on marked items
  for(const pgN of Object.keys(C.cols)){const tops=C.items.filter(it=>String(it.pg)===pgN&&S.items[it.id]).map(it=>it.top);if(!tops.length)continue;
   // one stamp per section that has ticked items, starting at its first ticked item
-  const x0=(pgN==="6"?555:558.5),firsts={};
+  const x0=(pgN==="6"?544.5:554),firsts={};
   C.items.filter(it=>String(it.pg)===pgN&&S.items[it.id]===true).forEach(it=>{const k=secOf(it.id);if(firsts[k]===undefined||it.top<firsts[k])firsts[k]=it.top;});
   let lastEnd=0;for(const t of Object.values(firsts).sort((p,q)=>p-q)){const top=Math.max(t+1,lastEnd+4);const L=stamp(+pgN-1,x0,top,"top");lastEnd=top+(L||0);}}
  // signature places

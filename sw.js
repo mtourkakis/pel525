@@ -1,4 +1,4 @@
-const CACHE="pel525-v8";
+const CACHE="pel525-v9";
 const FILES=["./","index.html","manifest.json","icon-180.png","icon-512.png",
 "https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>Promise.all(FILES.map(f=>c.add(f).catch(()=>{})))));self.skipWaiting();});
