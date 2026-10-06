@@ -73,7 +73,7 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
 </head>
 <body>
 <div class="wrap">
-<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v5</span></header>
+<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v6</span></header>
 
 <details id="exBox">
 <summary>Εγώ · Examiner <em id="exSum">ρύθμιση</em></summary>
@@ -381,8 +381,10 @@ async function build(){
   return L;};
  // items pages: vertical stamp at right side of examiner column, centred on marked items
  for(const pgN of Object.keys(C.cols)){const tops=C.items.filter(it=>String(it.pg)===pgN&&S.items[it.id]).map(it=>it.top);if(!tops.length)continue;
-  const ok=C.items.filter(it=>String(it.pg)===pgN&&S.items[it.id]===true).map(it=>it.top);if(!ok.length)continue;
-  const x0=mk2?577:(pgN==="6"?471:485);stamp(+pgN-1,x0,Math.min(...ok)+1,"top");}
+  // one stamp per section that has ticked items, starting at its first ticked item
+  const x0=mk2?577:(pgN==="6"?471:485),firsts={};
+  C.items.filter(it=>String(it.pg)===pgN&&S.items[it.id]===true).forEach(it=>{const k=secOf(it.id);if(firsts[k]===undefined||it.top<firsts[k])firsts[k]=it.top;});
+  let lastEnd=0;for(const t of Object.values(firsts).sort((p,q)=>p-q)){const top=Math.max(t+1,lastEnd+4);const L=stamp(+pgN-1,x0,top,"top");lastEnd=top+(L||0);}}
  // signature places
  if(d)stamp(2,244,354.5);
  if(v("a5ir")||v("a5cls")||v("a5date"))stamp(2,172,526.5);
