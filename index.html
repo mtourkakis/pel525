@@ -74,7 +74,7 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
 </head>
 <body>
 <div class="wrap">
-<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v10</span><a class="swl" href="forms.html">CPL · IR · PBN ›</a></header>
+<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v12</span><a class="swl" href="forms.html">CPL · IR · PBN ›</a></header>
 
 <details id="exBox">
 <summary>Εγώ · Examiner <em id="exSum">ρύθμιση</em></summary>
@@ -386,7 +386,7 @@ async function build(){
  const tick=(p,x,top)=>{const y=H-top-7;P[p].drawLine({start:{x:x+3,y:y+3.2},end:{x:x+6,y:y},thickness:1.3,color:ink});P[p].drawLine({start:{x:x+6,y:y},end:{x:x+12,y:y+7.5},thickness:1.3,color:ink});};
  const mark=(p,x,top,m)=>{if(!m)return;if(m==="✓")tick(p,x,top);else put(p,x+3,top,m,{size:7.5,off:7,bold:true});};
  C.items.forEach(it=>{const st=S.items[it.id];if(!st)return;const[a,b]=C.cols[it.pg],p=it.pg-1;
-  if(st==="na"){put(p,b+3,it.top,"N/A",{size:7.5,off:7,bold:true});return;}
+  if(st==="na"){put(p,a+2,it.top,"N/A",{size:7.5,off:7,bold:true});return;}
   mark(p,a,it.top,mk);mark(p,A2[it.pg],it.top,mk2);put(p,b+2.5,it.top,(ini?ini+" ":"")+(S.idates[it.id]?dmy(S.idates[it.id],true):ds),{size:7,off:7});});
  /* stamp */
  const s1=clean(upper(S.ex.st1||DEF_EX.st1)),s2=clean(upper(S.ex.st2||DEF_EX.st2)),sc=rgb(0.08,0.16,0.55);
