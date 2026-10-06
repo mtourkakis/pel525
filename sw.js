@@ -1,7 +1,6 @@
-const CACHE="pel525-v10";
+const CACHE="pel525-v11";
 const FILES=["./","index.html","manifest.json","icon-180.png","icon-512.png",
-"forms/","forms/index.html","forms/fill.js","forms/layout.js","forms/pdf-lib.min.js",
-"forms/pdf/320A.pdf","forms/pdf/320B.pdf","forms/pdf/420A.pdf","forms/pdf/1000.pdf",
+"forms.html","fill.js","layout.js","pdf-lib.min.js","320A.pdf","320B.pdf","420A.pdf","1000.pdf",
 "https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>Promise.all(FILES.map(f=>c.add(f).catch(()=>{})))));self.skipWaiting();});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});

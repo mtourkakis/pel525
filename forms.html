@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PEL 525">
+<meta name="theme-color" content="#14202e">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>PEL-FCL Examiner Forms</title>
+<style>
+:root{--navy:#14202e;--navy2:#2b3d52;--amber:#d98a00;--ink:#14213d;--mute:#5d6b82;--line:#d8dee9;--bg:#eef1f6;--card:#fff;--ok:#1d8a4e;--bad:#c62f2f;--na:#7a8597}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.35 "IBM Plex Sans",-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--navy);color:#fff;padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;display:flex;align-items:center;gap:10px;border-bottom:3px solid var(--amber)}
+header h1{font-size:17px;margin:0;flex:1;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header h1 small{display:block;font-weight:400;font-size:11px;opacity:.75;letter-spacing:1.5px;text-transform:uppercase}
+header a#to525{color:#14202e;background:var(--amber);text-decoration:none;font-weight:700;font-size:14px;border-radius:9px;padding:7px 10px;white-space:nowrap}
+header button{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:9px;padding:7px 11px;font-size:15px}
+main{max-width:860px;margin:0 auto;padding:12px 12px calc(env(safe-area-inset-bottom) + 90px)}
+.card{background:var(--card);border-radius:14px;box-shadow:0 1px 2px rgba(14,42,92,.08);margin:0 0 12px;overflow:hidden}
+details.card>summary{list-style:none;padding:14px 16px;font-weight:650;display:flex;align-items:center;gap:8px;cursor:pointer}
+details.card>summary::-webkit-details-marker{display:none}
+details.card>summary::after{content:"›";margin-left:auto;font-size:22px;color:var(--mute);transition:transform .2s}
+details.card[open]>summary::after{transform:rotate(90deg)}
+.tag{font-size:11px;font-weight:700;padding:3px 7px;border-radius:6px;background:#e7ecf5;color:var(--navy2);letter-spacing:.4px}
+.tag.ok{background:#dcf2e5;color:var(--ok)}.tag.bad{background:#fbe2e2;color:var(--bad)}
+.body{padding:0 16px 16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+label.f{display:flex;flex-direction:column;font-size:12px;color:var(--mute);gap:4px;font-weight:600;letter-spacing:.2px}
+input,select,textarea{font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:#fbfcfe;color:var(--ink);width:100%;min-width:0}
+input:focus,textarea:focus{outline:2px solid var(--navy2);border-color:transparent}
+textarea{min-height:60px;resize:vertical}
+.seg{display:inline-flex;background:#e7ecf5;border-radius:10px;padding:3px;gap:3px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;padding:8px 13px;border-radius:8px;font:inherit;font-size:14px;font-weight:600;color:var(--navy2)}
+.seg button.on{background:var(--navy);color:#fff}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
+.btn{border:0;background:var(--navy);color:#fff;padding:11px 16px;border-radius:10px;font:inherit;font-weight:650;font-size:15px}
+.btn.alt{background:#e7ecf5;color:var(--navy)}.btn.amber{background:var(--amber);color:#1a1a1a}.btn.danger{background:#fbe2e2;color:var(--bad)}
+.btn:disabled{opacity:.5}
+.list .item{display:flex;align-items:center;gap:12px;padding:14px 16px;border-top:1px solid var(--line)}
+.list .item:first-child{border-top:0}
+.list .item b{display:block}.list .item span{color:var(--mute);font-size:13px}
+.list .item .go{margin-left:auto}
+.flight{border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0;background:#fbfcfe}
+.flight .h{font-size:12px;font-weight:700;color:var(--mute);margin-bottom:6px;display:flex;justify-content:space-between}
+.sec{border:1px solid var(--line);border-radius:12px;margin:10px 0;overflow:hidden}
+.sec .sh{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#f4f6fa;font-weight:650;font-size:14px}
+.sec .sh .t{flex:1}
+.it{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;padding:7px 10px;border-top:1px solid #eef1f6}
+.it .k{font-weight:700;color:var(--navy2);font-size:13px}
+.it .l{font-size:13.5px}
+.it .cm{grid-column:2/4}
+.mk{display:inline-flex;gap:3px}
+.mk button{width:38px;height:34px;border:1px solid var(--line);background:#fff;border-radius:8px;font-weight:700;font-size:13px;color:var(--mute)}
+.mk button.P.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.mk button.F.on{background:var(--bad);border-color:var(--bad);color:#fff}
+.mk button.N.on{background:var(--na);border-color:var(--na);color:#fff}
+.mk .sep{width:6px}
+.cmb{border:0;background:none;font-size:15px;padding:2px 4px;opacity:.6}
+.warn{margin:0;padding:0;list-style:none}
+.warn li{padding:9px 12px;border-radius:9px;background:#fff4d6;margin:6px 0;font-size:14px}
+.warn li.i{background:#e7ecf5}
+.warn li.good{background:#dcf2e5}
+.out a{display:block;padding:10px 0;color:var(--navy2);font-weight:650}
+.hint{font-size:12.5px;color:var(--mute);margin:6px 0}
+canvas.sig{width:100%;height:160px;border:1px dashed var(--navy2);border-radius:10px;background:#fff;touch-action:none}
+.fab{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom) + 16px);z-index:6}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 80px);transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9}
+.toast.on{opacity:1}
+.chk{display:flex;align-items:center;gap:8px;font-size:15px;padding:6px 0}
+.chk input{width:22px;height:22px}
+h3{font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--mute);margin:16px 0 6px}
+.forms{font-size:13px;color:var(--navy2);font-weight:600}
+</style>
+</head>
+<body>
+<header><a href="index.html" id="to525">‹ 525</a><h1 id="ttl">PEL-FCL Forms<small>HCAA · Examiner</small></h1><button id="hb" hidden>‹ Λίστα</button><button id="setb">⚙︎</button></header>
+<main id="app"></main>
+<div class="toast" id="toast"></div>
+<script src="pdf-lib.min.js"></script>
+<script src="layout.js"></script>
+<script src="fill.js"></script>
+<script>
+const F = window.PELFILL, LAYOUT = window.PEL_LAYOUT, KEY = 'pelfcl_forms_v1';
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+let S = load();
+let view = 'list', openSecs = {};
+function load() {
+  let s; try { s = JSON.parse(localStorage.getItem(KEY)); } catch (e) { }
+  s = s || {};
+  s.ex = Object.assign({ title: 'CPT', surname: 'TOURKAKIS', first: 'MICHAIL', displayName: 'M. TOURKAKIS', number: 'EL/FE/IRE/FIE/TRE/4015', licNo: '4015', state: 'HCAA', authority: 'HCAA', dob: '', mobile: '', email: '', stamp1: 'CPT TOURKAKIS MICHAIL', stamp2: 'EL/FE/IRE/FIE/TRE/4015', sig: '' }, s.ex || {});
+  s.cands = s.cands || []; s.pages = s.pages || 'full';
+  return s;
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Αποθήκευση απέτυχε: ' + e.message); } }
+function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), 2200); }
+function blankTest(n) { return { attempt: '1', engine: 'ME', place: '', notif: '', flights: Array.from({ length: n }, () => ({ date: '', type: '', reg: '', dep: '', arr: '' })), result: '', ft: { ac: '', sim: '', gnd: '' }, retest: { on: false, flights: [{}, {}], result: '', ft: {}, comment: '' }, marks: {}, comments: {}, second: false, comment: '', pbn: '' }; }
+function newCand() {
+  const c = { id: uid(), created: Date.now(), course: 'integrated', tests: { cpl: true, ir: true, pbn: true }, notif: '', signDate: today(),
+    applicant: { title: 'Mr', surname: '', first: '', dob: '', licNo: '', address: '', postcode: '', mobile: '', email: '' },
+    ato: Object.assign({ name: '', number: '', address: '', tel: '', email: '' }, (S.cands[0] && S.cands[0].ato) || {}),
+    cpl: blankTest(2), ir: blankTest(3), pbnChecklist: { pc: true, lic: true, pbn: true, ato: true } };
+  S.cands.unshift(c); save(); return c;
+}
+const cur = () => S.cands.find(c => c.id === S.cur);
+function getP(o, p) { return p.split('.').reduce((a, k) => a == null ? a : a[k], o); }
+function setP(o, p, v) { const ks = p.split('.'); let a = o; ks.slice(0, -1).forEach(k => { if (a[k] == null) a[k] = /^\d+$/.test(k) ? [] : {}; a = a[k]; }); a[ks[ks.length - 1]] = v; }
+
+/* ---------- field helpers ---------- */
+function inp(path, label, type, extra) {
+  const c = view === 'settings' ? S : cur();
+  const v = getP(c, path) ?? '';
+  return `<label class="f">${label}<input data-p="${path}" type="${type || 'text'}" value="${esc(v)}" ${extra || ''}></label>`;
+}
+function seg(path, opts, rer) {
+  const c = view === 'settings' ? S : cur(); const v = getP(c, path);
+  return `<div class="seg">${opts.map(([val, lab]) => `<button data-seg="${path}" data-v="${val}" class="${v === val ? 'on' : ''}">${lab}</button>`).join('')}</div>`;
+}
+function formsFor(c) {
+  const f = [];
+  if (c.course === 'integrated') { if (c.tests.cpl || c.tests.ir) f.push('320B'); if (c.tests.ir) f.push('420A'); }
+  else { if (c.tests.cpl) f.push('320A'); if (c.tests.ir) f.push('420A'); }
+  if (c.tests.pbn) f.push('1000');
+  return f;
+}
+const FORMNAME = { '320A': 'PEL-FCL 320A · CPL Modular', '320B': 'PEL-FCL 320B · CPL Integrated', '420A': 'PEL-FCL 420A · IR Part 2', '1000': 'PEL-FCL 1000 · PBN' };
+
+/* ---------- views ---------- */
+function render() {
+  $('#hb').hidden = view === 'list';
+  const app = $('#app');
+  if (view === 'list') app.innerHTML = listView();
+  else if (view === 'settings') app.innerHTML = settingsView();
+  else app.innerHTML = editView();
+  if (view === 'settings') initSig();
+}
+function listView() {
+  const items = S.cands.map(c => {
+    const a = c.applicant; const fl = [...(c.cpl.flights || []), ...(c.ir.flights || [])].map(f => f.date).filter(Boolean).sort();
+    return `<div class="item" data-open="${c.id}"><div><b>${esc(((a.surname || '').toUpperCase() + ' ' + (a.first || '')).trim() || 'Νέος υποψήφιος')}</b><span>${c.course === 'integrated' ? 'Integrated' : 'Modular'} · ${formsFor(c).join(' + ')}${fl.length ? ' · ' + F.dmy(fl[fl.length - 1]) : ''}</span></div><span class="go">›</span></div>`;
+  }).join('');
+  return `<div class="card list">${items || '<div class="item"><span>Δεν υπάρχουν υποψήφιοι ακόμα. Πάτησε «+ Νέος».</span></div>'}</div>
+  <div class="row"><button class="btn alt" id="exp">Εξαγωγή backup</button><label class="btn alt" style="display:inline-block">Εισαγωγή backup<input type="file" id="imp" accept=".json,application/json" hidden></label></div>
+  <p class="hint">Τα δεδομένα μένουν μόνο σε αυτή τη συσκευή. Κράτα περιστασιακά backup.</p>
+  <button class="btn amber fab" id="new">+ Νέος</button>`;
+}
+function settingsView() {
+  const e = 'ex.';
+  return `<div class="card"><div class="body" style="padding-top:16px">
+  <h3>Στοιχεία εξεταστή</h3>
+  <div class="grid">${inp(e + 'title', 'Τίτλος')}${inp(e + 'surname', 'Επώνυμο')}${inp(e + 'first', 'Όνομα')}${inp(e + 'displayName', 'Όνομα στα έντυπα (Examiner’s Name)')}</div>
+  <div class="grid" style="margin-top:10px">${inp(e + 'number', 'Examiner Number')}${inp(e + 'licNo', 'Αρ. άδειας μετά το EL/FCL/')}${inp(e + 'authority', 'Issuing Competent Authority')}${inp(e + 'state', 'State of License Issue')}</div>
+  <div class="grid" style="margin-top:10px">${inp(e + 'dob', 'Ημ. γέννησης (για 1000)', 'date')}${inp(e + 'mobile', 'Κινητό', 'tel')}${inp(e + 'email', 'Email', 'email')}</div>
+  <h3>Σφραγίδα</h3>
+  <div class="grid">${inp(e + 'stamp1', 'Γραμμή 1')}${inp(e + 'stamp2', 'Γραμμή 2')}</div>
+  <h3>Υπογραφή</h3>
+  <canvas class="sig" id="sig"></canvas>
+  <div class="row"><button class="btn alt" id="sigclr">Καθαρισμός</button><button class="btn" id="sigsave">Αποθήκευση υπογραφής</button><button class="btn danger" id="sigdel">Χωρίς υπογραφή</button></div>
+  <p class="hint">${S.ex.sig ? '✓ Υπάρχει αποθηκευμένη υπογραφή – μπαίνει πάνω στη σφραγίδα.' : 'Χωρίς υπογραφή μπαίνει μόνο η σφραγίδα· υπογράφεις με το χέρι στο χαρτί.'}</p>
+  </div></div>`;
+}
+function sec(id, title, inner, tag) {
+  return `<details class="card" data-sec="${id}" ${openSecs[id] ? 'open' : ''}><summary>${title}${tag ? ' ' + tag : ''}</summary><div class="body">${inner}</div></details>`;
+}
+function flightsHTML(path, n, fstd) {
+  const c = cur(); const arr = getP(c, path) || [];
+  let h = '';
+  for (let i = 0; i < n; i++) {
+    const f = arr[i] || {}; const p = path + '.' + i + '.';
+    const d = F.dur(f.dep, f.arr);
+    h += `<div class="flight"><div class="h"><span>Πτήση ${i + 1}</span><span>${d ? 'Διάρκεια ' + d : ''}</span></div><div class="grid">
+    ${inp(p + 'date', 'Ημερομηνία', 'date')}${inp(p + 'type', fstd ? 'Τύπος αεροσκάφους / FSTD' : 'Τύπος αεροσκάφους', 'text', 'list="dl_type" autocapitalize="characters"')}${inp(p + 'reg', fstd ? 'Registration / FSTD No.' : 'Registration', 'text', 'list="dl_reg" autocapitalize="characters"')}
+    ${inp(p + 'dep', 'Block off', 'time', 'data-r')}${inp(p + 'arr', 'Block on', 'time', 'data-r')}</div></div>`;
+  }
+  return h;
+}
+function marksHTML(kind, t) {
+  const secs = F.ITEMS[kind]; const two = t.second;
+  let h = `<div class="row"><button class="btn alt" data-allpass="${kind}">Όλα ✓ (1η προσπάθεια)</button><label class="chk"><input type="checkbox" data-chk="${kind === 'CPL' ? 'cpl' : 'ir'}.second" ${two ? 'checked' : ''}> 2η προσπάθεια</label></div>`;
+  secs.forEach(s => {
+    const r1 = F.sectionResult(t.marks, s, 0), r2 = two ? F.sectionResult(t.marks, s, 1) : '';
+    const tg = r => r ? `<span class="tag ${r === 'P' ? 'ok' : 'bad'}">${r === 'P' ? 'PASS' : 'FAIL'}</span>` : '';
+    h += `<div class="sec"><div class="sh"><span class="t">Section ${s.s} – ${esc(s.t)}</span>${tg(r1)}${two ? ' / ' + (tg(r2) || '–') : ''}<button class="cmb" data-secpass="${kind}|${s.s}" title="Όλη η ενότητα Pass">✓✓</button></div>`;
+    s.it.forEach(([id, lab]) => {
+      const k = s.s + id; const m = t.marks[k] || [];
+      const mk = att => ['P', 'F', 'N'].map(v => { const val = v === 'N' ? 'NA' : v; return `<button class="${v} ${m[att] === val ? 'on' : ''}" data-mark="${kind}|${k}|${att}|${val}">${v === 'P' ? '✓' : v === 'F' ? '✗' : 'N/A'}</button>`; }).join('');
+      const cm = (t.comments || {})[k];
+      h += `<div class="it"><span class="k">${id.replace(/(\D)(\d)/, '$1($2)')}</span><span class="l">${esc(lab)} <button class="cmb" data-cm="${kind}|${k}">💬</button></span><span class="mk">${mk(0)}${two ? '<span class="sep"></span>' + mk(1) : ''}</span>
+      ${cm != null ? `<input class="cm" data-p="${kind === 'CPL' ? 'cpl' : 'ir'}.comments.${k}" value="${esc(cm)}" placeholder="Comments">` : ''}</div>`;
+    });
+    h += '</div>';
+  });
+  return h;
+}
+function testHTML(kind) {
+  const c = cur(); const key = kind === 'CPL' ? 'cpl' : 'ir'; const t = c[key];
+  const n = kind === 'CPL' ? 2 : 3;
+  let h = `<div class="row">${seg(key + '.engine', [['SE', 'Single-engine'], ['ME', 'Multi-engine']])}</div>
+  <div class="grid">${inp(key + '.attempt', 'Attempt No.', 'text', 'inputmode="numeric"')}${kind === 'CPL' ? inp(key + '.place', 'Place of Test', 'text', 'list="dl_place" autocapitalize="characters"') : ''}${inp(key + '.notif', 'Notification HCAA (αν διαφέρει)', 'date')}</div>
+  <h3>Details of flight(s)</h3>${flightsHTML(key + '.flights', n, kind === 'IR')}
+  <h3>Αποτέλεσμα</h3><div class="row">${seg(key + '.result', [['pass', 'Pass'], ['partial', 'Partial pass'], ['fail', 'Fail']])}</div>`;
+  if (t.result === 'partial' || t.result === 'fail') h += `<div class="grid">${inp(key + '.ft.ac', 'Further training A/C (h)')}${inp(key + '.ft.sim', kind === 'CPL' ? 'Sim/FNPT II (h)' : 'FSTD (h)')}${inp(key + '.ft.gnd', 'Ground (h)')}</div>`;
+  if (kind === 'IR') h += `<label class="f" style="margin-top:10px">Comments (Part 2)<textarea data-p="ir.comment">${esc(t.comment)}</textarea></label>
+   <h3>PBN competency (320B Ενότ. 10 / 1000)</h3><div class="row">${seg('ir.pbn', [['yes', 'YES'], ['no', 'NO']])}</div>`;
+  h += `<label class="chk"><input type="checkbox" data-chk="${key}.retest.on" ${t.retest.on ? 'checked' : ''}> Partial Pass Re-test</label>`;
+  if (t.retest.on) {
+    h += flightsHTML(key + '.retest.flights', 2, kind === 'IR') + `<div class="row">${seg(key + '.retest.result', [['pass', 'Pass'], ['fail', 'Fail']])}</div>`;
+    if (t.retest.result === 'fail') h += `<div class="grid">${inp(key + '.retest.ft.ac', 'A/C (h)')}${inp(key + '.retest.ft.sim', kind === 'CPL' ? 'Sim/FNPT II (h)' : 'FSTD (h)')}${inp(key + '.retest.ft.gnd', 'Ground (h)')}</div>`;
+    if (kind === 'IR') h += `<label class="f">Comments (re-test)<textarea data-p="ir.retest.comment">${esc(t.retest.comment)}</textarea></label>`;
+  }
+  h += `<h3>Skill test items</h3>` + marksHTML(kind, t);
+  return h;
+}
+function overall(t, kind) {
+  const secs = F.ITEMS[kind]; const r = secs.map(s => F.sectionResult(t.marks, s, 0));
+  if (r.includes('F')) return '<span class="tag bad">FAIL</span>';
+  if (r.every(x => x === 'P')) return '<span class="tag ok">PASS</span>';
+  return '';
+}
+function editView() {
+  const c = cur(); if (!c) { view = 'list'; return listView(); }
+  const A = 'applicant.', T = 'ato.';
+  const fs = formsFor(c);
+  let h = sec('prog', 'Πρόγραμμα & έντυπα', `
+    <div class="row">${seg('course', [['integrated', 'Integrated'], ['modular', 'Modular']])}</div>
+    <label class="chk"><input type="checkbox" data-chk="tests.cpl" ${c.tests.cpl ? 'checked' : ''}> CPL(A) skill test</label>
+    <label class="chk"><input type="checkbox" data-chk="tests.ir" ${c.tests.ir ? 'checked' : ''}> IR(A) skill test</label>
+    <label class="chk"><input type="checkbox" data-chk="tests.pbn" ${c.tests.pbn ? 'checked' : ''}> PBN endorsement (PEL-FCL 1000)</label>
+    <p class="forms">→ ${fs.map(f => FORMNAME[f]).join('<br>→ ') || '—'}</p>
+    <div class="grid">${inp('signDate', 'Ημερομηνία υπογραφής εξεταστή', 'date')}${inp('notif', 'Notification of Test στην HCAA', 'date')}</div>
+    <p class="hint">Τα στοιχεία συμπληρώνονται μία φορά και περνούν σε όλα τα έντυπα.</p>`, `<span class="tag">${c.course === 'integrated' ? 'INT' : 'MOD'}</span>`);
+  h += sec('app', 'Υποψήφιος', `<div class="grid">${inp(A + 'title', 'Title')}${inp(A + 'surname', 'Surname', 'text', 'autocapitalize="characters"')}${inp(A + 'first', 'First name(s)', 'text', 'autocapitalize="characters"')}${inp(A + 'dob', 'Date of birth', 'date')}</div>
+    ${c.tests.pbn ? `<div class="grid" style="margin-top:10px">${inp(A + 'licNo', 'HCAA licence no. (μετά το EL/FCL/)')}${inp(A + 'mobile', 'Mobile', 'tel')}${inp(A + 'email', 'E-mail', 'email')}${inp(A + 'postcode', 'Postcode')}</div><div style="margin-top:10px">${inp(A + 'address', 'Permanent address')}</div>` : ''}`,
+    c.applicant.surname ? `<span class="tag">${esc(c.applicant.surname.toUpperCase())}</span>` : '');
+  if (c.tests.pbn) h += sec('ato', 'ATO / AOC (για 1000)', `<div class="grid">${inp(T + 'name', 'Name of ATO/AOC')}${inp(T + 'number', 'Approval / Ref. No')}${inp(T + 'tel', 'Contact tel.', 'tel')}${inp(T + 'email', 'E-mail', 'email')}</div><div style="margin-top:10px">${inp(T + 'address', 'Address')}</div>
+    <h3>Checklist συνημμένων</h3>
+    ${[['pc', 'Proficiency Check / Skill Test'], ['lic', 'Examiner’s EU Part-FCL licence'], ['pbn', 'Examiner’s PBN endorsement'], ['ato', 'PBN letter/certificate για ATO/AOC από την αρχή']].map(([k, l]) => `<label class="chk"><input type="checkbox" data-chk="pbnChecklist.${k}" ${c.pbnChecklist[k] ? 'checked' : ''}> ${l}</label>`).join('')}`);
+  if (c.tests.cpl) h += sec('cpl', 'CPL(A) skill test', testHTML('CPL'), overall(c.cpl, 'CPL'));
+  if (c.tests.ir) h += sec('ir', 'IR(A) skill test', testHTML('IR'), overall(c.ir, 'IR'));
+  const W = F.checks(c, S.ex);
+  const warnN = W.filter(w => !w.startsWith('ℹ️')).length;
+  h += sec('chk', 'Έλεγχοι', `<ul class="warn">${W.length ? W.map(w => `<li class="${w.startsWith('ℹ️') ? 'i' : ''}">${esc(w)}</li>`).join('') : ''}${!warnN ? '<li class="good">✓ Κανένα πρόβλημα.</li>' : ''}</ul>`, warnN ? `<span class="tag bad">${warnN}</span>` : '<span class="tag ok">OK</span>');
+  h += sec('out', 'Έκδοση PDF', `<div class="row">${segPages()}</div>
+    <div class="row">${fs.map(f => `<button class="btn" data-gen="${f}">${f}</button>`).join('')}${fs.length > 1 ? '<button class="btn amber" data-gen="ALL">Όλα σε ένα PDF</button>' : ''}</div>
+    <div class="out" id="out"></div>`);
+  h += `<div class="row"><button class="btn alt" id="dup">Αντιγραφή σε νέο υποψήφιο</button><button class="btn danger" id="del">Διαγραφή</button></div>`;
+  h += datalists();
+  return h;
+}
+function segPages() { return `<div class="seg"><button data-pages="full" class="${S.pages === 'full' ? 'on' : ''}">Ολόκληρο έντυπο</button><button data-pages="examiner" class="${S.pages === 'examiner' ? 'on' : ''}">Μόνο σελίδες εξεταστή</button></div>`; }
+function datalists() {
+  const types = new Set(), regs = new Set(), places = new Set();
+  S.cands.forEach(c => ['cpl', 'ir'].forEach(k => { (c[k].flights || []).forEach(f => { f.type && types.add(f.type); f.reg && regs.add(f.reg); }); c[k].place && places.add(c[k].place); }));
+  const dl = (id, s) => `<datalist id="${id}">${[...s].map(v => `<option value="${esc(v)}">`).join('')}</datalist>`;
+  return dl('dl_type', types) + dl('dl_reg', regs) + dl('dl_place', places);
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', async e => {
+  const t = e.target.closest('button,[data-open],summary'); if (!t) return;
+  if (t.tagName === 'SUMMARY') { const d = t.parentElement; setTimeout(() => { openSecs[d.dataset.sec] = d.open; }, 0); return; }
+  const c = cur();
+  if (t.id === 'setb') { view = 'settings'; $('#ttl').innerHTML = 'Ρυθμίσεις<small>Εξεταστής</small>'; render(); return; }
+  if (t.id === 'hb') { view = 'list'; $('#ttl').innerHTML = 'PEL-FCL Forms<small>HCAA · Examiner</small>'; render(); window.scrollTo(0, 0); return; }
+  if (t.id === 'new') { const n = newCand(); S.cur = n.id; openSecs = { prog: true, app: true }; view = 'edit'; setTitle(); render(); return; }
+  if (t.dataset.open) { S.cur = t.dataset.open; openSecs = {}; view = 'edit'; setTitle(); render(); window.scrollTo(0, 0); return; }
+  if (t.id === 'exp') { const b = new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' }); deliver([{ name: 'pelfcl-backup-' + today() + '.json', blob: b }]); return; }
+  if (t.id === 'del') { if (confirm('Διαγραφή του υποψηφίου;')) { S.cands = S.cands.filter(x => x.id !== c.id); save(); view = 'list'; render(); } return; }
+  if (t.id === 'dup') { const n = JSON.parse(JSON.stringify(c)); n.id = uid(); n.created = Date.now(); n.cpl = blankTest(2); n.ir = blankTest(3); S.cands.unshift(n); S.cur = n.id; save(); toast('Αντιγράφηκαν υποψήφιος & ATO'); render(); return; }
+  if (t.dataset.seg) { const p = t.dataset.seg; const obj = view === 'settings' ? S : c; setP(obj, p, getP(obj, p) === t.dataset.v ? '' : t.dataset.v); if (p === 'course' && !getP(obj, p)) setP(obj, p, t.dataset.v); save(); render(); return; }
+  if (t.dataset.pages) { S.pages = t.dataset.pages; save(); render(); return; }
+  if (t.dataset.mark) {
+    const [kind, k, att, v] = t.dataset.mark.split('|'); const tt = c[kind === 'CPL' ? 'cpl' : 'ir'];
+    const m = tt.marks[k] || []; m[+att] = m[+att] === v ? '' : v; tt.marks[k] = m;
+    if (v === 'F' && m[+att] === 'F' && tt.comments[k] == null) tt.comments[k] = '';
+    save(); render(); return;
+  }
+  if (t.dataset.cm) { const [kind, k] = t.dataset.cm.split('|'); const tt = c[kind === 'CPL' ? 'cpl' : 'ir']; if (tt.comments[k] == null) tt.comments[k] = ''; else if (!tt.comments[k]) delete tt.comments[k]; save(); render(); return; }
+  if (t.dataset.allpass || t.dataset.secpass) {
+    const [kind, only] = (t.dataset.allpass || t.dataset.secpass).split('|'); const tt = c[kind === 'CPL' ? 'cpl' : 'ir'];
+    F.ITEMS[kind].forEach(s => { if (only && s.s !== only) return; s.it.forEach(([id]) => {
+      const k = s.s + id; let v = 'P';
+      if (kind === 'CPL' && k === '4f' && tt.engine === 'ME') v = 'NA';
+      if (kind === 'CPL' && tt.engine === 'SE' && ['6a', '6b', '6c'].includes(k)) v = 'NA';
+      if (kind === 'IR' && s.s === '6' && tt.engine === 'SE') v = 'NA';
+      const m = tt.marks[k] || []; m[0] = v; tt.marks[k] = m; }); });
+    save(); render(); toast('Σημειώθηκαν Pass'); return;
+  }
+  if (t.dataset.gen) { generate(t.dataset.gen, t); return; }
+  if (t.id === 'sigclr') { sigClear(); return; }
+  if (t.id === 'sigsave') { S.ex.sig = sigData(); save(); toast(S.ex.sig ? 'Η υπογραφή αποθηκεύτηκε' : 'Άδεια υπογραφή'); render(); return; }
+  if (t.id === 'sigdel') { S.ex.sig = ''; save(); render(); return; }
+});
+document.addEventListener('input', e => {
+  const el = e.target; if (!el.dataset.p) return;
+  const obj = view === 'settings' ? S : cur();
+  let v = el.value; setP(obj, el.dataset.p, v); save();
+  if (el.dataset.r !== undefined) { const fl = el.closest('.flight'); if (fl) { const ins = fl.querySelectorAll('input[type=time]'); const d = F.dur(ins[0].value, ins[1].value); fl.querySelector('.h span:last-child').textContent = d ? 'Διάρκεια ' + d : ''; } }
+});
+document.addEventListener('change', e => {
+  const el = e.target;
+  if (el.id === 'imp') { const f = el.files[0]; if (!f) return; f.text().then(t => { try { const d = JSON.parse(t); if (!d.cands) throw new Error('μη έγκυρο'); if (confirm('Αντικατάσταση όλων των δεδομένων με το backup;')) { S = d; save(); render(); toast('Έγινε εισαγωγή'); } } catch (err) { alert('Σφάλμα: ' + err.message); } }); return; }
+  if (el.dataset.chk) { setP(cur(), el.dataset.chk, el.checked); save(); render(); return; }
+  if (el.dataset.p && (el.type === 'date' || el.type === 'time')) { save(); if (view === 'edit') { const y = window.scrollY; render(); window.scrollTo(0, y); } }
+});
+function setTitle() { const c = cur(); $('#ttl').innerHTML = esc(((c && c.applicant.surname) || 'Υποψήφιος').toUpperCase()) + '<small>' + (c && c.course === 'modular' ? 'Modular' : 'Integrated') + '</small>'; }
+
+/* ---------- PDF ---------- */
+const pdfCache = {};
+async function pdfBytes(f) { if (!pdfCache[f]) { const r = await fetch(f + '.pdf'); if (!r.ok) throw new Error('Δεν βρέθηκε το ' + f + '.pdf'); pdfCache[f] = new Uint8Array(await r.arrayBuffer()); } return pdfCache[f]; }
+function sigBytes() { if (!S.ex.sig) return null; const b = atob(S.ex.sig.split(',')[1]); const u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+async function generate(which, btn) {
+  const c = cur(); const fs = which === 'ALL' ? formsFor(c) : [which];
+  btn.disabled = true; const old = btn.textContent; btn.textContent = '…';
+  try {
+    const outs = [];
+    for (const f of fs) outs.push({ f, bytes: await F.build({ PDFLib, layout: LAYOUT, pdfBytes: await pdfBytes(f), ex: S.ex, c, form: f, pagesMode: S.pages, sigBytes: sigBytes() }) });
+    const nm = ((c.applicant.surname || 'X') + '_' + (c.applicant.first || '')).replace(/[^A-Za-z0-9_]+/g, '_').replace(/_+$/, '');
+    let files;
+    if (which === 'ALL') {
+      const doc = await PDFLib.PDFDocument.create();
+      for (const o of outs) { const d = await PDFLib.PDFDocument.load(o.bytes); (await doc.copyPages(d, d.getPageIndices())).forEach(p => doc.addPage(p)); }
+      files = [{ name: `Forms_${fs.join('_')}_${nm}.pdf`, blob: new Blob([await doc.save()], { type: 'application/pdf' }) }];
+    } else files = outs.map(o => ({ name: `Form_${o.f}_${nm}.pdf`, blob: new Blob([o.bytes], { type: 'application/pdf' }) }));
+    deliver(files);
+  } catch (err) { alert('Σφάλμα στη δημιουργία PDF: ' + err.message); console.error(err); }
+  btn.disabled = false; btn.textContent = old;
+}
+function deliver(files) {
+  const out = $('#out');
+  if (out) out.innerHTML = files.map((f, i) => `<a href="#" data-dl="${i}">📄 ${esc(f.name)}</a>`).join('') + (navigator.canShare ? '<button class="btn" id="shr">Κοινοποίηση / Αποθήκευση</button>' : '');
+  const open = f => { const u = URL.createObjectURL(f.blob); const a = document.createElement('a'); a.href = u; a.download = f.name; a.target = '_blank'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); };
+  if (out) {
+    out.querySelectorAll('[data-dl]').forEach(a => a.onclick = ev => { ev.preventDefault(); open(files[+a.dataset.dl]); });
+    const sb = $('#shr'); if (sb) sb.onclick = async () => { const fl = files.map(f => new File([f.blob], f.name, { type: f.blob.type })); try { if (navigator.canShare({ files: fl })) await navigator.share({ files: fl }); else open(files[0]); } catch (e) { } };
+  } else open(files[0]);
+}
+
+/* ---------- signature ---------- */
+let sctx, sdraw = false, sdirty = false;
+function initSig() {
+  const cv = $('#sig'); if (!cv) return; const r = cv.getBoundingClientRect(); const dpr = window.devicePixelRatio || 1;
+  cv.width = r.width * dpr; cv.height = r.height * dpr; sctx = cv.getContext('2d'); sctx.scale(dpr, dpr);
+  sctx.lineWidth = 2.4; sctx.lineCap = 'round'; sctx.lineJoin = 'round'; sctx.strokeStyle = '#0d1f6b'; sdirty = false;
+  if (S.ex.sig) { const im = new Image(); im.onload = () => { const s = Math.min(r.width / im.width, r.height / im.height) * 0.9; sctx.drawImage(im, (r.width - im.width * s) / 2, (r.height - im.height * s) / 2, im.width * s, im.height * s); }; im.src = S.ex.sig; }
+  const pos = e => { const b = cv.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
+  cv.onpointerdown = e => { sdraw = true; sdirty = true; cv.setPointerCapture(e.pointerId); const [x, y] = pos(e); sctx.beginPath(); sctx.moveTo(x, y); };
+  cv.onpointermove = e => { if (!sdraw) return; const [x, y] = pos(e); sctx.lineTo(x, y); sctx.stroke(); };
+  cv.onpointerup = cv.onpointercancel = () => { sdraw = false; };
+}
+function sigClear() { const cv = $('#sig'); sctx.save(); sctx.setTransform(1, 0, 0, 1, 0, 0); sctx.clearRect(0, 0, cv.width, cv.height); sctx.restore(); }
+function sigData() {
+  const cv = $('#sig'); const w = cv.width, h = cv.height; const d = sctx.getImageData(0, 0, w, h).data;
+  let x0 = w, y0 = h, x1 = 0, y1 = 0;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 20) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  if (x1 <= x0) return '';
+  const o = document.createElement('canvas'); o.width = x1 - x0 + 8; o.height = y1 - y0 + 8;
+  o.getContext('2d').drawImage(cv, x0 - 4, y0 - 4, o.width, o.height, 0, 0, o.width, o.height);
+  return o.toDataURL('image/png');
+}
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => { });
+render();
+</script>
+</body>
+</html>
