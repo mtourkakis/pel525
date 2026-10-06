@@ -65,6 +65,9 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
 .item.na .box{background:var(--chip);border-color:var(--muted)}
 .item.na .box::after{content:"–";color:var(--muted)}
 .item.na .lbl{color:var(--muted)}
+.idw{position:relative;flex:0 0 auto;font-family:"IBM Plex Mono",monospace;font-size:12.5px;border:1px solid var(--line);background:var(--chip);color:var(--muted);border-radius:7px;padding:4px 7px;margin:0}
+.idw.diff{border-color:var(--accent);color:var(--accent);font-weight:600}
+.idw input{position:absolute;inset:0;opacity:0;width:100%;height:100%;min-height:0;padding:0;border:0;font-size:16px}
 .na-tag{font-family:"IBM Plex Mono",monospace;font-size:10.5px;border:1px solid var(--muted);color:var(--muted);border-radius:5px;padding:0 4px}
 </style>
 </head>
@@ -198,10 +201,10 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
  <div><label for="tpl">Πρότυπο</label><select id="tpl"></select></div>
 </div>
 <div class="tools" style="margin-top:10px">
- <button class="mini" id="selM">Μόνο M</button><button class="mini" id="selAll">Όλα</button><button class="mini" id="selNone">Κανένα</button><button class="mini" id="selNA">Υπόλοιπα → N/A</button>
+ <button class="mini" id="selM">Μόνο M</button><button class="mini" id="selAll">Όλα</button><button class="mini" id="selNone">Κανένα</button><button class="mini" id="selNA">Υπόλοιπα → N/A</button><button class="mini" id="idReset">Ίδια ημερομηνία σε όλα</button>
  <button class="mini" id="tplSave">Αποθήκευση προτύπου</button><button class="mini" id="tplDel">Διαγραφή προτύπου</button>
 </div>
-<div class="note" style="margin-top:0">Πάτημα σε item: ✓ → N/A → κενό.</div>
+<div class="note" style="margin-top:0">Πάτημα σε item: ✓ → N/A → κενό. Πάτημα στην ημερομηνία ενός item για αλλαγή (π.χ. την επόμενη μέρα).</div>
 <div id="items"></div>
 </section>
 
@@ -225,7 +228,7 @@ const CF=["surname","first","lictype","licno","dob","addr1","addr2","postcode","
 const CK=["actype","pcExp","irExp","irtype","date","reg","actype6","off","on","total","from","to","rwy","proc","ctVal","irVal","mark","mark2","diffDoc","a5ir","a5cls","a5exp","a5date","report"];
 const SEC={"1":"1 · Departure","2":"2 · Airwork","3A":"3A · En-route VFR","3B":"3B · Instrument flight","4":"4 · Arrival & landings","5":"5 · Abnormal & emergency","6":"6 · Asymmetric","7":"7 · UPRT"};
 const secOf=id=>id.startsWith("3A")?"3A":id.startsWith("3B")?"3B":id.split(".")[0];
-let S={ex:{},cands:[],cur:-1,check:{},chips:{},items:{},tpls:{}};
+let S={ex:{},cands:[],cur:-1,check:{},chips:{},items:{},tpls:{},idates:{}};
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 function loadS(){try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s)S=Object.assign(S,s);}catch(e){}}
 const upper=s=>(s||"").trim().toUpperCase();
@@ -253,7 +256,7 @@ $("candDel").addEventListener("click",()=>{if(S.cur<0)return;if(!confirm("Δια
 /* check fields */
 function calcTotal(){const a=$("off").value,b=$("on").value;if(!a||!b)return;let[m1,m2]=[a,b].map(t=>{const[h,m]=t.split(":").map(Number);return h*60+m;});
  let d=m2-m1;if(d<0)d+=1440;$("total").value=Math.floor(d/60)+":"+String(d%60).padStart(2,"0");}
-function checkInput(e){if(e&&(e.target.id==="off"||e.target.id==="on"))calcTotal();CK.forEach(i=>S.check[i]=$(i).value);persist();refresh();}
+function checkInput(e){if(e&&(e.target.id==="off"||e.target.id==="on"))calcTotal();CK.forEach(i=>S.check[i]=$(i).value);persist();refresh();if(e&&e.target.id==="date"&&e.type==="change")renderItems();}
 /* chips */
 function renderChips(){document.querySelectorAll(".chip").forEach(b=>b.setAttribute("aria-pressed",S.chips[b.dataset.k]?"true":"false"));}
 document.querySelectorAll(".chip").forEach(b=>b.addEventListener("click",()=>{const g=b.parentElement,on=b.getAttribute("aria-pressed")!=="true";
@@ -266,14 +269,20 @@ function renderItems(){const box=$("items");box.innerHTML="";let last=null;
    h.appendChild(b);box.appendChild(h);}
   const st=S.items[it.id],r=document.createElement("div");r.className="item"+(st===true?" on":st==="na"?" na":"");
   r.innerHTML='<div class="box"></div><div class="num">'+it.id+'</div><div class="lbl">'+it.t+'</div>'+(st==="na"?'<span class="na-tag">N/A</span>':"")+(it.m?'<span class="m">M</span>':"");
+  if(st===true){const cd=$("date").value,od=S.idates[it.id],w=document.createElement("label");w.className="idw"+(od&&od!==cd?" diff":"");
+   const sp=document.createElement("span");sp.textContent=dmy(od||cd,true).slice(0,5)||"ημ.";const di=document.createElement("input");di.type="date";di.value=od||cd;
+   w.addEventListener("click",ev=>ev.stopPropagation());
+   di.addEventListener("change",()=>{if(!di.value||di.value===$("date").value)delete S.idates[it.id];else S.idates[it.id]=di.value;persist();renderItems();});
+   w.appendChild(sp);w.appendChild(di);r.insertBefore(w,r.querySelector(".m"));}
   r.addEventListener("click",()=>{const c=S.items[it.id];S.items[it.id]=c===true?"na":c==="na"?false:true;persist();renderItems();});box.appendChild(r);});
  countItems();}
 function countItems(){const on=C.items.filter(i=>S.items[i.id]===true).length,na=C.items.filter(i=>S.items[i.id]==="na").length;
  $("itemCount").textContent=on+" ✓"+(na?" · "+na+" N/A":"");}
+$("idReset").addEventListener("click",()=>{S.idates={};persist();renderItems();});
 $("selNA").addEventListener("click",()=>{C.items.forEach(i=>{if(S.items[i.id]!==true)S.items[i.id]="na";});persist();renderItems();});
 $("selM").addEventListener("click",()=>{C.items.forEach(i=>S.items[i.id]=!!i.m);persist();renderItems();});
 $("selAll").addEventListener("click",()=>{C.items.forEach(i=>S.items[i.id]=true);persist();renderItems();});
-$("selNone").addEventListener("click",()=>{S.items={};persist();renderItems();});
+$("selNone").addEventListener("click",()=>{S.items={};S.idates={};persist();renderItems();});
 function renderTpls(){const s=$("tpl");s.innerHTML='<option value="">—</option>';Object.keys(S.tpls).forEach(n=>{const o=document.createElement("option");o.value=n;o.textContent=n;s.appendChild(o);});}
 $("tpl").addEventListener("change",e=>{const t=S.tpls[e.target.value];if(!t)return;S.items={};
  if(Array.isArray(t))t.forEach(id=>S.items[id]=true);else{(t.on||[]).forEach(id=>S.items[id]=true);(t.na||[]).forEach(id=>S.items[id]="na");}persist();renderItems();});
@@ -290,6 +299,7 @@ $("a5today").addEventListener("click",()=>{$("a5date").value=$("date").value;che
 $("a5expCk").addEventListener("click",()=>{$("a5exp").value=$("ctVal").value;checkInput();});
 /* init */
 loadS();
+if(!S.ex.exName)S.ex.exName="TOURKAKIS MICHAIL";if(!S.ex.exInit)S.ex.exInit="MT";
 EX.forEach(i=>{$(i).value=S.ex[i]||"";$(i).addEventListener("input",exUpdate);});
 if(!S.ex.exName)$("exBox").open=true;$("exSum").textContent=S.ex.exName?upper(S.ex.exName):"ρύθμιση";
 CF.forEach(f=>$("c_"+f).addEventListener("input",candInput));
@@ -352,7 +362,7 @@ async function build(){
  const mark=(p,x,top,m)=>{if(!m)return;if(m==="✓")tick(p,x,top);else put(p,x+3,top,m,{size:7.5,off:7,bold:true});};
  C.items.forEach(it=>{const st=S.items[it.id];if(!st)return;const[a,b]=C.cols[it.pg],p=it.pg-1;
   if(st==="na"){put(p,b+3,it.top,"N/A",{size:7.5,off:7,bold:true});return;}
-  mark(p,a,it.top,mk);mark(p,A2[it.pg],it.top,mk2);put(p,b+3,it.top,(ini?ini+" ":"")+ds,{size:7.5,off:7});});
+  mark(p,a,it.top,mk);mark(p,A2[it.pg],it.top,mk2);put(p,b+3,it.top,(ini?ini+" ":"")+(S.idates[it.id]?dmy(S.idates[it.id],true):ds),{size:7.5,off:7});});
  return await doc.save();
 }
 let dl=null;(async()=>{try{dl=await window.claude?.use?.("downloads")??null;}catch(e){dl=null;}})();
