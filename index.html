@@ -73,7 +73,7 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
 </head>
 <body>
 <div class="wrap">
-<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v4</span></header>
+<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v5</span></header>
 
 <details id="exBox">
 <summary>Εγώ · Examiner <em id="exSum">ρύθμιση</em></summary>
@@ -306,6 +306,7 @@ $("a5expCk").addEventListener("click",()=>{$("a5exp").value=$("ctVal").value;che
 loadS();
 for(const k in DEF_EX)if(!(S.ex[k]||"").trim())S.ex[k]=DEF_EX[k];
 if(S.chips.stamp===undefined)S.chips.stamp=true;
+if(!S.mig5){S.ex.exName=DEF_EX.exName;S.ex.exInit=DEF_EX.exInit;S.mig5=true;}
 EX.forEach(i=>{$(i).value=S.ex[i]||"";$(i).addEventListener("input",exUpdate);});
 if(!S.ex.exName)$("exBox").open=true;$("exSum").textContent=S.ex.exName?upper(S.ex.exName):"ρύθμιση";
 CF.forEach(f=>$("c_"+f).addEventListener("input",candInput));
@@ -374,18 +375,18 @@ async function build(){
  const stamp=(pg,cx,top,vert)=>{if(!ch.stamp||!(s1||s2))return;const z1=6.6,z2=6.1,tw=Math.max(fb.widthOfTextAtSize(s1,z1),fb.widthOfTextAtSize(s2,z2)),L=tw+7,W=17.5,pp=P[pg];
   if(!vert){const x0=cx-L/2,y0=H-top-W;pp.drawRectangle({x:x0,y:y0,width:L,height:W,borderColor:sc,borderWidth:0.8});
    pp.drawText(s1,{x:cx-fb.widthOfTextAtSize(s1,z1)/2,y:y0+W-7.4,size:z1,font:fb,color:sc});pp.drawText(s2,{x:cx-fb.widthOfTextAtSize(s2,z2)/2,y:y0+3.4,size:z2,font:fb,color:sc});}
-  else{const x0=cx,yb=H-top-L/2;pp.drawRectangle({x:x0,y:yb,width:W,height:L,borderColor:sc,borderWidth:0.8,color:rgb(1,1,1)});
+  else{const x0=cx,yb=H-top-(vert==="top"?L:L/2);pp.drawRectangle({x:x0,y:yb,width:W,height:L,borderColor:sc,borderWidth:0.8,color:rgb(1,1,1)});
    pp.drawText(s1,{x:x0+7.4,y:yb+(L-fb.widthOfTextAtSize(s1,z1))/2,size:z1,font:fb,color:sc,rotate:degrees(90)});
    pp.drawText(s2,{x:x0+W-3.4,y:yb+(L-fb.widthOfTextAtSize(s2,z2))/2,size:z2,font:fb,color:sc,rotate:degrees(90)});}
   return L;};
  // items pages: vertical stamp at right side of examiner column, centred on marked items
  for(const pgN of Object.keys(C.cols)){const tops=C.items.filter(it=>String(it.pg)===pgN&&S.items[it.id]).map(it=>it.top);if(!tops.length)continue;
-  const all=C.items.filter(it=>String(it.pg)===pgN).map(it=>it.top);let mid=(Math.min(...all)+Math.max(...all))/2+8;
-  const x0=mk2?577:(pgN==="6"?471:485);stamp(+pgN-1,x0,mid,true);}
+  const ok=C.items.filter(it=>String(it.pg)===pgN&&S.items[it.id]===true).map(it=>it.top);if(!ok.length)continue;
+  const x0=mk2?577:(pgN==="6"?471:485);stamp(+pgN-1,x0,Math.min(...ok)+1,"top");}
  // signature places
- if(d)stamp(2,360,354.5);
- if(v("a5ir")||v("a5cls")||v("a5date"))stamp(2,255,526.5);
- stamp(3,515,495.5);
+ if(d)stamp(2,244,354.5);
+ if(v("a5ir")||v("a5cls")||v("a5date"))stamp(2,172,526.5);
+ stamp(3,168,495.5);
  return await doc.save();
 }
 let dl=null;(async()=>{try{dl=await window.claude?.use?.("downloads")??null;}catch(e){dl=null;}})();
