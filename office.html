@@ -87,6 +87,7 @@ table.t tr.tot td{font-weight:700;border-top:2px solid var(--line)}
 .tag.warnt{background:#fff1cc;color:#8a5a00}
 header a.nav{color:#14202e;background:var(--amber);text-decoration:none;font-weight:700;font-size:13px;border-radius:9px;padding:7px 9px;white-space:nowrap}
 select{font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:#fbfcfe;color:var(--ink);width:100%}
+header{padding-left:calc(env(safe-area-inset-left) + 78px)}
 </style>
 
 </head>
@@ -119,7 +120,7 @@ const saveLog = () => localStorage.setItem(LOGKEY, JSON.stringify(LOG));
 const saveO = () => localStorage.setItem(OKEY, JSON.stringify(O));
 const ex525 = () => (lsGet(K525, {}).ex) || {};
 
-let tab = 'log', curMonth = todayISO().slice(0, 7), edit = null, invEdit = null, curYear = todayISO().slice(0, 4);
+let backTab = null, tab = 'log', curMonth = todayISO().slice(0, 7), edit = null, invEdit = null, curYear = todayISO().slice(0, 4);
 function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), 2200); }
 const client = id => O.clients.find(c => c.id === id);
 const cname = id => (client(id) || {}).name || '';
@@ -216,6 +217,7 @@ function vInvoices() {
   return `<div class="card"><div class="body" style="padding-top:14px"><h3 style="margin-top:0">Νέο τιμολόγιο</h3>
   <div class="grid"><label class="f">Πελάτης<select id="ni_c">${clientOptions('')}</select></label><label class="f">Εξετάσεις του μήνα<input id="ni_m" type="month" value="${curMonth}"></label></div>
   <div class="row" style="margin-top:10px"><button class="btn" id="newInv">Δημιουργία</button></div>
+  ${(() => { const np = LOG.filter(e => !e.invoice && (e.cat === 'exam' || !e.cat) && (!e.client || e.price == null)).sort(sortByDate); return np.length ? `<h3>Χρειάζονται πελάτη / ποσό</h3><ul class="warn">${np.map(e => `<li data-edit="${e.id}" style="cursor:pointer">${dmy(e.date)} · ${esc(e.name || '—')} · ${esc(e.test || '')} — ${e.client ? esc(cname(e.client)) : '<b>χωρίς πελάτη</b>'}${e.price == null ? ' · <b>χωρίς ποσό</b>' : ''} ›</li>`).join('')}</ul>` : ''; })()}
   ${Object.keys(unbilled).length ? `<h3>Ατιμολόγητα</h3><ul class="warn">${Object.entries(unbilled).map(([k, v]) => { const [c, m] = k.split('|'); return `<li class="i" data-unb="${k}">${esc(cname(c))} · ${monthLabel(m)} · ${eur(v)} ›</li>`; }).join('')}</ul>` : ''}
   </div></div>
   <div class="card list">${list.map(i => `<div class="item" data-inv="${i.id}"><div style="flex:1"><b>${esc(i.no)} · ${esc(cname(i.client) || i.clientName || '')}</b><span>${dmy(i.date)}</span></div><b>${eur(invTotal(i))}</b></div>`).join('') || '<div class="item"><span>Κανένα τιμολόγιο ακόμα.</span></div>'}</div>`;
@@ -276,12 +278,12 @@ document.addEventListener('click', async ev => {
   const t = ev.target.closest('button,[data-edit],[data-inv],[data-month],[data-unb],[data-tab]'); if (!t) return;
   if (t.dataset.tab) { tab = t.dataset.tab; edit = null; invEdit = null; render(); window.scrollTo(0, 0); return; }
   if (t.dataset.mstep) { const [y, m] = curMonth.split('-').map(Number); const d = new Date(y, m - 1 + (+t.dataset.mstep), 1); curMonth = d.getFullYear() + '-' + pad(d.getMonth() + 1); edit = null; render(); return; }
-  if (t.dataset.edit) { const e = LOG.find(x => x.id === t.dataset.edit); edit = JSON.parse(JSON.stringify(e)); tab = 'log'; curMonth = e.date.slice(0, 7); render(); window.scrollTo(0, 0); return; }
+  if (t.dataset.edit) { const e = LOG.find(x => x.id === t.dataset.edit); edit = JSON.parse(JSON.stringify(e)); backTab = tab === 'inv' ? 'inv' : null; tab = 'log'; curMonth = e.date.slice(0, 7); render(); window.scrollTo(0, 0); return; }
   if (t.id === 'addE') { edit = { id: uid(), src: 'manual', cat: 'exam', date: curMonth === todayISO().slice(0, 7) ? todayISO() : curMonth + '-01', in801: true, exp: [], price: null }; render(); window.scrollTo(0, 0); return; }
   if (t.id === 'cancelE') { edit = null; render(); return; }
   if (t.id === 'addExp') { edit.exp = edit.exp || []; edit.exp.push({ what: '', date: '' }); render(); return; }
   if (t.dataset.delexp) { edit.exp.splice(+t.dataset.delexp, 1); render(); return; }
-  if (t.id === 'saveE') { const i = LOG.findIndex(x => x.id === edit.id); edit.manualEdit = true; if (i >= 0) LOG[i] = edit; else LOG.push(edit); curMonth = (edit.date || curMonth).slice(0, 7); saveLog(); edit = null; render(); toast('Αποθηκεύτηκε'); return; }
+  if (t.id === 'saveE') { const i = LOG.findIndex(x => x.id === edit.id); edit.manualEdit = true; if (i >= 0) LOG[i] = edit; else LOG.push(edit); curMonth = (edit.date || curMonth).slice(0, 7); saveLog(); edit = null; if (backTab) { tab = backTab; backTab = null; } render(); toast('Αποθηκεύτηκε'); return; }
   if (t.id === 'delE') { if (confirm('Διαγραφή εγγραφής;')) { LOG = LOG.filter(x => x.id !== edit.id); saveLog(); edit = null; render(); } return; }
   if (t.id === 'gen801') { O.exName801 = $('#ex801').value; saveO(); const b = await pdf801(curMonth, $('#ex801').value, $('#d801').value); deliver([{ name: `PEL-FCL-801_${curMonth}.pdf`, blob: new Blob([b], { type: 'application/pdf' }) }]); return; }
   if (t.id === 'mail801') { location.href = `mailto:info@hcaa.gov.gr?subject=${encodeURIComponent('PEL-FCL 801 - Examiner Activity Report - ' + curMonth + ' - ' + ($('#ex801').value || ''))}&body=${encodeURIComponent('Please find attached the Examiner Activity Report (PEL-FCL 801) for ' + monthLabel(curMonth) + '.\n\n' + ($('#ex801').value || ''))}`; return; }
