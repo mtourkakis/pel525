@@ -74,7 +74,7 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
 </head>
 <body>
 <div class="wrap">
-<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v12</span><a class="swl" href="forms.html">CPL · IR · PBN ›</a></header>
+<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v13</span><a class="swl" href="forms.html">CPL · IR · PBN ›</a><a class="swl" style="margin-left:6px" href="office.html">Γραφείο ›</a></header>
 
 <details id="exBox">
 <summary>Εγώ · Examiner <em id="exSum">ρύθμιση</em></summary>
@@ -409,11 +409,22 @@ async function build(){
  stamp(3,168,495.5);
  return await doc.save();
 }
+function logExam525(){const g=id=>($(id)?$(id).value:"");const ch=S.chips||{};const date=g("date");if(!date)return;
+const name=(upper(g("c_surname"))+" "+upper(g("c_first"))).trim();const id="525|"+name+"|"+date;
+const res=ch.rPass?"P":ch.rPartial?"PP":ch.rFail?"F":"";const exp=[];
+if(g("ctVal"))exp.push({what:[ch.r6sep&&"SEP(LAND)",ch.r6mep&&"MEP(LAND)"].filter(Boolean).join(" / ")||upper(g("actype"))||"Class/Type rating",date:g("ctVal")});
+if(g("irVal"))exp.push({what:[ch.ir6se&&"IR(A)/SP/SE",ch.ir6me&&"IR(A)/SP/ME"].filter(Boolean).join(", ")||"IR",date:g("irVal")});
+const fr=upper(g("from")).split("/")[0],to=upper(g("to")).split("/")[0];
+const rec={id,src:"525",cat:"exam",date,name,lic:upper(g("c_licno")),dep:[fr,to].filter(Boolean).join("/"),reg:upper(g("reg")),type:upper(g("actype6")||g("actype")),test:(ch.sTest?"LST ":"LPC ")+upper(g("irtype")||g("actype")),time:g("total"),result:res,email:g("c_email"),phone:g("c_phone"),exp,in801:true};
+let L=[];try{L=JSON.parse(localStorage.getItem("pel_log_v1"))||[];}catch(e){}
+const i=L.findIndex(x=>x.id===id);
+if(i>=0){const o=L[i];L[i]=o.manualEdit?Object.assign(o,{exp}):Object.assign({},rec,{client:o.client,price:o.price,invoice:o.invoice,note:o.note,qty:o.qty,in801:o.in801});}else L.push(rec);
+localStorage.setItem("pel_log_v1",JSON.stringify(L));}
 let dl=null;(async()=>{try{dl=await window.claude?.use?.("downloads")??null;}catch(e){dl=null;}})();
 $("go").addEventListener("click",async()=>{const btn=$("go");btn.disabled=true;setStatus("Δημιουργία…");
  try{if(!window.PDFLib)throw 0;
   if(nonLatin($("c_surname").value)||nonLatin($("c_first").value)){setStatus("Το όνομα του υποψηφίου πρέπει να είναι με λατινικούς.","err");return;}
-  const bytes=await build();const sn=upper($("c_surname").value).replace(/[^A-Z0-9]+/g,"-")||"APPLICANT";
+  const bytes=await build();try{logExam525();}catch(e){}const sn=upper($("c_surname").value).replace(/[^A-Z0-9]+/g,"-")||"APPLICANT";
   const fn="PEL-FCL-525_"+sn+"_"+dmy($("date").value).replace(/\//g,"-")+".pdf";
   if(!dl){const blob=new Blob([bytes],{type:"application/pdf"}),file=new File([blob],fn,{type:"application/pdf"});
    try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:fn});setStatus("Έτοιμο: "+fn,"ok");return;}}

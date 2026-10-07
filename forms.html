@@ -18,6 +18,7 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.35 "IBM Ple
 header{position:sticky;top:0;z-index:5;background:var(--navy);color:#fff;padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;display:flex;align-items:center;gap:10px;border-bottom:3px solid var(--amber)}
 header h1{font-size:17px;margin:0;flex:1;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 header h1 small{display:block;font-weight:400;font-size:11px;opacity:.75;letter-spacing:1.5px;text-transform:uppercase}
+header a#toOff{color:#14202e;background:var(--amber);text-decoration:none;font-weight:700;font-size:14px;border-radius:9px;padding:7px 10px;white-space:nowrap}
 header a#to525{color:#14202e;background:var(--amber);text-decoration:none;font-weight:700;font-size:14px;border-radius:9px;padding:7px 10px;white-space:nowrap}
 header button{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:9px;padding:7px 11px;font-size:15px}
 main{max-width:860px;margin:0 auto;padding:12px 12px calc(env(safe-area-inset-bottom) + 90px)}
@@ -78,7 +79,7 @@ h3{font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--mute);
 </style>
 </head>
 <body>
-<header><a href="index.html" id="to525">‹ 525</a><h1 id="ttl">PEL-FCL Forms<small>HCAA · Examiner</small></h1><button id="hb" hidden>‹ Λίστα</button><button id="setb">⚙︎</button></header>
+<header><a href="index.html" id="to525">‹ 525</a><a href="office.html" id="toOff">Γραφείο</a><h1 id="ttl">PEL-FCL Forms<small>HCAA · Examiner</small></h1><button id="hb" hidden>‹ Λίστα</button><button id="setb">⚙︎</button></header>
 <main id="app"></main>
 <div class="toast" id="toast"></div>
 <script src="pdf-lib.min.js"></script>
@@ -330,9 +331,29 @@ async function generate(which, btn) {
       for (const o of outs) { const d = await PDFLib.PDFDocument.load(o.bytes); (await doc.copyPages(d, d.getPageIndices())).forEach(p => doc.addPage(p)); }
       files = [{ name: `Forms_${fs.join('_')}_${nm}.pdf`, blob: new Blob([await doc.save()], { type: 'application/pdf' }) }];
     } else files = outs.map(o => ({ name: `Form_${o.f}_${nm}.pdf`, blob: new Blob([o.bytes], { type: 'application/pdf' }) }));
+    try { logForms(c); } catch (e) { }
     deliver(files);
   } catch (err) { alert('Σφάλμα στη δημιουργία PDF: ' + err.message); console.error(err); }
   btn.disabled = false; btn.textContent = old;
+}
+function logForms(c) {
+  const A = c.applicant || {}; const name = ((A.surname || '') + ' ' + (A.first || '')).toUpperCase().trim();
+  const tests = []; if (c.tests.cpl) tests.push(c.cpl); if (c.tests.ir) tests.push(c.ir); if (!tests.length) return;
+  const fl = tests.flatMap(t => [...(t.flights || []), ...((t.retest && t.retest.on && t.retest.flights) || [])]).filter(f => f && (f.date || f.type));
+  const dates = fl.map(f => f.date).filter(Boolean).sort(); if (!dates.length) return;
+  let mins = 0; fl.forEach(f => { const d = F.dur(f.dep, f.arr); if (d) { const [h, m] = d.split(':'); mins += (+h) * 60 + (+m); } });
+  const rs = tests.map(t => (t.retest && t.retest.on && t.retest.result) ? t.retest.result : t.result);
+  const res = rs.includes('fail') ? 'F' : rs.includes('partial') ? 'PP' : rs.every(r => r === 'pass') ? 'P' : '';
+  const join = a => [...new Set(a.filter(Boolean).map(s => String(s).toUpperCase().trim()))].join('/');
+  const eng = tests[0].engine === 'SE' ? 'SEP' : 'MEP';
+  const label = 'LST ' + [c.tests.cpl && 'CPL', c.tests.ir && 'IR(A)'].filter(Boolean).join(' ') + '/' + eng + (c.tests.ir && c.ir.pbn === 'yes' ? '/PBN' : '');
+  const place = (c.cpl && c.cpl.place) || '';
+  const id = 'forms|' + c.id;
+  const rec = { id, src: 'forms', cat: 'exam', date: dates[dates.length - 1], name, lic: A.licNo || '', dep: place ? (place + '/' + place).toUpperCase() : '', reg: join(fl.map(f => f.reg)), type: join(fl.map(f => f.type)), test: label, time: mins ? Math.floor(mins / 60) + ':' + String(mins % 60).padStart(2, '0') : '', result: res, email: A.email || '', phone: A.mobile || '', exp: [], in801: true };
+  let L = []; try { L = JSON.parse(localStorage.getItem('pel_log_v1')) || []; } catch (e) { }
+  const i = L.findIndex(x => x.id === id);
+  if (i >= 0) { const o = L[i]; if (!o.manualEdit) L[i] = Object.assign({}, rec, { client: o.client, price: o.price, invoice: o.invoice, note: o.note, qty: o.qty, in801: o.in801, exp: o.exp || [] }); } else L.push(rec);
+  localStorage.setItem('pel_log_v1', JSON.stringify(L));
 }
 function deliver(files) {
   const out = $('#out');

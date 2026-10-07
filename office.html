@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PEL 525">
+<meta name="theme-color" content="#14202e">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Γραφείο · Εξετάσεις, 801, Τιμολόγια</title>
+<style>
+:root{--navy:#14202e;--navy2:#2b3d52;--amber:#d98a00;--ink:#14213d;--mute:#5d6b82;--line:#d8dee9;--bg:#eef1f6;--card:#fff;--ok:#1d8a4e;--bad:#c62f2f;--na:#7a8597}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.35 "IBM Plex Sans",-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--navy);color:#fff;padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;display:flex;align-items:center;gap:10px;border-bottom:3px solid var(--amber)}
+header h1{font-size:17px;margin:0;flex:1;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header h1 small{display:block;font-weight:400;font-size:11px;opacity:.75;letter-spacing:1.5px;text-transform:uppercase}
+header a#to525{color:#14202e;background:var(--amber);text-decoration:none;font-weight:700;font-size:14px;border-radius:9px;padding:7px 10px;white-space:nowrap}
+header button{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:9px;padding:7px 11px;font-size:15px}
+main{max-width:860px;margin:0 auto;padding:12px 12px calc(env(safe-area-inset-bottom) + 90px)}
+.card{background:var(--card);border-radius:14px;box-shadow:0 1px 2px rgba(14,42,92,.08);margin:0 0 12px;overflow:hidden}
+details.card>summary{list-style:none;padding:14px 16px;font-weight:650;display:flex;align-items:center;gap:8px;cursor:pointer}
+details.card>summary::-webkit-details-marker{display:none}
+details.card>summary::after{content:"›";margin-left:auto;font-size:22px;color:var(--mute);transition:transform .2s}
+details.card[open]>summary::after{transform:rotate(90deg)}
+.tag{font-size:11px;font-weight:700;padding:3px 7px;border-radius:6px;background:#e7ecf5;color:var(--navy2);letter-spacing:.4px}
+.tag.ok{background:#dcf2e5;color:var(--ok)}.tag.bad{background:#fbe2e2;color:var(--bad)}
+.body{padding:0 16px 16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+label.f{display:flex;flex-direction:column;font-size:12px;color:var(--mute);gap:4px;font-weight:600;letter-spacing:.2px}
+input,select,textarea{font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:#fbfcfe;color:var(--ink);width:100%;min-width:0}
+input:focus,textarea:focus{outline:2px solid var(--navy2);border-color:transparent}
+textarea{min-height:60px;resize:vertical}
+.seg{display:inline-flex;background:#e7ecf5;border-radius:10px;padding:3px;gap:3px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;padding:8px 13px;border-radius:8px;font:inherit;font-size:14px;font-weight:600;color:var(--navy2)}
+.seg button.on{background:var(--navy);color:#fff}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
+.btn{border:0;background:var(--navy);color:#fff;padding:11px 16px;border-radius:10px;font:inherit;font-weight:650;font-size:15px}
+.btn.alt{background:#e7ecf5;color:var(--navy)}.btn.amber{background:var(--amber);color:#1a1a1a}.btn.danger{background:#fbe2e2;color:var(--bad)}
+.btn:disabled{opacity:.5}
+.list .item{display:flex;align-items:center;gap:12px;padding:14px 16px;border-top:1px solid var(--line)}
+.list .item:first-child{border-top:0}
+.list .item b{display:block}.list .item span{color:var(--mute);font-size:13px}
+.list .item .go{margin-left:auto}
+.flight{border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0;background:#fbfcfe}
+.flight .h{font-size:12px;font-weight:700;color:var(--mute);margin-bottom:6px;display:flex;justify-content:space-between}
+.sec{border:1px solid var(--line);border-radius:12px;margin:10px 0;overflow:hidden}
+.sec .sh{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#f4f6fa;font-weight:650;font-size:14px}
+.sec .sh .t{flex:1}
+.it{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;padding:7px 10px;border-top:1px solid #eef1f6}
+.it .k{font-weight:700;color:var(--navy2);font-size:13px}
+.it .l{font-size:13.5px}
+.it .cm{grid-column:2/4}
+.mk{display:inline-flex;gap:3px}
+.mk button{width:38px;height:34px;border:1px solid var(--line);background:#fff;border-radius:8px;font-weight:700;font-size:13px;color:var(--mute)}
+.mk button.P.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.mk button.F.on{background:var(--bad);border-color:var(--bad);color:#fff}
+.mk button.N.on{background:var(--na);border-color:var(--na);color:#fff}
+.mk .sep{width:6px}
+.cmb{border:0;background:none;font-size:15px;padding:2px 4px;opacity:.6}
+.warn{margin:0;padding:0;list-style:none}
+.warn li{padding:9px 12px;border-radius:9px;background:#fff4d6;margin:6px 0;font-size:14px}
+.warn li.i{background:#e7ecf5}
+.warn li.good{background:#dcf2e5}
+.out a{display:block;padding:10px 0;color:var(--navy2);font-weight:650}
+.hint{font-size:12.5px;color:var(--mute);margin:6px 0}
+canvas.sig{width:100%;height:160px;border:1px dashed var(--navy2);border-radius:10px;background:#fff;touch-action:none}
+.fab{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom) + 16px);z-index:6}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 80px);transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9}
+.toast.on{opacity:1}
+.chk{display:flex;align-items:center;gap:8px;font-size:15px;padding:6px 0}
+.chk input{width:22px;height:22px}
+h3{font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--mute);margin:16px 0 6px}
+.forms{font-size:13px;color:var(--navy2);font-weight:600}
+
+.tabs{display:flex;gap:4px;overflow-x:auto;padding:8px 12px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:calc(env(safe-area-inset-top) + 56px);z-index:4}
+.tabs button{border:0;background:#e7ecf5;color:var(--navy2);padding:9px 13px;border-radius:9px;font:inherit;font-size:14px;font-weight:650;white-space:nowrap}
+.tabs button.on{background:var(--navy);color:#fff}
+table.t{width:100%;border-collapse:collapse;font-size:13.5px}
+table.t th{text-align:left;color:var(--mute);font-size:11.5px;letter-spacing:.3px;padding:6px;border-bottom:2px solid var(--line);white-space:nowrap}
+table.t td{padding:7px 6px;border-bottom:1px solid #eef1f6;white-space:nowrap}
+table.t tr[data-edit],table.t tr[data-month]{cursor:pointer}
+table.t tr.sel td{background:#fff4d6}
+table.t tr.tot td{font-weight:700;border-top:2px solid var(--line)}
+.tag.warnt{background:#fff1cc;color:#8a5a00}
+header a.nav{color:#14202e;background:var(--amber);text-decoration:none;font-weight:700;font-size:13px;border-radius:9px;padding:7px 9px;white-space:nowrap}
+select{font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:#fbfcfe;color:var(--ink);width:100%}
+</style>
+
+</head>
+<body>
+<header><a href="index.html" class="nav">‹ 525</a><h1>Γραφείο<small>801 · Έσοδα · Τιμολόγια · Λήξεις</small></h1><a href="forms.html" class="nav">CPL·IR·PBN</a></header>
+<nav class="tabs"><button data-tab="log">Εξετάσεις</button><button data-tab="r801">801</button><button data-tab="inc">Έσοδα</button><button data-tab="inv">Τιμολόγια</button><button data-tab="exp">Λήξεις</button><button data-tab="set">Ρυθμίσεις</button></nav>
+<main id="app"></main>
+<div class="toast" id="toast"></div>
+<script src="pdf-lib.min.js"></script>
+<script>const LOGO="data:image/jpeg;base64,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";
+/* Γραφείο: ημερολόγιο εξετάσεων, PEL-FCL 801, έσοδα, τιμολόγια, λήξεις */
+const LOGKEY = 'pel_log_v1', OKEY = 'pel_office_v1', K525 = 'pel525-ex-v1';
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const pad = n => String(n).padStart(2, '0');
+const todayISO = () => { const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+const uid = () => Math.random().toString(36).slice(2, 10);
+const dmy = iso => { if (!iso) return ''; const [y, m, d] = iso.split('-'); return d + '/' + m + '/' + y; };
+const MONTHS = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
+const monthLabel = ym => { const [y, m] = ym.split('-'); return MONTHS[+m - 1] + ' ' + y; };
+const eur = n => '€ ' + (Number(n) || 0).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const num = v => { if (v === '' || v == null) return null; const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? null : n; };
+const CATS = { exam: 'Εξέταση', dek: 'Δεκέλεια', stud: 'Μαθητής', other: 'Άλλο' };
+const RES = { P: 'Pass', PP: 'Partial', F: 'Fail' };
+
+function lsGet(k, d) { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } }
+let LOG = lsGet(LOGKEY, []);
+let O = Object.assign({ company: '', companyNo: '', bank: '', exName801: '', nextNo: 1, year2: String(new Date().getFullYear()).slice(2), clients: [], invoices: [], mydocs: [] }, lsGet(OKEY, {}));
+const saveLog = () => localStorage.setItem(LOGKEY, JSON.stringify(LOG));
+const saveO = () => localStorage.setItem(OKEY, JSON.stringify(O));
+const ex525 = () => (lsGet(K525, {}).ex) || {};
+
+let tab = 'log', curMonth = todayISO().slice(0, 7), edit = null, invEdit = null, curYear = todayISO().slice(0, 4);
+function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), 2200); }
+const client = id => O.clients.find(c => c.id === id);
+const cname = id => (client(id) || {}).name || '';
+const inMonth = (e, ym) => (e.date || '').startsWith(ym);
+const sortByDate = (a, b) => (a.date || '').localeCompare(b.date || '');
+
+/* ---------- render ---------- */
+function render() {
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  const v = { log: vLog, r801: v801, inc: vIncome, inv: vInvoices, exp: vExpiry, set: vSettings }[tab]();
+  $('#app').innerHTML = v;
+}
+function monthPicker() {
+  return `<div class="row"><button class="btn alt" data-mstep="-1">‹</button><b style="min-width:150px;text-align:center">${monthLabel(curMonth)}</b><button class="btn alt" data-mstep="1">›</button></div>`;
+}
+function fld(k, label, type, val, extra) { return `<label class="f">${label}<input data-e="${k}" type="${type || 'text'}" value="${esc(val)}" ${extra || ''}></label>`; }
+function clientOptions(sel) { return `<option value="">— χωρίς —</option>` + O.clients.map(c => `<option value="${c.id}" ${c.id === sel ? 'selected' : ''}>${esc(c.name)}</option>`).join(''); }
+
+function vLog() {
+  const list = LOG.filter(e => inMonth(e, curMonth)).sort(sortByDate);
+  let h = monthPicker();
+  if (edit) h += editorHTML();
+  h += `<div class="card list">${list.map(e => `<div class="item" data-edit="${e.id}"><div style="flex:1;min-width:0"><b>${dmy(e.date)} · ${esc(e.name || '—')}</b><span>${esc([CATS[e.cat] !== 'Εξέταση' ? CATS[e.cat] : '', e.test, e.type].filter(Boolean).join(' · '))}</span><span>${e.client ? esc(cname(e.client)) : '<i style="color:#c62f2f">χωρίς πελάτη</i>'}${e.invoice ? ' · τιμ. ' + esc(e.invoice) : ''}</span></div><div style="text-align:right">${e.result ? `<span class="tag ${e.result === 'P' ? 'ok' : 'bad'}">${e.result}</span><br>` : ''}<b>${e.price != null ? eur(e.price) : ''}</b></div></div>`).join('') || '<div class="item"><span>Καμία εγγραφή αυτόν τον μήνα.</span></div>'}</div>`;
+  const tot = list.reduce((s, e) => s + (e.price || 0), 0);
+  h += `<p class="hint">${list.length} εγγραφές · σύνολο ${eur(tot)}. Οι εξετάσεις από 525 και CPL/IR/PBN μπαίνουν αυτόματα όταν βγάζεις PDF.</p>`;
+  h += `<button class="btn amber fab" id="addE">+ Εγγραφή</button>`;
+  return h;
+}
+function editorHTML() {
+  const e = edit;
+  const exps = (e.exp || []).map((x, i) => `<div class="grid" style="margin-top:6px">${fld('exp.' + i + '.what', 'Τι λήγει', 'text', x.what)}${fld('exp.' + i + '.date', 'Ημερομηνία λήξης', 'date', x.date)}<button class="btn danger" data-delexp="${i}" style="align-self:end">✕</button></div>`).join('');
+  return `<div class="card"><div class="body" style="padding-top:14px">
+  <div class="grid"><label class="f">Κατηγορία<select data-e="cat">${Object.entries(CATS).map(([k, v]) => `<option value="${k}" ${e.cat === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>${fld('date', 'Ημερομηνία', 'date', e.date)}${fld('name', 'Όνομα', 'text', e.name, 'autocapitalize="characters"')}${fld('lic', 'Αρ. άδειας', 'text', e.lic, 'autocapitalize="characters"')}</div>
+  ${e.cat === 'exam' ? `<div class="grid" style="margin-top:10px">${fld('test', 'Skill test / Prof. check', 'text', e.test, 'autocapitalize="characters" list="dl_test"')}${fld('type', 'A/C type / class', 'text', e.type, 'autocapitalize="characters"')}${fld('reg', 'Registration', 'text', e.reg, 'autocapitalize="characters"')}${fld('dep', 'Departure / Arrival', 'text', e.dep, 'autocapitalize="characters"')}${fld('time', 'Χρόνος (h:mm)', 'text', e.time)}<label class="f">Αποτέλεσμα<select data-e="result"><option value=""></option>${Object.entries(RES).map(([k, v]) => `<option value="${k}" ${e.result === k ? 'selected' : ''}>${k} · ${v}</option>`).join('')}</select></label></div>
+  <label class="chk"><input type="checkbox" data-e="in801" ${e.in801 !== false ? 'checked' : ''}> Μπαίνει στο PEL-FCL 801</label>` : ''}
+  <div class="grid" style="margin-top:10px"><label class="f">Πελάτης / χρέωση<select data-e="client">${clientOptions(e.client)}</select></label>${fld('price', 'Ποσό €', 'text', e.price == null ? '' : e.price, 'inputmode="decimal"')}${fld('qty', 'Ώρες / τεμ. (προαιρ.)', 'text', e.qty || '', 'inputmode="decimal"')}</div>
+  <div class="grid" style="margin-top:10px">${fld('email', 'Email υποψηφίου', 'email', e.email)}${fld('phone', 'Τηλέφωνο', 'tel', e.phone)}</div>
+  <h3>Λήξεις υποψηφίου</h3>${exps}<button class="btn alt" id="addExp" style="margin-top:6px">+ Λήξη</button>
+  <label class="f" style="margin-top:10px">Σημείωση<input data-e="note" value="${esc(e.note)}"></label>
+  <div class="row" style="margin-top:12px"><button class="btn" id="saveE">Αποθήκευση</button><button class="btn alt" id="cancelE">Άκυρο</button>${LOG.some(x => x.id === e.id) ? '<button class="btn danger" id="delE">Διαγραφή</button>' : ''}</div>
+  <datalist id="dl_test">${[...new Set(LOG.map(x => x.test).filter(Boolean))].map(t => `<option value="${esc(t)}">`).join('')}</datalist>
+  </div></div>`;
+}
+function suggestPrice(e) {
+  if (!e.client) return null;
+  const same = LOG.filter(x => x.id !== e.id && x.client === e.client && x.price != null).sort(sortByDate).reverse();
+  const t = (e.test || '').toUpperCase().trim();
+  const m = same.find(x => (x.test || '').toUpperCase().trim() === t && t) || same.find(x => x.cat === e.cat);
+  return m ? m.price : null;
+}
+
+function rows801(ym) { return LOG.filter(e => inMonth(e, ym) && e.cat === 'exam' && e.in801 !== false).sort(sortByDate); }
+function v801() {
+  const r = rows801(curMonth);
+  const last = new Date(+curMonth.slice(0, 4), +curMonth.slice(5, 7), 0);
+  return monthPicker() + `<div class="card"><div class="body" style="padding-top:14px">
+  <p class="hint">Με το ✕ βγάζεις από το 801 εξετάσεις που δεν δηλώνονται (π.χ. ξένων). Δεν σβήνονται, μένουν στα Έσοδα και στα Τιμολόγια.</p>
+  <div style="overflow-x:auto"><table class="t"><tr><th></th><th>#</th><th>Date</th><th>Name</th><th>Lic.</th><th>Dep/Arr</th><th>Reg</th><th>Type</th><th>Check</th><th>Time</th><th>Res</th></tr>
+  ${r.map((e, i) => `<tr><td><button class="btn danger" style="padding:5px 10px" data-x801="${e.id}" title="Βγάλε από το 801">✕</button></td><td>${i + 1}</td><td>${dmy(e.date)}</td><td>${esc(e.name)}</td><td>${esc(e.lic)}</td><td>${esc(e.dep)}</td><td>${esc(e.reg)}</td><td>${esc(e.type)}</td><td>${esc(e.test)}</td><td>${esc(e.time)}</td><td>${esc(e.result)}</td></tr>`).join('') || '<tr><td colspan="11">Καμία εξέταση.</td></tr>'}</table></div>
+  ${(() => { const xs = LOG.filter(e => inMonth(e, curMonth) && e.cat === 'exam' && e.in801 === false).sort(sortByDate); return xs.length ? `<h3>Δεν μπαίνουν στο 801</h3><div class="card list" style="box-shadow:none;border:1px solid var(--line)">${xs.map(e => `<div class="item"><div style="flex:1"><b>${dmy(e.date)} · ${esc(e.name)}</b><span>${esc(e.test)}</span></div><button class="btn alt" data-in801="${e.id}">↩︎ Επαναφορά</button></div>`).join('')}</div><p class="hint">Μετράνε κανονικά στα Έσοδα και στα Τιμολόγια.</p>` : ''; })()}
+  <div class="grid" style="margin-top:12px"><label class="f">Όνομα εξεταστή<input id="ex801" value="${esc(O.exName801 || ('M.' + ((ex525().exName || 'TOURKAKIS').split(' ')[0])))}"></label><label class="f">Ημερομηνία δήλωσης<input id="d801" type="date" value="${last.getFullYear()}-${pad(last.getMonth() + 1)}-${pad(last.getDate())}"></label></div>
+  <div class="row" style="margin-top:12px"><button class="btn" id="gen801">PDF PEL-FCL 801</button><button class="btn alt" id="mail801">Email στην ΥΠΑ</button></div>
+  <div class="out" id="out"></div></div></div>`;
+}
+
+function yearEntries(y) { return LOG.filter(e => (e.date || '').startsWith(y)); }
+function vIncome() {
+  const ys = [...new Set(LOG.map(e => (e.date || '').slice(0, 4)).filter(Boolean).concat([curYear]))].sort();
+  const E = yearEntries(curYear);
+  let rows = '', T = { exam: 0, dek: 0, stud: 0, other: 0 };
+  for (let m = 1; m <= 12; m++) {
+    const ym = curYear + '-' + pad(m); const s = { exam: 0, dek: 0, stud: 0, other: 0 };
+    E.filter(e => inMonth(e, ym)).forEach(e => s[e.cat || 'exam'] += e.price || 0);
+    const tot = s.exam + s.dek + s.stud + s.other; Object.keys(T).forEach(k => T[k] += s[k]);
+    if (tot || ym <= todayISO().slice(0, 7)) rows += `<tr data-month="${ym}" class="${ym === curMonth ? 'sel' : ''}"><td>${MONTHS[m - 1]}</td><td>${s.exam ? eur(s.exam) : ''}</td><td>${s.dek ? eur(s.dek) : ''}</td><td>${s.stud ? eur(s.stud) : ''}</td><td>${s.other ? eur(s.other) : ''}</td><td><b>${eur(tot)}</b></td></tr>`;
+  }
+  const byC = {}; E.filter(e => inMonth(e, curMonth)).forEach(e => { const k = e.client ? cname(e.client) : '— χωρίς πελάτη —'; byC[k] = (byC[k] || 0) + (e.price || 0); });
+  const unpriced = E.filter(e => e.price == null && e.cat === 'exam').length;
+  return `<div class="row"><div class="seg">${ys.map(y => `<button data-year="${y}" class="${y === curYear ? 'on' : ''}">${y}</button>`).join('')}</div></div>
+  <div class="card"><div class="body" style="padding-top:14px;overflow-x:auto"><table class="t"><tr><th>Μήνας</th><th>Εξετάσεις</th><th>Δεκέλεια</th><th>Μαθητές</th><th>Άλλα</th><th>Σύνολο</th></tr>${rows}
+  <tr class="tot"><td>Σύνολο ${curYear}</td><td>${eur(T.exam)}</td><td>${eur(T.dek)}</td><td>${eur(T.stud)}</td><td>${eur(T.other)}</td><td>${eur(T.exam + T.dek + T.stud + T.other)}</td></tr></table>
+  ${unpriced ? `<p class="hint" style="color:#c62f2f">${unpriced} εξετάσεις του ${curYear} χωρίς ποσό.</p>` : ''}</div></div>
+  <div class="card"><div class="body" style="padding-top:14px"><h3 style="margin-top:0">Ανά πελάτη · ${monthLabel(curMonth)}</h3><table class="t">${Object.entries(byC).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${eur(v)}</td></tr>`).join('') || '<tr><td>—</td></tr>'}</table>
+  <div class="row" style="margin-top:12px"><button class="btn" id="xlsx">Excel ${curYear}</button></div><div class="out" id="out"></div></div></div>`;
+}
+
+function invTotal(inv) { return (inv.lines || []).reduce((s, l) => s + lineTotal(l), 0); }
+function lineTotal(l) { const f = num(l.fee); if (f == null) return 0; const q = num(l.qty); return q != null ? q * f : f; }
+function nextNo() { const n = O.invoices.reduce((m, i) => Math.max(m, parseInt(i.no) || 0), (O.nextNo || 1) - 1) + 1; return n + '-' + O.year2; }
+function vInvoices() {
+  if (invEdit) return invEditor();
+  const list = [...O.invoices].sort((a, b) => (b.date || '').localeCompare(a.date || '') || (parseInt(b.no) - parseInt(a.no)));
+  const unbilled = {}; LOG.filter(e => !e.invoice && e.client && e.price != null).forEach(e => { const k = e.client + '|' + e.date.slice(0, 7); unbilled[k] = (unbilled[k] || 0) + e.price; });
+  return `<div class="card"><div class="body" style="padding-top:14px"><h3 style="margin-top:0">Νέο τιμολόγιο</h3>
+  <div class="grid"><label class="f">Πελάτης<select id="ni_c">${clientOptions('')}</select></label><label class="f">Εξετάσεις του μήνα<input id="ni_m" type="month" value="${curMonth}"></label></div>
+  <div class="row" style="margin-top:10px"><button class="btn" id="newInv">Δημιουργία</button></div>
+  ${Object.keys(unbilled).length ? `<h3>Ατιμολόγητα</h3><ul class="warn">${Object.entries(unbilled).map(([k, v]) => { const [c, m] = k.split('|'); return `<li class="i" data-unb="${k}">${esc(cname(c))} · ${monthLabel(m)} · ${eur(v)} ›</li>`; }).join('')}</ul>` : ''}
+  </div></div>
+  <div class="card list">${list.map(i => `<div class="item" data-inv="${i.id}"><div style="flex:1"><b>${esc(i.no)} · ${esc(cname(i.client) || i.clientName || '')}</b><span>${dmy(i.date)}</span></div><b>${eur(invTotal(i))}</b></div>`).join('') || '<div class="item"><span>Κανένα τιμολόγιο ακόμα.</span></div>'}</div>`;
+}
+function invEditor() {
+  const i = invEdit;
+  return `<div class="card"><div class="body" style="padding-top:14px">
+  <div class="grid"><label class="f">Αριθμός<input data-i="no" value="${esc(i.no)}"></label><label class="f">Ημερομηνία<input data-i="date" type="date" value="${esc(i.date)}"></label><label class="f">Πελάτης<select data-i="client">${clientOptions(i.client)}</select></label></div>
+  <label class="f" style="margin-top:10px">Επικεφαλίδα περιγραφής<input data-i="title" value="${esc(i.title)}"></label>
+  <h3>Γραμμές</h3>
+  ${i.lines.map((l, k) => `<div class="flight"><div class="grid">${`<label class="f">Περιγραφή<input data-l="${k}.desc" value="${esc(l.desc)}"></label><label class="f">Time / Days<input data-l="${k}.qty" value="${esc(l.qty)}" inputmode="decimal"></label><label class="f">Service fee €<input data-l="${k}.fee" value="${esc(l.fee)}" inputmode="decimal"></label>`}<div style="align-self:end;display:flex;gap:8px;align-items:center"><b>${eur(lineTotal(l))}</b><button class="btn danger" data-dell="${k}">✕</button></div></div></div>`).join('')}
+  <button class="btn alt" id="addL">+ Γραμμή</button>
+  <label class="f" style="margin-top:10px">Σημείωση κάτω από το σύνολο (π.χ. VAT exempted in Cyprus)<input data-i="note" value="${esc(i.note)}"></label>
+  <p style="font-size:18px"><b>Σύνολο: ${eur(invTotal(i))}</b></p>
+  <div class="row"><button class="btn" id="saveInv">Αποθήκευση</button><button class="btn amber" id="pdfInv">PDF</button><button class="btn alt" id="closeInv">Κλείσιμο</button><button class="btn danger" id="delInv">Διαγραφή</button></div>
+  <div class="out" id="out"></div></div></div>`;
+}
+
+function expiries() {
+  const L = [];
+  LOG.forEach(e => (e.exp || []).forEach((x, i) => { if (x.date) L.push({ key: e.id + ':' + i, who: e.name, what: x.what, date: x.date, email: e.email, kind: 'cand' }); }));
+  // keep only latest per person+what
+  const best = {}; L.forEach(x => { const k = (x.who + '|' + x.what).toUpperCase(); if (!best[k] || best[k].date < x.date) best[k] = x; });
+  const cands = Object.values(best);
+  const mine = (O.mydocs || []).map((d, i) => ({ key: 'my' + i, who: 'Εγώ', what: d.what, date: d.date, kind: 'mine', idx: i }));
+  const e5 = ex525(); if (e5.exExp) mine.push({ key: 'my525', who: 'Εγώ', what: 'Examiner certificate ' + (e5.exCert || ''), date: e5.exExp, kind: 'mine', ro: true });
+  return { cands: cands.sort(sortByDate), mine: mine.sort(sortByDate) };
+}
+function daysTo(iso) { return Math.round((new Date(iso + 'T00:00') - new Date(todayISO() + 'T00:00')) / 864e5); }
+function expRow(x) {
+  const d = daysTo(x.date); const cls = d < 0 ? 'bad' : d <= 30 ? 'warnt' : d <= 60 ? '' : 'ok';
+  return `<div class="item"><div style="flex:1;min-width:0"><b>${esc(x.who)}</b><span>${esc(x.what)} · ${dmy(x.date)}</span></div><span class="tag ${cls}">${d < 0 ? 'έληξε' : d + ' ημ.'}</span>
+  <button class="cmb" data-ics="${x.key}" title="Ημερολόγιο">📅</button>${x.email ? `<button class="cmb" data-mailx="${x.key}" title="Email">✉️</button>` : ''}${x.kind === 'mine' && !x.ro ? `<button class="cmb" data-delmy="${x.idx}">✕</button>` : ''}</div>`;
+}
+function vExpiry() {
+  const { cands, mine } = expiries();
+  return `<div class="row"><button class="btn amber" id="icsAll">📅 Όλες οι μελλοντικές στο Ημερολόγιο</button></div>
+  <p class="hint">Κάθε λήξη μπαίνει στο Ημερολόγιο του iPad ως υπενθύμιση 1 μήνα πριν, στις 09:00. Οι λήξεις υποψηφίων έρχονται από τις «Νέα λήξη class/type / IR» του 525.</p>
+  <h3>Δικά μου</h3><div class="card list">${mine.map(expRow).join('') || '<div class="item"><span>—</span></div>'}</div>
+  <div class="card"><div class="body" style="padding-top:12px"><div class="grid"><label class="f">Τι λήγει<input id="my_w" placeholder="π.χ. Medical Class 1, FE certificate, ATPL"></label><label class="f">Ημερομηνία<input id="my_d" type="date"></label><button class="btn" id="addMy" style="align-self:end">Προσθήκη</button></div></div></div>
+  <h3>Υποψήφιοι</h3><div class="card list">${cands.map(expRow).join('') || '<div class="item"><span>Καμία λήξη ακόμα.</span></div>'}</div>`;
+}
+function vSettings() {
+  return `<div class="card"><div class="body" style="padding-top:14px">
+  <h3 style="margin-top:0">Εταιρεία (επάνω στο τιμολόγιο)</h3><label class="f">Στοιχεία, μία γραμμή ανά σειρά<textarea data-o="company" rows="5">${esc(O.company)}</textarea></label>
+  <div class="grid" style="margin-top:8px"><label class="f">Company number<input data-o="companyNo" value="${esc(O.companyNo)}"></label><label class="f">Επόμενος αριθμός τιμολογίου<input data-o="nextNo" value="${esc(O.nextNo)}" inputmode="numeric"></label><label class="f">Έτος (2 ψηφία)<input data-o="year2" value="${esc(O.year2)}"></label></div>
+  <label class="f" style="margin-top:8px">Bank details (Ετικέτα: τιμή, μία ανά γραμμή, κενή γραμμή = νέα ομάδα)<textarea data-o="bank" rows="9">${esc(O.bank)}</textarea></label>
+  <h3>Πελάτες</h3>
+  ${O.clients.map((c, i) => `<div class="flight"><div class="grid"><label class="f">Όνομα (επικεφαλίδα)<input data-c="${i}.name" value="${esc(c.name)}"></label><button class="btn danger" data-delc="${i}" style="align-self:end">✕</button></div><label class="f" style="margin-top:6px">Διεύθυνση / ΑΦΜ / τηλέφωνο, μία ανά γραμμή<textarea data-c="${i}.lines" rows="4">${esc(c.lines)}</textarea></label></div>`).join('')}
+  <button class="btn alt" id="addC">+ Πελάτης</button>
+  <h3>Backup</h3><div class="row"><button class="btn alt" id="expB">Εξαγωγή backup</button><label class="btn alt" style="display:inline-block">Εισαγωγή αρχείου<input type="file" id="impB" accept=".json,application/json" hidden></label></div>
+  <p class="hint">Τα στοιχεία μένουν μόνο στη συσκευή, όχι στο GitHub. Η εισαγωγή αρχείου ρυθμίσεων προσθέτει πελάτες χωρίς να σβήνει τίποτα.</p>
+  </div></div>`;
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', async ev => {
+  const t = ev.target.closest('button,[data-edit],[data-inv],[data-month],[data-unb],[data-tab]'); if (!t) return;
+  if (t.dataset.tab) { tab = t.dataset.tab; edit = null; invEdit = null; render(); window.scrollTo(0, 0); return; }
+  if (t.dataset.mstep) { const [y, m] = curMonth.split('-').map(Number); const d = new Date(y, m - 1 + (+t.dataset.mstep), 1); curMonth = d.getFullYear() + '-' + pad(d.getMonth() + 1); edit = null; render(); return; }
+  if (t.dataset.edit) { const e = LOG.find(x => x.id === t.dataset.edit); edit = JSON.parse(JSON.stringify(e)); tab = 'log'; curMonth = e.date.slice(0, 7); render(); window.scrollTo(0, 0); return; }
+  if (t.id === 'addE') { edit = { id: uid(), src: 'manual', cat: 'exam', date: curMonth === todayISO().slice(0, 7) ? todayISO() : curMonth + '-01', in801: true, exp: [], price: null }; render(); window.scrollTo(0, 0); return; }
+  if (t.id === 'cancelE') { edit = null; render(); return; }
+  if (t.id === 'addExp') { edit.exp = edit.exp || []; edit.exp.push({ what: '', date: '' }); render(); return; }
+  if (t.dataset.delexp) { edit.exp.splice(+t.dataset.delexp, 1); render(); return; }
+  if (t.id === 'saveE') { const i = LOG.findIndex(x => x.id === edit.id); edit.manualEdit = true; if (i >= 0) LOG[i] = edit; else LOG.push(edit); curMonth = (edit.date || curMonth).slice(0, 7); saveLog(); edit = null; render(); toast('Αποθηκεύτηκε'); return; }
+  if (t.id === 'delE') { if (confirm('Διαγραφή εγγραφής;')) { LOG = LOG.filter(x => x.id !== edit.id); saveLog(); edit = null; render(); } return; }
+  if (t.id === 'gen801') { O.exName801 = $('#ex801').value; saveO(); const b = await pdf801(curMonth, $('#ex801').value, $('#d801').value); deliver([{ name: `PEL-FCL-801_${curMonth}.pdf`, blob: new Blob([b], { type: 'application/pdf' }) }]); return; }
+  if (t.id === 'mail801') { location.href = `mailto:info@hcaa.gov.gr?subject=${encodeURIComponent('PEL-FCL 801 - Examiner Activity Report - ' + curMonth + ' - ' + ($('#ex801').value || ''))}&body=${encodeURIComponent('Please find attached the Examiner Activity Report (PEL-FCL 801) for ' + monthLabel(curMonth) + '.\n\n' + ($('#ex801').value || ''))}`; return; }
+  if (t.dataset.x801 || t.dataset.in801) { const e = LOG.find(x => x.id === (t.dataset.x801 || t.dataset.in801)); if (e) { e.in801 = !!t.dataset.in801; e.manualEdit = true; saveLog(); render(); toast(e.in801 ? 'Μπήκε ξανά στο 801' : 'Βγήκε από το 801'); } return; }
+  if (t.dataset.year) { curYear = t.dataset.year; render(); return; }
+  if (t.dataset.month) { curMonth = t.dataset.month; render(); return; }
+  if (t.id === 'xlsx') { deliver([{ name: `Exetaseis_${curYear}.xlsx`, blob: buildXlsx(curYear) }]); return; }
+  if (t.id === 'newInv' || t.dataset.unb) {
+    let c, m; if (t.dataset.unb) [c, m] = t.dataset.unb.split('|'); else { c = $('#ni_c').value; m = $('#ni_m').value; }
+    if (!c) { toast('Διάλεξε πελάτη'); return; }
+    const es = LOG.filter(e => e.client === c && inMonth(e, m) && !e.invoice).sort(sortByDate);
+    invEdit = { id: uid(), no: nextNo(), date: todayISO(), client: c, title: 'Aviation Training services and exam', note: '', entries: es.map(e => e.id),
+      lines: es.length ? es.map(e => ({ desc: [e.name, e.test].filter(Boolean).join(' '), qty: e.qty || '', fee: e.price != null ? String(e.price) : '' })) : [{ desc: '', qty: '', fee: '' }] };
+    render(); window.scrollTo(0, 0); return;
+  }
+  if (t.dataset.inv) { invEdit = JSON.parse(JSON.stringify(O.invoices.find(i => i.id === t.dataset.inv))); render(); window.scrollTo(0, 0); return; }
+  if (t.id === 'addL') { invEdit.lines.push({ desc: '', qty: '', fee: '' }); render(); return; }
+  if (t.dataset.dell) { invEdit.lines.splice(+t.dataset.dell, 1); render(); return; }
+  if (t.id === 'closeInv') { invEdit = null; render(); return; }
+  if (t.id === 'saveInv' || t.id === 'pdfInv') {
+    const i = O.invoices.findIndex(x => x.id === invEdit.id); if (i >= 0) O.invoices[i] = invEdit; else O.invoices.push(invEdit);
+    const n = parseInt(invEdit.no); if (n >= (O.nextNo || 1)) O.nextNo = n + 1;
+    (invEdit.entries || []).forEach(id => { const e = LOG.find(x => x.id === id); if (e) e.invoice = invEdit.no; }); saveLog(); saveO();
+    if (t.id === 'pdfInv') { const b = await pdfInvoice(invEdit); const cn = (cname(invEdit.client) || 'client').replace(/[^A-Za-z0-9Α-Ωα-ω]+/g, '_'); deliver([{ name: `${invEdit.no}_${cn}.pdf`, blob: new Blob([b], { type: 'application/pdf' }) }]); }
+    else toast('Αποθηκεύτηκε'); return;
+  }
+  if (t.id === 'delInv') { if (confirm('Διαγραφή τιμολογίου ' + invEdit.no + ';')) { LOG.forEach(e => { if (e.invoice === invEdit.no) delete e.invoice; }); O.invoices = O.invoices.filter(x => x.id !== invEdit.id); saveO(); saveLog(); invEdit = null; render(); } return; }
+  if (t.id === 'addMy') { const w = $('#my_w').value.trim(), d = $('#my_d').value; if (!w || !d) { toast('Συμπλήρωσε τι και πότε'); return; } O.mydocs.push({ what: w, date: d }); saveO(); render(); return; }
+  if (t.dataset.delmy) { O.mydocs.splice(+t.dataset.delmy, 1); saveO(); render(); return; }
+  if (t.dataset.ics || t.id === 'icsAll') {
+    const { cands, mine } = expiries(); const all = [...mine, ...cands];
+    const sel = t.id === 'icsAll' ? all.filter(x => daysTo(x.date) > 0) : all.filter(x => x.key === t.dataset.ics);
+    if (!sel.length) { toast('Καμία μελλοντική λήξη'); return; }
+    openIcs(buildIcs(sel), sel.length > 1 ? 'Lixeis.ics' : 'Lixi.ics'); return;
+  }
+  if (t.dataset.mailx) {
+    const x = expiries().cands.find(c => c.key === t.dataset.mailx); if (!x) return;
+    location.href = `mailto:${x.email}?subject=${encodeURIComponent('Rating expiry ' + x.what + ' - ' + dmy(x.date))}&body=${encodeURIComponent(`Dear ${x.who},\n\nThis is a reminder that your ${x.what} expires on ${dmy(x.date)}.\nPlease contact me to arrange your proficiency check.\n\nBest regards,\n${O.exName801 || ''}`)}`; return;
+  }
+  if (t.id === 'addC') { O.clients.push({ id: uid(), name: '', lines: '' }); saveO(); render(); return; }
+  if (t.dataset.delc) { if (confirm('Διαγραφή πελάτη;')) { O.clients.splice(+t.dataset.delc, 1); saveO(); render(); } return; }
+  if (t.id === 'expB') { deliver([{ name: 'pel-office-backup-' + todayISO() + '.json', blob: new Blob([JSON.stringify({ office: O, log: LOG }, null, 1)], { type: 'application/json' }) }]); return; }
+});
+document.addEventListener('input', ev => {
+  const el = ev.target;
+  if (el.dataset.e) {
+    const k = el.dataset.e; const v = el.type === 'checkbox' ? el.checked : el.value;
+    if (k.startsWith('exp.')) { const [, i, f] = k.split('.'); edit.exp[+i][f] = v; return; }
+    if (k === 'price') { edit.price = num(v); return; }
+    edit[k] = v;
+    if (k === 'client' || k === 'cat') { if (edit.price == null) edit.price = suggestPrice(edit); render(); }
+    if (k === 'test' && edit.client && edit.price == null) { const p = suggestPrice(edit); if (p != null) { edit.price = p; const pi = document.querySelector('[data-e=price]'); if (pi) pi.value = p; } }
+    return;
+  }
+  if (el.dataset.i) { invEdit[el.dataset.i] = el.value; return; }
+  if (el.dataset.l) { const [k, f] = el.dataset.l.split('.'); invEdit.lines[+k][f] = el.value; const tb = el.closest('.flight').querySelector('b'); if (tb) tb.textContent = eur(lineTotal(invEdit.lines[+k])); return; }
+  if (el.dataset.o) { O[el.dataset.o] = el.dataset.o === 'nextNo' ? (parseInt(el.value) || 1) : el.value; saveO(); return; }
+  if (el.dataset.c) { const [i, f] = el.dataset.c.split('.'); O.clients[+i][f] = el.value; saveO(); return; }
+});
+document.addEventListener('change', ev => {
+  const el = ev.target;
+  if (el.dataset.e === 'in801') { edit.in801 = el.checked; return; }
+  if (el.dataset.i === 'client') { invEdit.client = el.value; return; }
+  if (el.dataset.e && el.tagName === 'SELECT') return;
+  if (el.id === 'impB') {
+    const f = el.files[0]; if (!f) return;
+    f.text().then(txt => {
+      try {
+        const d = JSON.parse(txt);
+        if (d.log && d.office) { if (!confirm('Αντικατάσταση όλων των δεδομένων του Γραφείου με το backup;')) return; O = Object.assign(O, d.office); LOG = d.log; }
+        else { // setup file: merge
+          ['company', 'companyNo', 'bank'].forEach(k => { if (d[k] && !O[k]) O[k] = d[k]; });
+          if (d.nextNo && (!O.invoices.length) && (O.nextNo || 1) < d.nextNo) O.nextNo = d.nextNo;
+          if (d.exName801 && !O.exName801) O.exName801 = d.exName801;
+          const ck = c => (c.name + '|' + (c.lines || '').split('\n')[0]).toUpperCase(); (d.clients || []).forEach(c => { if (!O.clients.some(x => ck(x) === ck(c))) O.clients.push(Object.assign({ id: uid() }, c)); });
+          (d.mydocs || []).forEach(m => O.mydocs.push(m));
+        }
+        saveO(); saveLog(); render(); toast('Έγινε εισαγωγή');
+      } catch (e) { alert('Σφάλμα: ' + e.message); }
+    });
+  }
+});
+
+/* ---------- delivery ---------- */
+function deliver(files) {
+  const out = $('#out');
+  const open = f => { const u = URL.createObjectURL(f.blob); const a = document.createElement('a'); a.href = u; a.download = f.name; a.target = '_blank'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); };
+  if (!out) { open(files[0]); return; }
+  out.innerHTML = files.map((f, i) => `<a href="#" data-dl="${i}">📄 ${esc(f.name)}</a>`).join('') + (navigator.canShare ? '<button class="btn" id="shr">Κοινοποίηση / Αποθήκευση</button>' : '');
+  out.querySelectorAll('[data-dl]').forEach(a => a.onclick = e => { e.preventDefault(); open(files[+a.dataset.dl]); });
+  const sb = $('#shr'); if (sb) sb.onclick = async () => { const fl = files.map(f => new File([f.blob], f.name, { type: f.blob.type })); try { if (navigator.canShare({ files: fl })) await navigator.share({ files: fl }); else open(files[0]); } catch (e) { } };
+}
+
+/* ---------- canvas → PDF ---------- */
+const SC = 3;
+function page(wPt, hPt) {
+  const c = document.createElement('canvas'); c.width = wPt * SC; c.height = hPt * SC; const x = c.getContext('2d'); x.scale(SC, SC);
+  x.fillStyle = '#fff'; x.fillRect(0, 0, wPt, hPt); x.textBaseline = 'alphabetic';
+  const P = { c, x, w: wPt, h: hPt };
+  P.t = (s, X, Y, o = {}) => { x.font = `${o.it ? 'italic ' : ''}${o.b ? 'bold ' : ''}${o.s || 9}px Helvetica, Arial, sans-serif`; x.fillStyle = o.c || '#000'; let str = String(s == null ? '' : s); if (o.mw) while (x.measureText(str).width > o.mw && str.length > 1) str = str.slice(0, -1); const w = x.measureText(str).width; x.fillText(str, o.a === 'r' ? X - w : o.a === 'c' ? X - w / 2 : X, Y); return w; };
+  P.r = (X, Y, W, H, o = {}) => { if (o.f) { x.fillStyle = o.f; x.fillRect(X, Y, W, H); } if (o.lw !== 0) { x.strokeStyle = o.sc || '#000'; x.lineWidth = o.lw || 0.6; x.strokeRect(X, Y, W, H); } };
+  P.l = (X1, Y1, X2, Y2, o = {}) => { x.strokeStyle = o.sc || '#000'; x.lineWidth = o.lw || 0.6; x.beginPath(); x.moveTo(X1, Y1); x.lineTo(X2, Y2); x.stroke(); };
+  P.wrap = (s, X, Y, mw, o = {}) => { x.font = `${o.it ? 'italic ' : ''}${o.b ? 'bold ' : ''}${o.s || 9}px Helvetica, Arial, sans-serif`; const words = String(s).split(' '); let line = '', y = Y; for (const w of words) { const n = line ? line + ' ' + w : w; if (x.measureText(n).width > mw && line) { P.t(line, X, y, o); line = w; y += (o.lh || 11); } else line = n; } if (line) P.t(line, X, y, o); return y; };
+  return P;
+}
+async function toPdf(pages) {
+  const doc = await PDFLib.PDFDocument.create();
+  for (const P of pages) {
+    const png = await new Promise(r => P.c.toBlob(b => b.arrayBuffer().then(r), 'image/png'));
+    const img = await doc.embedPng(png); const pg = doc.addPage([P.w, P.h]); pg.drawImage(img, { x: 0, y: 0, width: P.w, height: P.h });
+  }
+  return await doc.save();
+}
+function loadImg(src) { return new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src; }); }
+
+async function pdf801(ym, exName, decl) {
+  const rows = rows801(ym); const logo = await loadImg(LOGO);
+  const per = 18, pages = [], nPages = Math.max(1, Math.ceil(rows.length / per));
+  const cols = [['No.', 26], ['Date', 58], ['Applicant Name', 120], ['License Number', 78], ['Departure / Arrival', 74], ['Registration No.', 78], ['A/C Type / Class', 82], ['Skill test / Prof. Check', 136], ['Time of Check', 52], ['Result P/PP/F', 58]];
+  for (let p = 0; p < nPages; p++) {
+    const P = page(842, 595); const X0 = 40, W = 762;
+    P.r(X0, 30, W, 62); P.l(X0 + 170, 30, X0 + 170, 92); P.l(X0 + 330, 30, X0 + 330, 92);
+    if (logo) P.x.drawImage(logo, X0 + 30, 36, 50 / 183 * 303 * 0.9, 50 * 0.9);
+    [['Form. No.  PEL-FCL 801', 46], ['Initial Issue', 57], [`Page  ${p + 1} of ${nPages}`, 68], ['Issue Date:  04/12/2024', 79]].forEach(([s, y]) => P.t(s, X0 + 176, y, { s: 8.5 }));
+    P.t('HCAA Examiner Activity Report', X0 + 330 + (W - 330) / 2, 58, { s: 15, b: true, a: 'c' });
+    P.wrap('HCAA Examiners shall fill in the following table during their examiner certificate validity. It shall be submitted at info@hcaa.gov.gr at the end of every month. This document shall be presented to the HCAA on demand if and when requested.', X0 + 4, 104, W - 8, { s: 7.5, it: true, lh: 9.5 });
+    let y = 122, x = X0; const hh = 30, rh = 18;
+    cols.forEach(([n, w]) => { P.r(x, y, w, hh, { f: '#4F81BD', sc: '#9db7d6' }); P.wrap(n, x + 4, y + 12, w - 8, { s: 8, c: '#fff', lh: 10 }); x += w; });
+    y += hh;
+    for (let i = 0; i < per; i++) {
+      const e = rows[p * per + i]; x = X0;
+      cols.forEach(([n, w], j) => { P.r(x, y, w, rh, { sc: '#b9c3cf', f: j === 0 ? '#4F81BD' : null }); x += w; });
+      const vals = e ? [p * per + i + 1, dmy(e.date), e.name, e.lic, e.dep, e.reg, e.type, e.test, e.time, e.result] : [p * per + i + 1];
+      x = X0; vals.forEach((v, j) => { const w = cols[j][1]; P.t(v, j === 0 ? x + w / 2 : x + 4, y + 12.5, { s: 8.5, c: j === 0 ? '#fff' : (j === 9 && v === 'F' ? '#c0392b' : '#000'), a: j === 0 ? 'c' : '', mw: w - 6 }); x += w; });
+      y += rh;
+    }
+    y += 6; P.r(X0, y, W, 16, { f: '#4F81BD', sc: '#4F81BD' }); P.t('Examiner Declaration', X0 + W / 2, y + 11.5, { s: 9, b: true, c: '#fff', a: 'c' });
+    P.r(X0, y + 16, W, 24); P.t('I certify that the details listed above are true and correct.', X0 + 6, y + 32, { s: 9 });
+    P.r(X0, y + 40, W, 26); P.t(`First & Last Name:  ${exName}      Signature of Examiner: ...........................................................      Date:  ${dmy(decl)}`, X0 + 6, y + 57, { s: 9 });
+    pages.push(P);
+  }
+  return toPdf(pages);
+}
+
+async function pdfInvoice(inv) {
+  const P = page(595, 842); const X = 45, R = 550; const c = client(inv.client) || { name: inv.clientName || '', lines: '' };
+  let y = 50; const comp = (O.company || '').split('\n');
+  comp.forEach((s, i) => { P.t(s, X, y, { s: 10 }); y += 14; });
+  if (O.companyNo) P.t('Company number: ' + O.companyNo, 300, y - 14, { s: 8.5 });
+  y += 30; P.t(c.name, X, y, { s: 10 }); y += 24;
+  const cl = (c.lines || '').split('\n').filter(s => s.trim() !== '' || true);
+  cl.forEach(s => { P.t(s, X, y, { s: 10 }); y += 14; });
+  P.t('Invoice date:', 300, y - 14, { s: 8.5 }); P.t(dmy(inv.date), 380, y - 14, { s: 8.5 });
+  y += 14; P.t('Invoice Number :', X, y, { s: 10, b: true }); P.t(inv.no, 230, y, { s: 10, b: true });
+  // table
+  y += 22; const cx = [X, 300, 345, 410, R]; const head = 17, rh = 20;
+  P.r(X, y, R - X, 1); y += 1;
+  const lines = [{ desc: inv.title, qty: '', fee: '', head: true }, ...inv.lines];
+  while (lines.length < 6) lines.push({ desc: '', qty: '', fee: '' });
+  const top = y; P.t('Description', X + 4, y + 12, { s: 8 }); P.t('Time', (cx[1] + cx[2]) / 2, y + 12, { s: 8, a: 'c' }); P.t('Service Fee', (cx[2] + cx[3]) / 2, y + 12, { s: 8, a: 'c' }); P.t('TOTAL', (cx[3] + cx[4]) / 2, y + 12, { s: 8, a: 'c' });
+  y += head; P.l(X, y, R, y);
+  lines.forEach((l, i) => {
+    if (i % 2 === 1) P.r(X, y, R - X, rh, { f: '#efefef', lw: 0 });
+    P.t(l.desc, X + 4, y + 14, { s: l.head ? 10.5 : 10.5, mw: cx[1] - X - 8 });
+    if (l.qty !== '' && l.qty != null) P.t(l.qty, (cx[1] + cx[2]) / 2, y + 14, { s: 9, a: 'c' });
+    const f = num(l.fee); if (f != null) P.t(eur(f), cx[3] - 4, y + 14, { s: 8.5, a: 'r' });
+    if (!l.head || f != null) P.t(l.desc || f != null ? eur(lineTotal(l)) : '', cx[4] - 4, y + 14, { s: 8.5, a: 'r' });
+    y += rh; P.l(X, y, R, y, { sc: '#999', lw: 0.4 });
+  });
+  P.r(X, y, R - X, rh, { f: '#efefef', lw: 0 }); P.t('TOTAL', cx[3] - 4, y + 14, { s: 8.5, a: 'r' }); P.t(eur(invTotal(inv)), cx[4] - 4, y + 14, { s: 8.5, b: true, a: 'r' }); y += rh;
+  P.l(X, y, R, y); if (inv.note) P.t(inv.note, X + 4, y + 14, { s: 9 }); y += 22;
+  P.r(X, top, R - X, y - top, { lw: 1.2 }); cx.slice(1, 4).forEach(v => P.l(v, top, v, y - 22));
+  // bank
+  y += 40; P.t('Bank Details:', X, y, { s: 8 });
+  let by = y; (O.bank || '').split('\n').forEach(s => {
+    if (!s.trim()) { by += 8; return; }
+    const m = s.match(/^([^:]{1,30}):\s*(.*)$/);
+    if (/^\s/.test(s)) P.t(s.trim(), 310, by, { s: 8 });
+    else if (m && m[2]) { P.t(m[1] + ':', 240, by, { s: 8 }); P.t(m[2], 310, by, { s: 8, b: !/address/i.test(m[1]) }); }
+    else P.t(s.replace(/:$/, ''), 240, by, { s: 8, b: true });
+    by += 12;
+  });
+  return toPdf([P]);
+}
+
+/* ---------- .ics ---------- */
+function icsDate(iso) { return iso.replace(/-/g, ''); }
+function buildIcs(items) {
+  const now = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+  let s = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//PEL525//Office//EL\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n';
+  items.forEach(x => {
+    const d = new Date(x.date + 'T00:00'); d.setDate(d.getDate() - 30); const st = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate());
+    const e = new Date(d); e.setDate(e.getDate() + 1); const en = e.getFullYear() + pad(e.getMonth() + 1) + pad(e.getDate());
+    const title = `Λήξη σε 1 μήνα: ${x.who} – ${x.what}`.replace(/[,;]/g, ' ');
+    s += `BEGIN:VEVENT\r\nUID:${(x.who + x.what + x.date).replace(/[^A-Za-z0-9]/g, '')}@pel525\r\nDTSTAMP:${now}\r\nDTSTART;VALUE=DATE:${st}\r\nDTEND;VALUE=DATE:${en}\r\nSUMMARY:${title}\r\nDESCRIPTION:${(x.what + ' λήγει ' + dmy(x.date)).replace(/[,;]/g, ' ')}\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:${title}\r\nTRIGGER:PT9H\r\nEND:VALARM\r\nEND:VEVENT\r\n`;
+  });
+  return s + 'END:VCALENDAR\r\n';
+}
+function openIcs(text, name) {
+  const blob = new Blob([text], { type: 'text/calendar;charset=utf-8' });
+  const u = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(u), 60000); toast('Άνοιξε το αρχείο για προσθήκη στο Ημερολόγιο');
+}
+
+/* ---------- minimal XLSX writer ---------- */
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function zip(files) {
+  const enc = new TextEncoder(); const parts = [], cen = []; let off = 0;
+  files.forEach(([name, str]) => {
+    const nb = enc.encode(name), db = enc.encode(str), cr = crc32(db);
+    const h = new DataView(new ArrayBuffer(30)); h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint32(14, cr, true); h.setUint32(18, db.length, true); h.setUint32(22, db.length, true); h.setUint16(26, nb.length, true);
+    parts.push(new Uint8Array(h.buffer), nb, db);
+    const c = new DataView(new ArrayBuffer(46)); c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint32(16, cr, true); c.setUint32(20, db.length, true); c.setUint32(24, db.length, true); c.setUint16(28, nb.length, true); c.setUint32(42, off, true);
+    cen.push(new Uint8Array(c.buffer), nb); off += 30 + nb.length + db.length;
+  });
+  const cs = cen.reduce((s, a) => s + a.length, 0);
+  const e = new DataView(new ArrayBuffer(22)); e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cs, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...cen, new Uint8Array(e.buffer)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+function xesc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, ''); }
+function sheetXml(rows) {
+  const col = i => { let s = ''; i++; while (i) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' +
+    rows.map((r, ri) => `<row r="${ri + 1}">` + r.map((v, ci) => { const ref = col(ci) + (ri + 1); if (v == null || v === '') return ''; if (typeof v === 'number') return `<c r="${ref}"${ri === 0 ? ' s="1"' : ''}><v>${v}</v></c>`; return `<c r="${ref}" t="inlineStr"${ri === 0 ? ' s="1"' : ''}><is><t xml:space="preserve">${xesc(v)}</t></is></c>`; }).join('') + '</row>').join('') + '</sheetData></worksheet>';
+}
+function buildXlsx(year) {
+  const E = yearEntries(year).sort(sortByDate);
+  const s1 = [['Ημερομηνία', 'Κατηγορία', 'Όνομα', 'Άδεια', 'Test', 'Τύπος', 'Registration', 'Dep/Arr', 'Χρόνος', 'Αποτέλεσμα', 'Πελάτης', 'Ποσό €', 'Τιμολόγιο', 'Σημείωση']]
+    .concat(E.map(e => [dmy(e.date), CATS[e.cat] || '', e.name || '', e.lic || '', e.test || '', e.type || '', e.reg || '', e.dep || '', e.time || '', e.result || '', cname(e.client), e.price == null ? '' : e.price, e.invoice || '', e.note || '']));
+  const s2 = [['Μήνας', 'Εξετάσεις', 'Δεκέλεια', 'Μαθητές', 'Άλλα', 'Σύνολο']];
+  for (let m = 1; m <= 12; m++) { const ym = year + '-' + pad(m); const s = { exam: 0, dek: 0, stud: 0, other: 0 }; E.filter(e => inMonth(e, ym)).forEach(e => s[e.cat || 'exam'] += e.price || 0); s2.push([MONTHS[m - 1], s.exam, s.dek, s.stud, s.other, s.exam + s.dek + s.stud + s.other]); }
+  const cl = [...new Set(E.map(e => e.client ? cname(e.client) : '(χωρίς πελάτη)'))];
+  const s3 = [['Πελάτης'].concat(MONTHS, ['Σύνολο'])].concat(cl.map(c => { const r = [c]; let t = 0; for (let m = 1; m <= 12; m++) { const v = E.filter(e => inMonth(e, year + '-' + pad(m)) && (e.client ? cname(e.client) : '(χωρίς πελάτη)') === c).reduce((s, e) => s + (e.price || 0), 0); r.push(v || ''); t += v; } r.push(t); return r; }));
+  const s4 = [['Αριθμός', 'Ημερομηνία', 'Πελάτης', 'Σύνολο €']].concat(O.invoices.filter(i => (i.date || '').startsWith(year)).sort((a, b) => parseInt(a.no) - parseInt(b.no)).map(i => [i.no, dmy(i.date), cname(i.client), invTotal(i)]));
+  const sheets = [['Εγγραφές', s1], ['Μήνες', s2], ['Πελάτες', s3], ['Τιμολόγια', s4]];
+  const files = [
+    ['[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' + sheets.map((s, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('') + '</Types>'],
+    ['_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
+    ['xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' + sheets.map((s, i) => `<sheet name="${xesc(s[0])}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('') + '</sheets></workbook>'],
+    ['xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + sheets.map((s, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('') + `<Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`],
+    ['xl/styles.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="2"><xf/><xf fontId="1" applyFont="1"/></cellXfs></styleSheet>'],
+    ...sheets.map((s, i) => [`xl/worksheets/sheet${i + 1}.xml`, sheetXml(s[1])])
+  ];
+  return zip(files);
+}
+
+render();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });
+</script>
+</body>
+</html>
