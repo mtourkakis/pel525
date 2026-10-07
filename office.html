@@ -123,7 +123,7 @@ const ex525 = () => (lsGet(K525, {}).ex) || {};
 let backTab = null, tab = 'log', curMonth = todayISO().slice(0, 7), edit = null, invEdit = null, curYear = todayISO().slice(0, 4);
 function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), 2200); }
 const client = id => O.clients.find(c => c.id === id);
-const cname = id => (client(id) || {}).name || '';
+const cname = id => id === '__self' ? 'Ιδιώτης' : ((client(id) || {}).name || '');
 const inMonth = (e, ym) => (e.date || '').startsWith(ym);
 const sortByDate = (a, b) => (a.date || '').localeCompare(b.date || '');
 
@@ -137,7 +137,7 @@ function monthPicker() {
   return `<div class="row"><button class="btn alt" data-mstep="-1">‹</button><b style="min-width:150px;text-align:center">${monthLabel(curMonth)}</b><button class="btn alt" data-mstep="1">›</button></div>`;
 }
 function fld(k, label, type, val, extra) { return `<label class="f">${label}<input data-e="${k}" type="${type || 'text'}" value="${esc(val)}" ${extra || ''}></label>`; }
-function clientOptions(sel) { return `<option value="">— χωρίς —</option>` + O.clients.map(c => `<option value="${c.id}" ${c.id === sel ? 'selected' : ''}>${esc(c.name)}</option>`).join(''); }
+function clientOptions(sel) { return `<option value="">— χωρίς —</option><option value="__self" ${sel === '__self' ? 'selected' : ''}>Ιδιώτης (ο ίδιος ο υποψήφιος)</option>` + O.clients.map(c => `<option value="${c.id}" ${c.id === sel ? 'selected' : ''}>${esc(c.name)}</option>`).join(''); }
 
 function vLog() {
   const list = LOG.filter(e => inMonth(e, curMonth)).sort(sortByDate);
@@ -213,19 +213,21 @@ function nextNo() { const n = O.invoices.reduce((m, i) => Math.max(m, parseInt(i
 function vInvoices() {
   if (invEdit) return invEditor();
   const list = [...O.invoices].sort((a, b) => (b.date || '').localeCompare(a.date || '') || (parseInt(b.no) - parseInt(a.no)));
-  const unbilled = {}; LOG.filter(e => !e.invoice && e.client && e.price != null).forEach(e => { const k = e.client + '|' + e.date.slice(0, 7); unbilled[k] = (unbilled[k] || 0) + e.price; });
+  const unbilled = {}; LOG.filter(e => !e.invoice && e.client && e.price != null).forEach(e => { const k = e.client + '|' + e.date.slice(0, 7) + (e.client === '__self' ? '|' + e.id : ''); unbilled[k] = (unbilled[k] || 0) + e.price; });
   return `<div class="card"><div class="body" style="padding-top:14px"><h3 style="margin-top:0">Νέο τιμολόγιο</h3>
   <div class="grid"><label class="f">Πελάτης<select id="ni_c">${clientOptions('')}</select></label><label class="f">Εξετάσεις του μήνα<input id="ni_m" type="month" value="${curMonth}"></label></div>
   <div class="row" style="margin-top:10px"><button class="btn" id="newInv">Δημιουργία</button></div>
   ${(() => { const np = LOG.filter(e => !e.invoice && (e.cat === 'exam' || !e.cat) && (!e.client || e.price == null)).sort(sortByDate); return np.length ? `<h3>Χρειάζονται πελάτη / ποσό</h3><ul class="warn">${np.map(e => `<li data-edit="${e.id}" style="cursor:pointer">${dmy(e.date)} · ${esc(e.name || '—')} · ${esc(e.test || '')} — ${e.client ? esc(cname(e.client)) : '<b>χωρίς πελάτη</b>'}${e.price == null ? ' · <b>χωρίς ποσό</b>' : ''} ›</li>`).join('')}</ul>` : ''; })()}
-  ${Object.keys(unbilled).length ? `<h3>Ατιμολόγητα</h3><ul class="warn">${Object.entries(unbilled).map(([k, v]) => { const [c, m] = k.split('|'); return `<li class="i" data-unb="${k}">${esc(cname(c))} · ${monthLabel(m)} · ${eur(v)} ›</li>`; }).join('')}</ul>` : ''}
+  ${Object.keys(unbilled).length ? `<h3>Ατιμολόγητα</h3><ul class="warn">${Object.entries(unbilled).map(([k, v]) => { const [c, m, eid] = k.split('|'); const en = eid ? (LOG.find(x => x.id === eid) || {}).name : ''; return `<li class="i" data-unb="${k}">${esc(cname(c))}${en ? ' · ' + esc(en) : ''} · ${monthLabel(m)} · ${eur(v)} ›</li>`; }).join('')}</ul>` : ''}
   </div></div>
-  <div class="card list">${list.map(i => `<div class="item" data-inv="${i.id}"><div style="flex:1"><b>${esc(i.no)} · ${esc(cname(i.client) || i.clientName || '')}</b><span>${dmy(i.date)}</span></div><b>${eur(invTotal(i))}</b></div>`).join('') || '<div class="item"><span>Κανένα τιμολόγιο ακόμα.</span></div>'}</div>`;
+  <div class="card list">${list.map(i => `<div class="item" data-inv="${i.id}"><div style="flex:1"><b>${esc(i.no)} · ${esc(i.client === '__self' ? (i.clientLines || '').split('\n')[0] : (i.clientName || cname(i.client)))}</b><span>${dmy(i.date)}</span></div><b>${eur(invTotal(i))}</b></div>`).join('') || '<div class="item"><span>Κανένα τιμολόγιο ακόμα.</span></div>'}</div>`;
 }
 function invEditor() {
   const i = invEdit;
   return `<div class="card"><div class="body" style="padding-top:14px">
   <div class="grid"><label class="f">Αριθμός<input data-i="no" value="${esc(i.no)}"></label><label class="f">Ημερομηνία<input data-i="date" type="date" value="${esc(i.date)}"></label><label class="f">Πελάτης<select data-i="client">${clientOptions(i.client)}</select></label></div>
+  <div class="grid" style="margin-top:10px"><label class="f">Όνομα πελάτη στο τιμολόγιο<input data-i="clientName" value="${esc(i.clientName != null ? i.clientName : cname(i.client))}"></label></div>
+  <label class="f" style="margin-top:10px">Στοιχεία πελάτη (μία γραμμή η καθεμία)<textarea data-i="clientLines" rows="4">${esc(i.clientLines != null ? i.clientLines : ((client(i.client) || {}).lines || ''))}</textarea></label>
   <label class="f" style="margin-top:10px">Επικεφαλίδα περιγραφής<input data-i="title" value="${esc(i.title)}"></label>
   <h3>Γραμμές</h3>
   ${i.lines.map((l, k) => `<div class="flight"><div class="grid">${`<label class="f">Περιγραφή<input data-l="${k}.desc" value="${esc(l.desc)}"></label><label class="f">Time / Days<input data-l="${k}.qty" value="${esc(l.qty)}" inputmode="decimal"></label><label class="f">Service fee €<input data-l="${k}.fee" value="${esc(l.fee)}" inputmode="decimal"></label>`}<div style="align-self:end;display:flex;gap:8px;align-items:center"><b>${eur(lineTotal(l))}</b><button class="btn danger" data-dell="${k}">✕</button></div></div></div>`).join('')}
@@ -292,10 +294,12 @@ document.addEventListener('click', async ev => {
   if (t.dataset.month) { curMonth = t.dataset.month; render(); return; }
   if (t.id === 'xlsx') { deliver([{ name: `Exetaseis_${curYear}.xlsx`, blob: buildXlsx(curYear) }]); return; }
   if (t.id === 'newInv' || t.dataset.unb) {
-    let c, m; if (t.dataset.unb) [c, m] = t.dataset.unb.split('|'); else { c = $('#ni_c').value; m = $('#ni_m').value; }
+    let c, m, eid; if (t.dataset.unb) [c, m, eid] = t.dataset.unb.split('|'); else { c = $('#ni_c').value; m = $('#ni_m').value; }
     if (!c) { toast('Διάλεξε πελάτη'); return; }
-    const es = LOG.filter(e => e.client === c && inMonth(e, m) && !e.invoice).sort(sortByDate);
-    invEdit = { id: uid(), no: nextNo(), date: todayISO(), client: c, title: 'Aviation Training services and exam', note: '', entries: es.map(e => e.id),
+    const es = LOG.filter(e => e.client === c && inMonth(e, m) && !e.invoice && (!eid || e.id === eid)).sort(sortByDate);
+    const cl = client(c) || {}; const p0 = es[0] || {};
+    const cLines = c === '__self' ? [p0.name, p0.lic ? 'Licence ' + p0.lic : '', p0.phone ? 'Phone no    ' + p0.phone : ''].filter(Boolean).join('\n') : (cl.lines || '');
+    invEdit = { id: uid(), no: nextNo(), date: todayISO(), client: c, clientName: c === '__self' ? 'Individual' : (cl.name || ''), clientLines: cLines, title: 'Aviation Training services and exam', note: '', entries: es.map(e => e.id),
       lines: es.length ? es.map(e => ({ desc: [e.name, e.test].filter(Boolean).join(' '), qty: e.qty || '', fee: e.price != null ? String(e.price) : '' })) : [{ desc: '', qty: '', fee: '' }] };
     render(); window.scrollTo(0, 0); return;
   }
@@ -307,7 +311,7 @@ document.addEventListener('click', async ev => {
     const i = O.invoices.findIndex(x => x.id === invEdit.id); if (i >= 0) O.invoices[i] = invEdit; else O.invoices.push(invEdit);
     const n = parseInt(invEdit.no); if (n >= (O.nextNo || 1)) O.nextNo = n + 1;
     (invEdit.entries || []).forEach(id => { const e = LOG.find(x => x.id === id); if (e) e.invoice = invEdit.no; }); saveLog(); saveO();
-    if (t.id === 'pdfInv') { const b = await pdfInvoice(invEdit); const cn = (cname(invEdit.client) || 'client').replace(/[^A-Za-z0-9Α-Ωα-ω]+/g, '_'); deliver([{ name: `${invEdit.no}_${cn}.pdf`, blob: new Blob([b], { type: 'application/pdf' }) }]); }
+    if (t.id === 'pdfInv') { const b = await pdfInvoice(invEdit); const cn = ((invEdit.client === '__self' ? (invEdit.clientLines || '').split('\n')[0] : (invEdit.clientName || cname(invEdit.client))) || 'client').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'client'; deliver([{ name: `${invEdit.no}_${cn}.pdf`, blob: new Blob([b], { type: 'application/pdf' }) }]); }
     else toast('Αποθηκεύτηκε'); return;
   }
   if (t.id === 'delInv') { if (confirm('Διαγραφή τιμολογίου ' + invEdit.no + ';')) { LOG.forEach(e => { if (e.invoice === invEdit.no) delete e.invoice; }); O.invoices = O.invoices.filter(x => x.id !== invEdit.id); saveO(); saveLog(); invEdit = null; render(); } return; }
@@ -346,7 +350,7 @@ document.addEventListener('input', ev => {
 document.addEventListener('change', ev => {
   const el = ev.target;
   if (el.dataset.e === 'in801') { edit.in801 = el.checked; return; }
-  if (el.dataset.i === 'client') { invEdit.client = el.value; return; }
+  if (el.dataset.i === 'client') { invEdit.client = el.value; const cl = client(el.value) || {}; invEdit.clientName = el.value === '__self' ? 'Individual' : (cl.name || ''); invEdit.clientLines = el.value === '__self' ? '' : (cl.lines || ''); render(); return; }
   if (el.dataset.e && el.tagName === 'SELECT') return;
   if (el.id === 'impB') {
     const f = el.files[0]; if (!f) return;
@@ -429,7 +433,7 @@ async function pdf801(ym, exName, decl) {
 }
 
 async function pdfInvoice(inv) {
-  const P = page(595, 842); const X = 45, R = 550; const c = client(inv.client) || { name: inv.clientName || '', lines: '' };
+  const P = page(595, 842); const X = 45, R = 550; const c0 = client(inv.client) || {}; const c = { name: inv.clientName != null ? inv.clientName : (c0.name || ''), lines: inv.clientLines != null ? inv.clientLines : (c0.lines || '') };
   let y = 50; const comp = (O.company || '').split('\n');
   comp.forEach((s, i) => { P.t(s, X, y, { s: 10 }); y += 14; });
   if (O.companyNo) P.t('Company number: ' + O.companyNo, 300, y - 14, { s: 8.5 });
