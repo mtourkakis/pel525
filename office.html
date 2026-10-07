@@ -146,24 +146,43 @@ function vLog() {
   h += `<div class="card list">${list.map(e => `<div class="item" data-edit="${e.id}"><div style="flex:1;min-width:0"><b>${dmy(e.date)} · ${esc(e.name || '—')}</b><span>${esc([CATS[e.cat] !== 'Εξέταση' ? CATS[e.cat] : '', e.test, e.type].filter(Boolean).join(' · '))}</span><span>${e.client ? esc(cname(e.client)) : '<i style="color:#c62f2f">χωρίς πελάτη</i>'}${e.invoice ? ' · τιμ. ' + esc(e.invoice) : ''}</span></div><div style="text-align:right">${e.result ? `<span class="tag ${e.result === 'P' ? 'ok' : 'bad'}">${e.result}</span><br>` : ''}<b>${e.price != null ? eur(e.price) : ''}</b></div></div>`).join('') || '<div class="item"><span>Καμία εγγραφή αυτόν τον μήνα.</span></div>'}</div>`;
   const tot = list.reduce((s, e) => s + (e.price || 0), 0);
   h += `<p class="hint">${list.length} εγγραφές · σύνολο ${eur(tot)}. Οι εξετάσεις από 525 και CPL/IR/PBN μπαίνουν αυτόματα όταν βγάζεις PDF.</p>`;
-  h += `<button class="btn amber fab" id="addE">+ Εγγραφή</button>`;
+  h += `<button class="btn amber fab" id="addE">+ Νέα εξέταση</button>`;
   return h;
 }
 function editorHTML() {
   const e = edit;
   const exps = (e.exp || []).map((x, i) => `<div class="grid" style="margin-top:6px">${fld('exp.' + i + '.what', 'Τι λήγει', 'text', x.what)}${fld('exp.' + i + '.date', 'Ημερομηνία λήξης', 'date', x.date)}<button class="btn danger" data-delexp="${i}" style="align-self:end">✕</button></div>`).join('');
+  const isNew = !LOG.some(x => x.id === e.id);
   return `<div class="card"><div class="body" style="padding-top:14px">
-  <div class="grid"><label class="f">Κατηγορία<select data-e="cat">${Object.entries(CATS).map(([k, v]) => `<option value="${k}" ${e.cat === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>${fld('date', 'Ημερομηνία', 'date', e.date)}${fld('name', 'Όνομα', 'text', e.name, 'autocapitalize="characters"')}${fld('lic', 'Αρ. άδειας', 'text', e.lic, 'autocapitalize="characters"')}</div>
-  ${e.cat === 'exam' ? `<div class="grid" style="margin-top:10px">${fld('test', 'Skill test / Prof. check', 'text', e.test, 'autocapitalize="characters" list="dl_test"')}${fld('type', 'A/C type / class', 'text', e.type, 'autocapitalize="characters"')}${fld('reg', 'Registration', 'text', e.reg, 'autocapitalize="characters"')}${fld('dep', 'Departure / Arrival', 'text', e.dep, 'autocapitalize="characters"')}${fld('time', 'Χρόνος (h:mm)', 'text', e.time)}<label class="f">Αποτέλεσμα<select data-e="result"><option value=""></option>${Object.entries(RES).map(([k, v]) => `<option value="${k}" ${e.result === k ? 'selected' : ''}>${k} · ${v}</option>`).join('')}</select></label></div>
+  ${isNew ? `<div class="row" style="margin-top:0"><button class="btn alt" id="copyPrev">↺ Όπως η προηγούμενη</button><span class="hint">Γράψε το όνομα: αν υπάρχει ήδη, συμπληρώνονται άδεια, πελάτης και ποσό.</span></div>` : ''}
+  <div class="grid"><label class="f">Κατηγορία<select data-e="cat">${Object.entries(CATS).map(([k, v]) => `<option value="${k}" ${e.cat === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>${fld('date', 'Ημερομηνία', 'date', e.date)}${fld('name', 'Όνομα', 'text', e.name, 'autocapitalize="characters" list="dl_name" placeholder="ΕΠΩΝΥΜΟ ΟΝΟΜΑ"')}${fld('lic', 'Αρ. άδειας', 'text', e.lic, 'autocapitalize="characters"')}</div>
+  ${e.cat === 'exam' ? `<div class="grid" style="margin-top:10px">${fld('test', 'Skill test / Prof. check', 'text', e.test, 'autocapitalize="characters" list="dl_test"')}${fld('type', 'A/C type / class', 'text', e.type, 'autocapitalize="characters" list="dl_type" placeholder="C-172 /SEP"')}${fld('reg', 'Registration', 'text', e.reg, 'autocapitalize="characters" list="dl_reg" placeholder="SX ACO"')}${fld('dep', 'Departure / Arrival', 'text', e.dep, 'autocapitalize="characters" list="dl_dep" placeholder="LGMG/LGMG"')}${fld('time', 'Χρόνος (h:mm)', 'text', e.time, 'placeholder="1:30"')}<label class="f">Αποτέλεσμα<select data-e="result"><option value=""></option>${Object.entries(RES).map(([k, v]) => `<option value="${k}" ${e.result === k ? 'selected' : ''}>${k} · ${v}</option>`).join('')}</select></label></div>
   <label class="chk"><input type="checkbox" data-e="in801" ${e.in801 !== false ? 'checked' : ''}> Μπαίνει στο PEL-FCL 801</label>` : ''}
   <div class="grid" style="margin-top:10px"><label class="f">Πελάτης / χρέωση<select data-e="client">${clientOptions(e.client)}</select></label>${fld('price', 'Ποσό €', 'text', e.price == null ? '' : e.price, 'inputmode="decimal"')}${fld('qty', 'Ώρες / τεμ. (προαιρ.)', 'text', e.qty || '', 'inputmode="decimal"')}</div>
   <div class="grid" style="margin-top:10px">${fld('email', 'Email υποψηφίου', 'email', e.email)}${fld('phone', 'Τηλέφωνο', 'tel', e.phone)}</div>
   <h3>Λήξεις υποψηφίου</h3>${exps}<button class="btn alt" id="addExp" style="margin-top:6px">+ Λήξη</button>
   <label class="f" style="margin-top:10px">Σημείωση<input data-e="note" value="${esc(e.note)}"></label>
-  <div class="row" style="margin-top:12px"><button class="btn" id="saveE">Αποθήκευση</button><button class="btn alt" id="cancelE">Άκυρο</button>${LOG.some(x => x.id === e.id) ? '<button class="btn danger" id="delE">Διαγραφή</button>' : ''}</div>
+  <div class="row" style="margin-top:12px"><button class="btn" id="saveE">Αποθήκευση</button>${isNew ? '<button class="btn amber" id="saveNext">Αποθήκευση & επόμενη</button>' : ''}<button class="btn alt" id="cancelE">Άκυρο</button>${LOG.some(x => x.id === e.id) ? '<button class="btn danger" id="delE">Διαγραφή</button>' : ''}</div>
   <datalist id="dl_test">${[...new Set(LOG.map(x => x.test).filter(Boolean))].map(t => `<option value="${esc(t)}">`).join('')}</datalist>
+  ${['type', 'reg', 'dep'].map(f => `<datalist id="dl_${f}">${[...new Set(LOG.map(x => x[f]).filter(Boolean))].map(t => `<option value="${esc(t)}">`).join('')}</datalist>`).join('')}
+  <datalist id="dl_name">${Object.keys(people()).sort().map(t => `<option value="${esc(t)}">`).join('')}</datalist>
   </div></div>`;
 }
+/* γρήγορη καταχώρηση: γνωστά πρόσωπα από Εξετάσεις + υποψήφιους του 525 */
+function people() {
+  const m = {};
+  LOG.forEach(e => { const k = (e.name || '').toUpperCase().trim(); if (k && (!m[k] || (m[k].date || '') <= (e.date || ''))) m[k] = e; });
+  (lsGet(K525, {}).cands || []).forEach(c => { const n = ((c.surname || '') + ' ' + (c.first || '')).toUpperCase().trim(); if (n && !m[n]) m[n] = { name: n, lic: (c.licno || '').toUpperCase(), email: c.email || '', phone: c.phone || '' }; });
+  return m;
+}
+function setField(f, v) { edit[f] = v; const el = document.querySelector(`[data-e="${f}"]`); if (el) el.value = v == null ? '' : v; }
+function fillPerson() {
+  const p = people()[(edit.name || '').toUpperCase().trim()]; if (!p || p.id === edit.id) return;
+  ['lic', 'email', 'phone', 'client'].forEach(f => { if (!edit[f] && p[f]) setField(f, p[f]); });
+  if (edit.price == null && edit.client) { const pr = suggestPrice(edit); if (pr != null) setField('price', pr); }
+}
+const CARRY = ['test', 'type', 'reg', 'dep', 'client', 'price'];
+function lastExam() { return [...LOG].filter(x => x.cat === 'exam' && x.id !== (edit || {}).id).sort(sortByDate).pop(); }
 function suggestPrice(e) {
   if (!e.client) return null;
   const same = LOG.filter(x => x.id !== e.id && x.client === e.client && x.price != null).sort(sortByDate).reverse();
@@ -283,6 +302,10 @@ document.addEventListener('click', async ev => {
   if (t.dataset.edit) { const e = LOG.find(x => x.id === t.dataset.edit); edit = JSON.parse(JSON.stringify(e)); backTab = tab === 'inv' ? 'inv' : null; tab = 'log'; curMonth = e.date.slice(0, 7); render(); window.scrollTo(0, 0); return; }
   if (t.id === 'addE') { edit = { id: uid(), src: 'manual', cat: 'exam', date: curMonth === todayISO().slice(0, 7) ? todayISO() : curMonth + '-01', in801: true, exp: [], price: null }; render(); window.scrollTo(0, 0); return; }
   if (t.id === 'cancelE') { edit = null; render(); return; }
+  if (t.id === 'copyPrev') { const p = lastExam(); if (!p) { toast('Δεν υπάρχει προηγούμενη'); return; } CARRY.forEach(f => { if (p[f] != null && p[f] !== '') edit[f] = p[f]; }); render(); toast('Αντιγράφηκαν από ' + (p.name || dmy(p.date))); return; }
+  if (t.id === 'saveNext') { if (!(edit.name || '').trim()) { toast('Συμπλήρωσε όνομα'); return; } edit.manualEdit = true; LOG.push(edit); saveLog(); const prev = edit;
+    edit = { id: uid(), src: 'manual', cat: prev.cat, date: prev.date, in801: true, exp: [], price: null }; CARRY.forEach(f => { if (prev[f] != null && prev[f] !== '') edit[f] = prev[f]; });
+    curMonth = (prev.date || curMonth).slice(0, 7); render(); window.scrollTo(0, 0); toast('Αποθηκεύτηκε · νέα εγγραφή'); const n = document.querySelector('[data-e="name"]'); if (n) n.focus(); return; }
   if (t.id === 'addExp') { edit.exp = edit.exp || []; edit.exp.push({ what: '', date: '' }); render(); return; }
   if (t.dataset.delexp) { edit.exp.splice(+t.dataset.delexp, 1); render(); return; }
   if (t.id === 'saveE') { const i = LOG.findIndex(x => x.id === edit.id); edit.manualEdit = true; if (i >= 0) LOG[i] = edit; else LOG.push(edit); curMonth = (edit.date || curMonth).slice(0, 7); saveLog(); edit = null; if (backTab) { tab = backTab; backTab = null; } render(); toast('Αποθηκεύτηκε'); return; }
@@ -338,6 +361,7 @@ document.addEventListener('input', ev => {
     if (k.startsWith('exp.')) { const [, i, f] = k.split('.'); edit.exp[+i][f] = v; return; }
     if (k === 'price') { edit.price = num(v); return; }
     edit[k] = v;
+    if (k === 'name') { fillPerson(); return; }
     if (k === 'client' || k === 'cat') { if (edit.price == null) edit.price = suggestPrice(edit); render(); }
     if (k === 'test' && edit.client && edit.price == null) { const p = suggestPrice(edit); if (p != null) { edit.price = p; const pi = document.querySelector('[data-e=price]'); if (pi) pi.value = p; } }
     return;
