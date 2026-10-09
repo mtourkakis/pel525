@@ -169,15 +169,35 @@ function editorHTML() {
   </div></div>`;
 }
 /* γρήγορη καταχώρηση: γνωστά πρόσωπα από Εξετάσεις + υποψήφιους του 525 */
+const KFORMS = 'pelfcl_forms_v1';
+const nkey = s => (s || '').toUpperCase().replace(/\s+/g, ' ').trim();
 function people() {
   const m = {};
-  LOG.forEach(e => { const k = (e.name || '').toUpperCase().trim(); if (k && (!m[k] || (m[k].date || '') <= (e.date || ''))) m[k] = e; });
-  (lsGet(K525, {}).cands || []).forEach(c => { const n = ((c.surname || '') + ' ' + (c.first || '')).toUpperCase().trim(); if (n && !m[n]) m[n] = { name: n, lic: (c.licno || '').toUpperCase(), email: c.email || '', phone: c.phone || '' }; });
+  LOG.forEach(e => { const k = nkey(e.name); if (k && (!m[k] || (m[k].date || '') <= (e.date || ''))) m[k] = Object.assign({}, e); });
+  // συμπλήρωση κενών από τις καρτέλες υποψηφίων (525 και CPL/IR/PBN)
+  const add = (n, d) => { n = nkey(n); if (!n) return; if (!m[n]) m[n] = { name: n }; ['lic', 'email', 'phone'].forEach(f => { if (!m[n][f] && d[f]) m[n][f] = d[f]; }); };
+  (lsGet(K525, {}).cands || []).forEach(c => add((c.surname || '') + ' ' + (c.first || ''), { lic: (c.licno || '').toUpperCase(), email: c.email || '', phone: c.phone || '' }));
+  (lsGet(KFORMS, {}).cands || []).forEach(c => { const a = c.applicant || {}; add((a.surname || '') + ' ' + (a.first || ''), { lic: (a.licNo || '').toUpperCase(), email: a.email || '', phone: a.mobile || '' }); });
   return m;
+}
+/* βρίσκει πρόσωπο με ολόκληρο όνομα, ή μόνο με επώνυμο αν είναι μοναδικό */
+function findPerson(name) {
+  const k = nkey(name); if (!k) return null; const P = people(); if (P[k]) return P[k];
+  const hits = Object.keys(P).filter(n => n.split(' ')[0] === k); return hits.length === 1 ? P[hits[0]] : null;
+}
+/* ό,τι συμπληρώθηκε στο Γραφείο περνάει στις κενές θέσεις των καρτελών υποψηφίων */
+function syncPerson(e) {
+  const k = nkey(e.name); if (!k) return;
+  try { const d = lsGet(K525, null); if (d && d.cands) { let ch = false; d.cands.forEach(c => { if (nkey((c.surname || '') + ' ' + (c.first || '')) !== k) return;
+    if (!c.licno && e.lic) { c.licno = e.lic; ch = true; } if (!c.phone && e.phone) { c.phone = e.phone; ch = true; } if (!c.email && e.email) { c.email = e.email; ch = true; } });
+    if (ch) localStorage.setItem(K525, JSON.stringify(d)); } } catch (x) { }
+  try { const d = lsGet(KFORMS, null); if (d && d.cands) { let ch = false; d.cands.forEach(c => { const a = c.applicant || {}; if (nkey((a.surname || '') + ' ' + (a.first || '')) !== k) return;
+    if (!a.licNo && e.lic) { a.licNo = String(e.lic).replace(/^EL\s*\/?\s*FCL\s*\/?\s*/i, ''); ch = true; } if (!a.mobile && e.phone) { a.mobile = e.phone; ch = true; } if (!a.email && e.email) { a.email = e.email; ch = true; } });
+    if (ch) localStorage.setItem(KFORMS, JSON.stringify(d)); } } catch (x) { }
 }
 function setField(f, v) { edit[f] = v; const el = document.querySelector(`[data-e="${f}"]`); if (el) el.value = v == null ? '' : v; }
 function fillPerson() {
-  const p = people()[(edit.name || '').toUpperCase().trim()]; if (!p || p.id === edit.id) return;
+  const p = findPerson(edit.name); if (!p || p.id === edit.id) return;
   ['lic', 'email', 'phone', 'client'].forEach(f => { if (!edit[f] && p[f]) setField(f, p[f]); });
   if (edit.price == null && edit.client) { const pr = suggestPrice(edit); if (pr != null) setField('price', pr); }
 }
@@ -303,12 +323,12 @@ document.addEventListener('click', async ev => {
   if (t.id === 'addE') { edit = { id: uid(), src: 'manual', cat: 'exam', date: curMonth === todayISO().slice(0, 7) ? todayISO() : curMonth + '-01', in801: true, exp: [], price: null }; render(); window.scrollTo(0, 0); return; }
   if (t.id === 'cancelE') { edit = null; render(); return; }
   if (t.id === 'copyPrev') { const p = lastExam(); if (!p) { toast('Δεν υπάρχει προηγούμενη'); return; } CARRY.forEach(f => { if (p[f] != null && p[f] !== '') edit[f] = p[f]; }); render(); toast('Αντιγράφηκαν από ' + (p.name || dmy(p.date))); return; }
-  if (t.id === 'saveNext') { if (!(edit.name || '').trim()) { toast('Συμπλήρωσε όνομα'); return; } edit.manualEdit = true; LOG.push(edit); saveLog(); const prev = edit;
+  if (t.id === 'saveNext') { if (!(edit.name || '').trim()) { toast('Συμπλήρωσε όνομα'); return; } edit.manualEdit = true; LOG.push(edit); saveLog(); syncPerson(edit); const prev = edit;
     edit = { id: uid(), src: 'manual', cat: prev.cat, date: prev.date, in801: true, exp: [], price: null }; CARRY.forEach(f => { if (prev[f] != null && prev[f] !== '') edit[f] = prev[f]; });
     curMonth = (prev.date || curMonth).slice(0, 7); render(); window.scrollTo(0, 0); toast('Αποθηκεύτηκε · νέα εγγραφή'); const n = document.querySelector('[data-e="name"]'); if (n) n.focus(); return; }
   if (t.id === 'addExp') { edit.exp = edit.exp || []; edit.exp.push({ what: '', date: '' }); render(); return; }
   if (t.dataset.delexp) { edit.exp.splice(+t.dataset.delexp, 1); render(); return; }
-  if (t.id === 'saveE') { const i = LOG.findIndex(x => x.id === edit.id); edit.manualEdit = true; if (i >= 0) LOG[i] = edit; else LOG.push(edit); curMonth = (edit.date || curMonth).slice(0, 7); saveLog(); edit = null; if (backTab) { tab = backTab; backTab = null; } render(); toast('Αποθηκεύτηκε'); return; }
+  if (t.id === 'saveE') { const i = LOG.findIndex(x => x.id === edit.id); edit.manualEdit = true; if (i >= 0) LOG[i] = edit; else LOG.push(edit); curMonth = (edit.date || curMonth).slice(0, 7); saveLog(); syncPerson(edit); edit = null; if (backTab) { tab = backTab; backTab = null; } render(); toast('Αποθηκεύτηκε'); return; }
   if (t.id === 'delE') { if (confirm('Διαγραφή εγγραφής;')) { LOG = LOG.filter(x => x.id !== edit.id); saveLog(); edit = null; render(); } return; }
   if (t.id === 'gen801') { O.exName801 = $('#ex801').value; saveO(); const b = await pdf801(curMonth, $('#ex801').value, $('#d801').value); deliver([{ name: `PEL-FCL-801_${curMonth}.pdf`, blob: new Blob([b], { type: 'application/pdf' }) }]); return; }
   if (t.id === 'mail801') { location.href = `mailto:info@hcaa.gov.gr?subject=${encodeURIComponent('PEL-FCL 801 - Examiner Activity Report - ' + curMonth + ' - ' + ($('#ex801').value || ''))}&body=${encodeURIComponent('Please find attached the Examiner Activity Report (PEL-FCL 801) for ' + monthLabel(curMonth) + '.\n\n' + ($('#ex801').value || ''))}`; return; }
