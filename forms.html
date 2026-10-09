@@ -245,7 +245,7 @@ function editView() {
   const UC = 'autocapitalize="characters"';
   h += sec('app', 'Υποψήφιος', `<div class="grid">${inp(A + 'title', 'Title')}${inp(A + 'surname', 'Surname', 'text', UC)}${inp(A + 'first', 'First name(s)', 'text', UC)}${inp(A + 'dob', 'Date of birth', 'date')}</div>
     <div class="grid" style="margin-top:10px">${inp(A + 'nationality', 'Nationality', 'text', UC)}${inp(A + 'pobTown', 'Place of birth (town)', 'text', UC)}${inp(A + 'pobCountry', 'Place of birth (country)', 'text', UC)}</div>
-    <div style="margin-top:10px">${inp(A + 'address', 'Permanent address', 'text', UC)}</div>
+    <div class="grid" style="margin-top:10px">${inp(A + 'address', 'Permanent address (οδός, αριθμός)', 'text', UC)}${inp(A + 'city', 'Πόλη', 'text', UC)}</div>
     <div class="grid" style="margin-top:10px">${inp(A + 'postcode', 'Postcode')}${inp(A + 'tel', 'Contact tel.', 'tel')}${inp(A + 'mobile', 'Mobile', 'tel')}${inp(A + 'email', 'E-mail', 'email')}</div>
     <h3>Άδεια που έχει</h3><div class="grid">${inp(A + 'licType', 'Type (π.χ. PPL(A))', 'text', UC + ' placeholder="PPL(A)"')}${inp(A + 'licNo', 'HCAA licence no. (μετά το EL/FCL/)')}${inp(A + 'licState', 'State of issue', 'text', UC + ' placeholder="GREECE"')}</div>`,
     c.applicant.surname ? `<span class="tag">${esc(c.applicant.surname.toUpperCase())}</span>` : '');
@@ -322,7 +322,7 @@ document.addEventListener('change', e => {
   const el = e.target;
   if (el.id === 'imp') { const f = el.files[0]; if (!f) return; f.text().then(t => { try { const d = JSON.parse(t); if (!d.cands) throw new Error('μη έγκυρο'); if (confirm('Αντικατάσταση όλων των δεδομένων με το backup;')) { S = d; save(); render(); toast('Έγινε εισαγωγή'); } } catch (err) { alert('Σφάλμα: ' + err.message); } }); return; }
   if (el.dataset.chk) { setP(cur(), el.dataset.chk, el.checked); save(); render(); return; }
-  if (el.dataset.p && (el.type === 'date' || el.type === 'time')) { save(); if (view === 'edit') { const y = window.scrollY; render(); window.scrollTo(0, y); } }
+  if (el.dataset.p && (el.type === 'date' || el.type === 'time')) { setP(view === 'settings' ? S : cur(), el.dataset.p, el.value); save(); if (view === 'edit') { const y = window.scrollY; render(); window.scrollTo(0, y); } }
 });
 function setTitle() { const c = cur(); $('#ttl').innerHTML = esc(((c && c.applicant.surname) || 'Υποψήφιος').toUpperCase()) + '<small>' + (c && c.course === 'modular' ? 'Modular' : 'Integrated') + '</small>'; }
 
@@ -332,6 +332,14 @@ async function pdfBytes(f) { if (!pdfCache[f]) { const r = await fetch(f + '.pdf
 function sigBytes() { if (!S.ex.sig) return null; const b = atob(S.ex.sig.split(',')[1]); const u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
 async function generate(which, btn) {
   const c = cur(); const fs = which === 'ALL' ? formsFor(c) : [which];
+  if (fs.includes('1000')) { /* στοιχεία εξεταστή για το 1000: ζητούνται μία φορά και αποθηκεύονται */
+    let ch = false;
+    [['mobile', 'Το κινητό σου (για το PEL-FCL 1000):'], ['email', 'Το email σου (για το PEL-FCL 1000):'], ['dob', 'Ημερομηνία γέννησής σου (ηη/μμ/εεεε):']].forEach(([k, q]) => {
+      if ((S.ex[k] || '').trim()) return; let v = (prompt(q) || '').trim(); if (!v) return;
+      if (k === 'dob') { const m = /^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/.exec(v); if (!m) return; v = m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0'); }
+      S.ex[k] = v; ch = true; });
+    if (ch) { save(); toast('Αποθηκεύτηκαν στις Ρυθμίσεις'); }
+  }
   btn.disabled = true; const old = btn.textContent; btn.textContent = '…';
   try {
     const outs = [];

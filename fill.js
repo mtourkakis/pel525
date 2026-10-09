@@ -74,7 +74,7 @@
   }
 
   async function build(opts) {
-    const { PDFLib, layout, pdfBytes, ex, c, form, pagesMode, sigBytes } = opts;
+    const { PDFLib, layout, pdfBytes, ex, c, form, sigBytes } = opts; let pagesMode = opts.pagesMode;
     const { PDFDocument, StandardFonts, rgb } = PDFLib;
     const L = layout[form];
     const doc = await PDFDocument.load(pdfBytes);
@@ -146,7 +146,7 @@
       d.xs.forEach((x, i) => { if (chars[i]) { const w = (d.xs[i + 1] ? Math.min(d.xs[i + 1] - x, 20) : 16); at(d.p, x + w / 2, d.top + d.h - 4.5, chars[i], 10, { center: true }); } });
     }
     function flights(fl, def, rows, cols, p) {
-      (fl || []).slice(0, rows.length).forEach((f, i) => {
+      (fl || []).filter(f => f && (f.type || f.reg || f.dep || f.arr)).slice(0, rows.length).forEach((f, i) => {
         const [t0, t1] = rows[i]; const y = t1 - (t1 - t0) / 2 + 3.2;
         const vals = [dmy(f.date), f.type, f.reg, hhmm(f.dep), hhmm(f.arr), dur(f.dep, f.arr)];
         vals.forEach((v, j) => { const cx = (cols[j] + cols[j + 1]) / 2; at(p, cx, y, v, 9, { center: true, w: cols[j + 1] - cols[j] - 4 }); });
@@ -189,7 +189,7 @@
     function applicantPage() {
       text('a_surname', U(A.surname)); text('a_first', U(A.first)); text('a_title', A.title); text('a_dob', dob);
       text('a_nat', U(A.nationality)); text('a_pobtown', U(A.pobTown)); text('a_pobcountry', U(A.pobCountry));
-      text('a_addr1', U([A.address, A.city].filter(Boolean).join(', '))); text('a_postcode', A.postcode);
+      text('a_addr1', U(A.address)); text('a_addr2', U(A.city)); text('a_postcode', A.postcode);
       text('a_tel', A.tel); text('a_mobile', A.mobile); text('a_email', A.email);
       if (licNoFull || A.licType) {
         text('a_lstate', U(A.licState || 'GREECE')); text('a_ltype', U(A.licType || 'PPL(A)')); text('a_ltype2', U(A.licType || 'PPL(A)'));
@@ -229,7 +229,7 @@
         boxTick('cls_sep', sep); boxTick('cls_mep', mep);
         const ct = c.courseType || (c.tests.ir ? 'cplir' : 'cpl');
         boxTick('crs_atp', ct === 'atp'); boxTick('crs_cplir', ct === 'cplir'); boxTick('crs_cpl', ct === 'cpl');
-        text('s6_name', name); text('s12_date', dmy(c.signDate));
+        text('s6_name', name); text('s12_date', dmy(c.signDate)); boxTick('att_420', !!c.tests.ir);
       }
       marksTables('CPL', cpl);
       keep = form === '320B' ? [3, 4, 5, 6, 7, 8] : [4, 5, 6, 7, 8];
@@ -250,8 +250,11 @@
       [5, 6, 7, 8].forEach(p => { text('h' + p + '_name', name); text('h' + p + '_dob', dob); });
       applicantPage(); text('a_decldate', dmy(c.signDate)); text('a_appdate', dmy(c.signDate));
       boxTick('ir_se', ir.engine === 'SE'); boxTick('ir_me', ir.engine !== 'SE');
+      { const si = testSummary(ir); text('s10_date', dmy(si.passDate)); text('s10_ex', exName); text('s10_exnum', ex.number); text('s10_auth', ex.authority); }
       marksTables('IR', ir);
       keep = [4, 5, 6, 7, 8];
+      /* integrated CPL/IR: στο 320B επισυνάπτεται ΜΟΝΟ το Part 2 του 420A */
+      if (c.course === 'integrated' && c.tests.cpl) pagesMode = 'examiner';
     }
     if (form === '1000') {
       const T = c.ato || {};
