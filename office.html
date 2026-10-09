@@ -617,8 +617,8 @@ function zip(files) {
 function xesc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, ''); }
 function sheetXml(rows) {
   const col = i => { let s = ''; i++; while (i) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
-  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' +
-    rows.map((r, ri) => `<row r="${ri + 1}">` + r.map((v, ci) => { const ref = col(ci) + (ri + 1); if (v == null || v === '') return ''; if (typeof v === 'number') return `<c r="${ref}"${ri === 0 ? ' s="1"' : ''}><v>${v}</v></c>`; return `<c r="${ref}" t="inlineStr"${ri === 0 ? ' s="1"' : ''}><is><t xml:space="preserve">${xesc(v)}</t></is></c>`; }).join('') + '</row>').join('') + '</sheetData></worksheet>';
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="1" max="1" width="22" customWidth="1"/><col min="2" max="80" width="15" customWidth="1"/></cols><sheetData>' +
+    rows.map((r, ri) => `<row r="${ri + 1}">` + r.map((v, ci) => { const ref = col(ci) + (ri + 1); if (v == null || v === '') return ''; if (typeof v === 'object') { if (v.f) return `<c r="${ref}"${v.b ? ' s="1"' : ''}><f>${xesc(v.f)}</f><v>${v.v || 0}</v></c>`; const b = v.b ? ' s="1"' : ''; v = v.t; if (typeof v === 'number') return `<c r="${ref}"${b}><v>${v}</v></c>`; return `<c r="${ref}" t="inlineStr"${b}><is><t xml:space="preserve">${xesc(v)}</t></is></c>`; } if (typeof v === 'number') return `<c r="${ref}"${ri === 0 ? ' s="1"' : ''}><v>${v}</v></c>`; return `<c r="${ref}" t="inlineStr"${ri === 0 ? ' s="1"' : ''}><is><t xml:space="preserve">${xesc(v)}</t></is></c>`; }).join('') + '</row>').join('') + '</sheetData></worksheet>';
 }
 function buildXlsx(year) {
   const E = yearEntries(year).sort(sortByDate);
@@ -629,7 +629,37 @@ function buildXlsx(year) {
   const cl = [...new Set(E.map(e => e.client ? cname(e.client) : '(χωρίς πελάτη)'))];
   const s3 = [['Πελάτης'].concat(MONTHS, ['Σύνολο'])].concat(cl.map(c => { const r = [c]; let t = 0; for (let m = 1; m <= 12; m++) { const v = E.filter(e => inMonth(e, year + '-' + pad(m)) && (e.client ? cname(e.client) : '(χωρίς πελάτη)') === c).reduce((s, e) => s + (e.price || 0), 0); r.push(v || ''); t += v; } r.push(t); return r; }));
   const s4 = [['Αριθμός', 'Ημερομηνία', 'Πελάτης', 'Σύνολο €']].concat(O.invoices.filter(i => (i.date || '').startsWith(year)).sort((a, b) => parseInt(a.no) - parseInt(b.no)).map(i => [i.no, dmy(i.date), cname(i.client), invTotal(i)]));
-  const sheets = [['Εγγραφές', s1], ['Μήνες', s2], ['Πελάτες', s3], ['Τιμολόγια', s4]];
+  /* φύλλο στη μορφή του Numbers: ημερομηνίες κάτω, εξετάσεις + μαθητές σε στήλες με «Τιμή» */
+  const s0 = (() => {
+    const col = i => { let s = ''; i++; while (i) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
+    const ex = E.filter(e => (e.cat || 'exam') === 'exam'), dk = E.filter(e => e.cat === 'dek'), ot = E.filter(e => e.cat === 'other'), st = E.filter(e => e.cat === 'stud');
+    const studs = [...new Set(st.map(e => nkey(e.name)))].sort();
+    const head = ['Ημερομηνία', 'Εξετάσεις', 'Τιμή', 'Δεκέλεια', 'Τιμή', 'Άλλα', 'Τιμή'];
+    studs.forEach(n => head.push(n, 'Τιμή'));
+    const R = [head.map(t => ({ t, b: true }))];
+    const dates = [...new Set(E.map(e => e.date).filter(Boolean))].sort();
+    dates.forEach(d => {
+      const by = a => a.filter(e => e.date === d);
+      const X = by(ex), D = by(dk), A = by(ot), S = studs.map(n => st.filter(e => e.date === d && nkey(e.name) === n));
+      const n = Math.max(1, X.length, D.length, A.length, ...S.map(a => a.length));
+      for (let i = 0; i < n; i++) {
+        const r = [dmy(d)]; const put = e => e ? [e.name || '', e.price == null ? '' : e.price] : ['', ''];
+        r.push(...put(X[i]), ...put(D[i]), ...put(A[i]));
+        S.forEach(a => { const e = a[i]; r.push(e ? (payerOf(e) === 'direct' ? 'Απευθείας' : 'Λέσχη') : '', e && e.price != null ? e.price : ''); });
+        R.push(r);
+      }
+    });
+    const last = R.length, tot = [{ t: 'Σύνολο', b: true }];
+    for (let c = 1; c < head.length; c++) { if (head[c] === 'Τιμή') { const sum = R.slice(1).reduce((s, r) => s + (typeof r[c] === 'number' ? r[c] : 0), 0); tot.push({ f: `SUM(${col(c)}2:${col(c)}${last})`, v: sum, b: true }); } else tot.push(''); }
+    R.push(tot, []);
+    const sum = a => a.reduce((s, e) => s + (e.price || 0), 0);
+    const club = st.filter(e => payerOf(e) !== 'direct'), dir = st.filter(e => payerOf(e) === 'direct');
+    R.push([{ t: 'Εξετάσεις', b: true }, sum(ex)], [{ t: 'Δεκέλεια', b: true }, sum(dk)], [{ t: 'Μαθητές · Λέσχη', b: true }, sum(club)], [{ t: 'Μαθητές · Απευθείας', b: true }, sum(dir)], [{ t: 'Μαθητές', b: true }, sum(st)]);
+    if (ot.length) R.push([{ t: 'Άλλα', b: true }, sum(ot)]);
+    R.push([{ t: 'Total', b: true }, { t: sum(E), b: true }]);
+    return R;
+  })();
+  const sheets = [['Ώρες ' + year, s0], ['Εγγραφές', s1], ['Μήνες', s2], ['Πελάτες', s3], ['Τιμολόγια', s4]];
   const files = [
     ['[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' + sheets.map((s, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('') + '</Types>'],
     ['_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
