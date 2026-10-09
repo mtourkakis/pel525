@@ -243,7 +243,7 @@ function vStudents() {
   ${names.map(n => { const a = yr.filter(e => nkey(e.name) === n); return `<tr><td>${esc(n)}</td><td>${a.length}</td><td>${sum(a, 'club') ? eur(sum(a, 'club')) : ''}</td><td>${sum(a, 'direct') ? eur(sum(a, 'direct')) : ''}</td><td>${eur(sum(a))}</td></tr>`; }).join('') || '<tr><td colspan="5">—</td></tr>'}
   <tr class="tot"><td>Σύνολο</td><td>${yr.length}</td><td>${eur(sum(yr, 'club'))}</td><td>${eur(sum(yr, 'direct'))}</td><td>${eur(sum(yr))}</td></tr></table>
   <p class="hint">Το ποσό της στήλης «Λέσχη» είναι αυτό που τιμολογείς συγκεντρωτικά στη λέσχη (π.χ. στο τέλος, Δεκέλεια).</p></div></div>`;
-  if (arch.length) h += `<details class="card"><summary style="padding:14px 16px;font-weight:650">Παλιοί μαθητές (${arch.length})</summary><div class="list">${arch.map(st => `<div class="item"><div style="flex:1"><b>${esc(st.name)}</b></div><button class="btn alt" data-srest="${st.id}">Επαναφορά</button></div>`).join('')}</div></details>`;
+  if (arch.length) h += `<details class="card"><summary style="padding:14px 16px;font-weight:650">Παλιοί μαθητές (${arch.length})</summary><div class="list">${arch.map(st => `<div class="item"><div style="flex:1"><b>${esc(st.name)}</b></div><button class="btn alt" data-srest="${st.id}">Επαναφορά</button><button class="btn danger" data-sdel="${st.id}">Διαγραφή</button></div>`).join('')}</div></details>`;
   return h;
 }
 
@@ -375,6 +375,10 @@ document.addEventListener('click', async ev => {
     const past = LOG.filter(e => e.cat === 'stud' && nkey(e.name) === nkey(st.name) && payerOf(e) !== st.payer);
     let n = 0; if (past.length && confirm(st.name + ': πληρώνει πλέον ' + PAYER[st.payer] + '.\n\nΝα αλλάξουν και τα ' + past.length + ' μαθήματα που έχει ήδη;')) { past.forEach(e => e.payer = st.payer); n = past.length; saveLog(); }
     saveO(); render(); toast(st.name + ': ' + PAYER[st.payer] + (n ? ' · άλλαξαν ' + n + ' μαθήματα' : '')); return; }
+  if (t.dataset.sdel) { const st = O.students.find(x => x.id === t.dataset.sdel); if (!confirm('Διαγραφή του μαθητή ' + st.name + ';')) return;
+    const ls = LOG.filter(e => e.cat === 'stud' && nkey(e.name) === nkey(st.name)); let n = 0;
+    if (ls.length && confirm('Ο ' + st.name + ' έχει ' + ls.length + ' μαθήματα.\n\nOK = σβήνονται κι αυτά\nΆκυρο = μένουν στα σύνολα και στα έσοδα')) { const ids = new Set(ls.map(e => e.id)); LOG = LOG.filter(e => !ids.has(e.id)); n = ls.length; saveLog(); }
+    O.students = O.students.filter(x => x.id !== st.id); saveO(); render(); toast('Διαγράφηκε ' + st.name + (n ? ' και ' + n + ' μαθήματα' : '')); return; }
   if (t.dataset.srest) { const st = O.students.find(x => x.id === t.dataset.srest); st.active = true; saveO(); render(); return; }
   if (t.dataset.edit) { const e = LOG.find(x => x.id === t.dataset.edit); edit = JSON.parse(JSON.stringify(e)); backTab = (tab === 'inv' || tab === 'stud') ? tab : null; tab = 'log'; curMonth = e.date.slice(0, 7); render(); window.scrollTo(0, 0); return; }
   if (t.id === 'addE') { edit = { id: uid(), src: 'manual', cat: 'exam', date: curMonth === todayISO().slice(0, 7) ? todayISO() : curMonth + '-01', in801: true, exp: [], price: null }; render(); window.scrollTo(0, 0); return; }
