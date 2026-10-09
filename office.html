@@ -93,7 +93,7 @@ header{padding-left:calc(env(safe-area-inset-left) + 78px)}
 </head>
 <body>
 <header><a href="index.html" class="nav">‹ 525</a><h1>Γραφείο<small>801 · Έσοδα · Τιμολόγια · Λήξεις</small></h1><a href="forms.html" class="nav">CPL·IR·PBN</a></header>
-<nav class="tabs"><button data-tab="log">Εξετάσεις</button><button data-tab="r801">801</button><button data-tab="inc">Έσοδα</button><button data-tab="inv">Τιμολόγια</button><button data-tab="exp">Λήξεις</button><button data-tab="set">Ρυθμίσεις</button></nav>
+<nav class="tabs"><button data-tab="log">Εξετάσεις</button><button data-tab="stud">Μαθητές</button><button data-tab="r801">801</button><button data-tab="inc">Έσοδα</button><button data-tab="inv">Τιμολόγια</button><button data-tab="exp">Λήξεις</button><button data-tab="set">Ρυθμίσεις</button></nav>
 <main id="app"></main>
 <div class="toast" id="toast"></div>
 <script src="pdf-lib.min.js"></script>
@@ -115,7 +115,8 @@ const RES = { P: 'Pass', PP: 'Partial', F: 'Fail' };
 
 function lsGet(k, d) { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } }
 let LOG = lsGet(LOGKEY, []);
-let O = Object.assign({ company: '', companyNo: '', bank: '', exName801: '', nextNo: 1, year2: String(new Date().getFullYear()).slice(2), clients: [], invoices: [], mydocs: [] }, lsGet(OKEY, {}));
+let O = Object.assign({ company: '', companyNo: '', bank: '', exName801: '', nextNo: 1, year2: String(new Date().getFullYear()).slice(2), clients: [], invoices: [], mydocs: [], students: [] }, lsGet(OKEY, {}));
+if (!O.students) O.students = [];
 const saveLog = () => localStorage.setItem(LOGKEY, JSON.stringify(LOG));
 const saveO = () => localStorage.setItem(OKEY, JSON.stringify(O));
 const ex525 = () => (lsGet(K525, {}).ex) || {};
@@ -130,7 +131,7 @@ const sortByDate = (a, b) => (a.date || '').localeCompare(b.date || '');
 /* ---------- render ---------- */
 function render() {
   document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
-  const v = { log: vLog, r801: v801, inc: vIncome, inv: vInvoices, exp: vExpiry, set: vSettings }[tab]();
+  const v = { log: vLog, stud: vStudents, r801: v801, inc: vIncome, inv: vInvoices, exp: vExpiry, set: vSettings }[tab]();
   $('#app').innerHTML = v;
 }
 function monthPicker() {
@@ -158,6 +159,7 @@ function editorHTML() {
   <div class="grid"><label class="f">Κατηγορία<select data-e="cat">${Object.entries(CATS).map(([k, v]) => `<option value="${k}" ${e.cat === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>${fld('date', 'Ημερομηνία', 'date', e.date)}${fld('name', 'Όνομα', 'text', e.name, 'autocapitalize="characters" list="dl_name" placeholder="ΕΠΩΝΥΜΟ ΟΝΟΜΑ"')}${fld('lic', 'Αρ. άδειας', 'text', e.lic, 'autocapitalize="characters"')}</div>
   ${e.cat === 'exam' ? `<div class="grid" style="margin-top:10px">${fld('test', 'Skill test / Prof. check', 'text', e.test, 'autocapitalize="characters" list="dl_test"')}${fld('type', 'A/C type / class', 'text', e.type, 'autocapitalize="characters" list="dl_type" placeholder="C-172 /SEP"')}${fld('reg', 'Registration', 'text', e.reg, 'autocapitalize="characters" list="dl_reg" placeholder="SX ACO"')}${fld('dep', 'Departure / Arrival', 'text', e.dep, 'autocapitalize="characters" list="dl_dep" placeholder="LGMG/LGMG"')}${fld('time', 'Χρόνος (h:mm)', 'text', e.time, 'placeholder="1:30"')}<label class="f">Αποτέλεσμα<select data-e="result"><option value=""></option>${Object.entries(RES).map(([k, v]) => `<option value="${k}" ${e.result === k ? 'selected' : ''}>${k} · ${v}</option>`).join('')}</select></label></div>
   <label class="chk"><input type="checkbox" data-e="in801" ${e.in801 !== false ? 'checked' : ''}> Μπαίνει στο PEL-FCL 801</label>` : ''}
+  ${e.cat === 'stud' ? `<div class="grid" style="margin-top:10px"><label class="f">Πληρώνει<select data-e="payer">${Object.entries(PAYER).map(([k, v]) => `<option value="${k}" ${(e.payer || 'club') === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label></div>` : ''}
   <div class="grid" style="margin-top:10px"><label class="f">Πελάτης / χρέωση<select data-e="client">${clientOptions(e.client)}</select></label>${fld('price', 'Ποσό €', 'text', e.price == null ? '' : e.price, 'inputmode="decimal"')}${fld('qty', 'Ώρες / τεμ. (προαιρ.)', 'text', e.qty || '', 'inputmode="decimal"')}</div>
   <div class="grid" style="margin-top:10px">${fld('email', 'Email υποψηφίου', 'email', e.email)}${fld('phone', 'Τηλέφωνο', 'tel', e.phone)}</div>
   <h3>Λήξεις υποψηφίου</h3>${exps}<button class="btn alt" id="addExp" style="margin-top:6px">+ Λήξη</button>
@@ -209,6 +211,36 @@ function suggestPrice(e) {
   const t = (e.test || '').toUpperCase().trim();
   const m = same.find(x => (x.test || '').toUpperCase().trim() === t && t) || same.find(x => x.cat === e.cat);
   return m ? m.price : null;
+}
+
+/* ---------- Μαθητές: μαθήματα που δεν μπαίνουν στο 801 ούτε τιμολογούνται ένα-ένα ---------- */
+let stDate = todayISO(), stPayer = 'club';
+const PAYER = { club: 'Λέσχη', direct: 'Απευθείας' };
+const payerOf = e => e.payer || 'club';
+function vStudents() {
+  const act = O.students.filter(x => x.active !== false).sort((a, b) => a.name.localeCompare(b.name));
+  const arch = O.students.filter(x => x.active === false).sort((a, b) => a.name.localeCompare(b.name));
+  const L = LOG.filter(e => e.cat === 'stud');
+  const mon = L.filter(e => inMonth(e, curMonth)).sort(sortByDate);
+  const yr = L.filter(e => (e.date || '').startsWith(curYear));
+  const per = (arr, n) => arr.filter(e => nkey(e.name) === nkey(n));
+  let h = `<div class="card"><div class="body" style="padding-top:14px"><h3 style="margin-top:0">Ενεργοί μαθητές</h3>
+  <div class="grid"><label class="f">Ημερομηνία μαθήματος<input type="date" id="stDate" value="${stDate}"></label></div></div>
+  <div class="list">${act.map(st => { const m = per(mon, st.name); return `<div class="item"><div style="flex:1;min-width:0" data-sedit="${st.id}"><b>${esc(st.name)}</b><span>${st.price != null ? eur(st.price) + ' / μάθημα' : 'χωρίς τιμή'} · ${monthLabel(curMonth)}: ${m.length} · ${eur(m.reduce((s, e) => s + (e.price || 0), 0))}</span></div><button class="btn alt" data-spay="${st.id}" title="Ποιος πληρώνει">${PAYER[st.payer || 'club']}</button><button class="btn amber" data-sadd="${st.id}">+ Μάθημα</button></div>`; }).join('') || '<div class="item"><span>Κανένας ακόμα. Πρόσθεσε από κάτω.</span></div>'}</div>
+  <div class="body"><div class="grid"><label class="f">Νέος μαθητής<input id="stNewName" autocapitalize="characters" placeholder="ΕΠΩΝΥΜΟ ΟΝΟΜΑ"></label><label class="f">Τιμή μαθήματος €<input id="stNewPrice" inputmode="decimal" placeholder="50"></label><button class="btn" id="stAdd" style="align-self:end">Προσθήκη</button></div>
+  <div class="row"><span class="hint" style="margin:0">Πληρώνει:</span><div class="seg">${Object.entries(PAYER).map(([k, v]) => `<button data-snewpay="${k}" class="${stPayer === k ? 'on' : ''}">${v}</button>`).join('')}</div></div>
+  <p class="hint">Πάτα το όνομα για αλλαγή τιμής ή «Αποχώρησε». Το κουμπί «Λέσχη / Απευθείας» αλλάζει ποιος πληρώνει (ισχύει για τα επόμενα μαθήματα). Τα μαθήματα δεν μπαίνουν στο 801 ούτε στα «Ατιμολόγητα».</p></div></div>`;
+  h += monthPicker();
+  const sum = (a, k) => a.filter(e => !k || payerOf(e) === k).reduce((s, e) => s + (e.price || 0), 0);
+  h += `<div class="card list">${mon.map(e => `<div class="item" data-edit="${e.id}"><div style="flex:1"><b>${dmy(e.date)} · ${esc(e.name)}</b><span>${PAYER[payerOf(e)]}${e.note ? ' · ' + esc(e.note) : ''}</span></div><b>${e.price != null ? eur(e.price) : '—'}</b></div>`).join('') || '<div class="item"><span>Κανένα μάθημα αυτόν τον μήνα.</span></div>'}</div>
+  <p class="hint">${mon.length} μαθήματα · Λέσχη ${eur(sum(mon, 'club'))} · Απευθείας ${eur(sum(mon, 'direct'))} · σύνολο ${eur(sum(mon))}</p>`;
+  const names = [...new Set(yr.map(e => nkey(e.name)))].sort();
+  h += `<div class="card"><div class="body" style="padding-top:14px;overflow-x:auto"><h3 style="margin-top:0">Σύνολα ${curYear} ανά μαθητή</h3><table class="t"><tr><th>Μαθητής</th><th>Μαθήματα</th><th>Λέσχη</th><th>Απευθείας</th><th>Σύνολο</th></tr>
+  ${names.map(n => { const a = yr.filter(e => nkey(e.name) === n); return `<tr><td>${esc(n)}</td><td>${a.length}</td><td>${sum(a, 'club') ? eur(sum(a, 'club')) : ''}</td><td>${sum(a, 'direct') ? eur(sum(a, 'direct')) : ''}</td><td>${eur(sum(a))}</td></tr>`; }).join('') || '<tr><td colspan="5">—</td></tr>'}
+  <tr class="tot"><td>Σύνολο</td><td>${yr.length}</td><td>${eur(sum(yr, 'club'))}</td><td>${eur(sum(yr, 'direct'))}</td><td>${eur(sum(yr))}</td></tr></table>
+  <p class="hint">Το ποσό της στήλης «Λέσχη» είναι αυτό που τιμολογείς συγκεντρωτικά στη λέσχη (π.χ. στο τέλος, Δεκέλεια).</p></div></div>`;
+  if (arch.length) h += `<details class="card"><summary style="padding:14px 16px;font-weight:650">Παλιοί μαθητές (${arch.length})</summary><div class="list">${arch.map(st => `<div class="item"><div style="flex:1"><b>${esc(st.name)}</b></div><button class="btn alt" data-srest="${st.id}">Επαναφορά</button></div>`).join('')}</div></details>`;
+  return h;
 }
 
 function rows801(ym) { return LOG.filter(e => inMonth(e, ym) && e.cat === 'exam' && e.in801 !== false).sort(sortByDate); }
@@ -316,12 +348,25 @@ function vSettings() {
 
 /* ---------- events ---------- */
 document.addEventListener('click', async ev => {
-  const t = ev.target.closest('button,[data-edit],[data-inv],[data-month],[data-unb],[data-tab]'); if (!t) return;
+  const t = ev.target.closest('button,[data-edit],[data-inv],[data-month],[data-unb],[data-tab],[data-sedit]'); if (!t) return;
   if (t.dataset.tab) { tab = t.dataset.tab; edit = null; invEdit = null; render(); window.scrollTo(0, 0); return; }
   if (t.dataset.mstep) { const [y, m] = curMonth.split('-').map(Number); const d = new Date(y, m - 1 + (+t.dataset.mstep), 1); curMonth = d.getFullYear() + '-' + pad(d.getMonth() + 1); edit = null; render(); return; }
-  if (t.dataset.edit) { const e = LOG.find(x => x.id === t.dataset.edit); edit = JSON.parse(JSON.stringify(e)); backTab = tab === 'inv' ? 'inv' : null; tab = 'log'; curMonth = e.date.slice(0, 7); render(); window.scrollTo(0, 0); return; }
+  if (t.id === 'stAdd') { const n = nkey($('#stNewName').value); if (!n) { toast('Γράψε όνομα'); return; } if (O.students.some(x => nkey(x.name) === n && x.active !== false)) { toast('Υπάρχει ήδη'); return; }
+    const old = O.students.find(x => nkey(x.name) === n); const pr = num($('#stNewPrice').value);
+    if (old) { old.active = true; old.payer = stPayer; if (pr != null) old.price = pr; } else O.students.push({ id: uid(), name: n, price: pr, active: true, payer: stPayer }); saveO(); render(); toast('Προστέθηκε'); return; }
+  if (t.dataset.sadd) { const st = O.students.find(x => x.id === t.dataset.sadd); const d = ($('#stDate') || {}).value || todayISO(); stDate = d;
+    LOG.push({ id: uid(), src: 'stud', cat: 'stud', date: d, name: st.name, price: st.price != null ? st.price : null, payer: st.payer || 'club', in801: false, exp: [] }); saveLog();
+    curMonth = d.slice(0, 7); render(); toast('Μάθημα ' + st.name + ' · ' + dmy(d)); return; }
+  if (t.dataset.sedit) { const st = O.students.find(x => x.id === t.dataset.sedit);
+    const a = prompt('Τιμή μαθήματος για ' + st.name + ' (€).\nΓράψε 0 ή «αποχώρησε» για να μπει στους παλιούς μαθητές:', st.price != null ? st.price : ''); if (a == null) return;
+    if (/^\s*(0|αποχ)/i.test(a)) { st.active = false; toast(st.name + ' → παλιοί μαθητές'); } else { const v = num(a); if (v != null) st.price = v; }
+    saveO(); render(); return; }
+  if (t.dataset.snewpay) { stPayer = t.dataset.snewpay; render(); return; }
+  if (t.dataset.spay) { const st = O.students.find(x => x.id === t.dataset.spay); st.payer = (st.payer || 'club') === 'club' ? 'direct' : 'club'; saveO(); render(); toast(st.name + ': πληρώνει ' + PAYER[st.payer]); return; }
+  if (t.dataset.srest) { const st = O.students.find(x => x.id === t.dataset.srest); st.active = true; saveO(); render(); return; }
+  if (t.dataset.edit) { const e = LOG.find(x => x.id === t.dataset.edit); edit = JSON.parse(JSON.stringify(e)); backTab = (tab === 'inv' || tab === 'stud') ? tab : null; tab = 'log'; curMonth = e.date.slice(0, 7); render(); window.scrollTo(0, 0); return; }
   if (t.id === 'addE') { edit = { id: uid(), src: 'manual', cat: 'exam', date: curMonth === todayISO().slice(0, 7) ? todayISO() : curMonth + '-01', in801: true, exp: [], price: null }; render(); window.scrollTo(0, 0); return; }
-  if (t.id === 'cancelE') { edit = null; render(); return; }
+  if (t.id === 'cancelE') { edit = null; if (backTab) { tab = backTab; backTab = null; } render(); return; }
   if (t.id === 'copyPrev') { const p = lastExam(); if (!p) { toast('Δεν υπάρχει προηγούμενη'); return; } CARRY.forEach(f => { if (p[f] != null && p[f] !== '') edit[f] = p[f]; }); render(); toast('Αντιγράφηκαν από ' + (p.name || dmy(p.date))); return; }
   if (t.id === 'saveNext') { if (!(edit.name || '').trim()) { toast('Συμπλήρωσε όνομα'); return; } edit.manualEdit = true; LOG.push(edit); saveLog(); syncPerson(edit); const prev = edit;
     edit = { id: uid(), src: 'manual', cat: prev.cat, date: prev.date, in801: true, exp: [], price: null }; CARRY.forEach(f => { if (prev[f] != null && prev[f] !== '') edit[f] = prev[f]; });
@@ -329,7 +374,7 @@ document.addEventListener('click', async ev => {
   if (t.id === 'addExp') { edit.exp = edit.exp || []; edit.exp.push({ what: '', date: '' }); render(); return; }
   if (t.dataset.delexp) { edit.exp.splice(+t.dataset.delexp, 1); render(); return; }
   if (t.id === 'saveE') { const i = LOG.findIndex(x => x.id === edit.id); edit.manualEdit = true; if (i >= 0) LOG[i] = edit; else LOG.push(edit); curMonth = (edit.date || curMonth).slice(0, 7); saveLog(); syncPerson(edit); edit = null; if (backTab) { tab = backTab; backTab = null; } render(); toast('Αποθηκεύτηκε'); return; }
-  if (t.id === 'delE') { if (confirm('Διαγραφή εγγραφής;')) { LOG = LOG.filter(x => x.id !== edit.id); saveLog(); edit = null; render(); } return; }
+  if (t.id === 'delE') { if (confirm('Διαγραφή εγγραφής;')) { LOG = LOG.filter(x => x.id !== edit.id); saveLog(); edit = null; if (backTab) { tab = backTab; backTab = null; } render(); } return; }
   if (t.id === 'gen801') { O.exName801 = $('#ex801').value; saveO(); const b = await pdf801(curMonth, $('#ex801').value, $('#d801').value); deliver([{ name: `PEL-FCL-801_${curMonth}.pdf`, blob: new Blob([b], { type: 'application/pdf' }) }]); return; }
   if (t.id === 'mail801') { location.href = `mailto:info@hcaa.gov.gr?subject=${encodeURIComponent('PEL-FCL 801 - Examiner Activity Report - ' + curMonth + ' - ' + ($('#ex801').value || ''))}&body=${encodeURIComponent('Please find attached the Examiner Activity Report (PEL-FCL 801) for ' + monthLabel(curMonth) + '.\n\n' + ($('#ex801').value || ''))}`; return; }
   if (t.dataset.x801 || t.dataset.in801) { const e = LOG.find(x => x.id === (t.dataset.x801 || t.dataset.in801)); if (e) { e.in801 = !!t.dataset.in801; e.manualEdit = true; saveLog(); render(); toast(e.in801 ? 'Μπήκε ξανά στο 801' : 'Βγήκε από το 801'); } return; }
@@ -375,6 +420,7 @@ document.addEventListener('click', async ev => {
   if (t.id === 'expB') { deliver([{ name: 'pel-office-backup-' + todayISO() + '.json', blob: new Blob([JSON.stringify({ office: O, log: LOG }, null, 1)], { type: 'application/json' }) }]); return; }
 });
 document.addEventListener('input', ev => {
+  if (ev.target.id === 'stDate') { stDate = ev.target.value || todayISO(); return; }
   const el = ev.target;
   if (el.dataset.e) {
     const k = el.dataset.e; const v = el.type === 'checkbox' ? el.checked : el.value;
