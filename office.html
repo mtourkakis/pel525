@@ -334,7 +334,7 @@ document.addEventListener('click', async ev => {
     const i = O.invoices.findIndex(x => x.id === invEdit.id); if (i >= 0) O.invoices[i] = invEdit; else O.invoices.push(invEdit);
     const n = parseInt(invEdit.no); if (n >= (O.nextNo || 1)) O.nextNo = n + 1;
     (invEdit.entries || []).forEach(id => { const e = LOG.find(x => x.id === id); if (e) e.invoice = invEdit.no; }); saveLog(); saveO();
-    if (t.id === 'pdfInv') { const b = await pdfInvoice(invEdit); const cn = ((invEdit.client === '__self' ? (invEdit.clientLines || '').split('\n')[0] : (invEdit.clientName || cname(invEdit.client))) || 'client').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'client'; deliver([{ name: `${invEdit.no}_${cn}.pdf`, blob: new Blob([b], { type: 'application/pdf' }) }]); }
+    if (t.id === 'pdfInv') { const b = await pdfInvoice(invEdit); const cn = ((invEdit.client === '__self' ? (invEdit.clientLines || '').split('\n')[0] : (invEdit.clientName || cname(invEdit.client))) || 'client').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'client'; const ym = (invEdit.date || new Date().toISOString()).slice(0, 7); deliver([{ name: `${ym}_${invEdit.no}_${cn}.pdf`, blob: new Blob([b], { type: 'application/pdf' }) }]); }
     else toast('Αποθηκεύτηκε'); return;
   }
   if (t.id === 'delInv') { if (confirm('Διαγραφή τιμολογίου ' + invEdit.no + ';')) { LOG.forEach(e => { if (e.invoice === invEdit.no) delete e.invoice; }); O.invoices = O.invoices.filter(x => x.id !== invEdit.id); saveO(); saveLog(); invEdit = null; render(); } return; }
