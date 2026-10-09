@@ -207,7 +207,7 @@ function testHTML(kind) {
   const n = kind === 'CPL' ? 2 : 3;
   let h = `<div class="row">${seg(key + '.engine', [['SE', 'Single-engine'], ['ME', 'Multi-engine']])}</div>
   <div class="grid">${inp(key + '.attempt', 'Attempt No.', 'text', 'inputmode="numeric"')}${kind === 'CPL' ? inp(key + '.place', 'Place of Test', 'text', 'list="dl_place" autocapitalize="characters"') : ''}${inp(key + '.notif', 'Notification HCAA (αν διαφέρει)', 'date')}</div>
-  <h3>Details of flight(s)</h3>${flightsHTML(key + '.flights', n, kind === 'IR')}
+  <h3>Details of flight(s)</h3>${kind === 'IR' && c.tests.cpl ? '<div class="row"><button class="btn alt" data-cplfl="1">+ Πτήση αεροσκάφους από το CPL</button></div>' : ''}${flightsHTML(key + '.flights', n, kind === 'IR')}
   <h3>Αποτέλεσμα</h3><div class="row">${seg(key + '.result', [['pass', 'Pass'], ['partial', 'Partial pass'], ['fail', 'Fail']])}</div>`;
   if (t.result === 'partial' || t.result === 'fail') h += `<div class="grid">${inp(key + '.ft.ac', 'Further training A/C (h)')}${inp(key + '.ft.sim', kind === 'CPL' ? 'Sim/FNPT II (h)' : 'FSTD (h)')}${inp(key + '.ft.gnd', 'Ground (h)')}</div>`;
   if (kind === 'IR') h += `<label class="f" style="margin-top:10px">Comments (Part 2)<textarea data-p="ir.comment">${esc(t.comment)}</textarea></label>
@@ -237,10 +237,17 @@ function editView() {
     <label class="chk"><input type="checkbox" data-chk="tests.ir" ${c.tests.ir ? 'checked' : ''}> IR(A) skill test</label>
     <label class="chk"><input type="checkbox" data-chk="tests.pbn" ${c.tests.pbn ? 'checked' : ''}> PBN endorsement (PEL-FCL 1000)</label>
     <p class="forms">→ ${fs.map(f => FORMNAME[f]).join('<br>→ ') || '—'}</p>
+    ${fs.includes('320B') ? (() => { const ct = c.courseType || (c.tests.ir ? 'cplir' : 'cpl'); const se = c.classSE != null ? c.classSE : c.cpl.engine === 'SE', me = c.classME != null ? c.classME : c.cpl.engine !== 'SE';
+      return `<h3>320B · Ενότ. 3</h3><div class="row"><div class="seg">${[['atp', 'ATP Integrated'], ['cplir', 'CPL/IR Integrated'], ['cpl', 'CPL Integrated']].map(([v, l]) => `<button data-ctype="${v}" class="${ct === v ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+      <label class="chk"><input type="checkbox" data-chk="classSE" ${se ? 'checked' : ''}> Single-engine Piston (Land)</label><label class="chk"><input type="checkbox" data-chk="classME" ${me ? 'checked' : ''}> Multi-engine Piston (Land)</label>`; })() : ''}
     <div class="grid">${inp('signDate', 'Ημερομηνία υπογραφής εξεταστή', 'date')}${inp('notif', 'Notification of Test στην HCAA', 'date')}</div>
     <p class="hint">Τα στοιχεία συμπληρώνονται μία φορά και περνούν σε όλα τα έντυπα.</p>`, `<span class="tag">${c.course === 'integrated' ? 'INT' : 'MOD'}</span>`);
-  h += sec('app', 'Υποψήφιος', `<div class="grid">${inp(A + 'title', 'Title')}${inp(A + 'surname', 'Surname', 'text', 'autocapitalize="characters"')}${inp(A + 'first', 'First name(s)', 'text', 'autocapitalize="characters"')}${inp(A + 'dob', 'Date of birth', 'date')}</div>
-    ${c.tests.pbn ? `<div class="grid" style="margin-top:10px">${inp(A + 'licNo', 'HCAA licence no. (μετά το EL/FCL/)')}${inp(A + 'mobile', 'Mobile', 'tel')}${inp(A + 'email', 'E-mail', 'email')}${inp(A + 'postcode', 'Postcode')}</div><div style="margin-top:10px">${inp(A + 'address', 'Permanent address')}</div>` : ''}`,
+  const UC = 'autocapitalize="characters"';
+  h += sec('app', 'Υποψήφιος', `<div class="grid">${inp(A + 'title', 'Title')}${inp(A + 'surname', 'Surname', 'text', UC)}${inp(A + 'first', 'First name(s)', 'text', UC)}${inp(A + 'dob', 'Date of birth', 'date')}</div>
+    <div class="grid" style="margin-top:10px">${inp(A + 'nationality', 'Nationality', 'text', UC)}${inp(A + 'pobTown', 'Place of birth (town)', 'text', UC)}${inp(A + 'pobCountry', 'Place of birth (country)', 'text', UC)}</div>
+    <div style="margin-top:10px">${inp(A + 'address', 'Permanent address', 'text', UC)}</div>
+    <div class="grid" style="margin-top:10px">${inp(A + 'postcode', 'Postcode')}${inp(A + 'tel', 'Contact tel.', 'tel')}${inp(A + 'mobile', 'Mobile', 'tel')}${inp(A + 'email', 'E-mail', 'email')}</div>
+    <h3>Άδεια που έχει</h3><div class="grid">${inp(A + 'licType', 'Type (π.χ. PPL(A))', 'text', UC + ' placeholder="PPL(A)"')}${inp(A + 'licNo', 'HCAA licence no. (μετά το EL/FCL/)')}${inp(A + 'licState', 'State of issue', 'text', UC + ' placeholder="GREECE"')}</div>`,
     c.applicant.surname ? `<span class="tag">${esc(c.applicant.surname.toUpperCase())}</span>` : '');
   if (c.tests.pbn) h += sec('ato', 'ATO / AOC (για 1000)', `<div class="grid">${inp(T + 'name', 'Name of ATO/AOC')}${inp(T + 'number', 'Approval / Ref. No')}${inp(T + 'tel', 'Contact tel.', 'tel')}${inp(T + 'email', 'E-mail', 'email')}</div><div style="margin-top:10px">${inp(T + 'address', 'Address')}</div>
     <h3>Checklist συνημμένων</h3>
@@ -278,6 +285,10 @@ document.addEventListener('click', async e => {
   if (t.id === 'del') { if (confirm('Διαγραφή του υποψηφίου;')) { S.cands = S.cands.filter(x => x.id !== c.id); save(); view = 'list'; render(); } return; }
   if (t.id === 'dup') { const n = JSON.parse(JSON.stringify(c)); n.id = uid(); n.created = Date.now(); n.cpl = blankTest(2); n.ir = blankTest(3); S.cands.unshift(n); S.cur = n.id; save(); toast('Αντιγράφηκαν υποψήφιος & ATO'); render(); return; }
   if (t.dataset.seg) { const p = t.dataset.seg; const obj = view === 'settings' ? S : c; setP(obj, p, getP(obj, p) === t.dataset.v ? '' : t.dataset.v); if (p === 'course' && !getP(obj, p)) setP(obj, p, t.dataset.v); save(); render(); return; }
+  if (t.dataset.ctype) { c.courseType = t.dataset.ctype; save(); render(); return; }
+  if (t.dataset.cplfl) { const fl = (c.cpl.flights || []).filter(f => f && (f.date || f.type)); const ir = c.ir.flights = c.ir.flights || [];
+    fl.forEach(f => { if (ir.some(x => x && x.date === f.date && x.reg === f.reg && x.dep === f.dep)) return; let i = ir.findIndex(x => !x || !(x.date || x.type || x.reg)); if (i < 0) { if (ir.length >= 3) return; i = ir.length; } ir[i] = Object.assign({}, f); });
+    save(); render(); toast('Η πτήση του CPL προστέθηκε στο IR'); return; }
   if (t.dataset.pages) { S.pages = t.dataset.pages; save(); render(); return; }
   if (t.dataset.mark) {
     const [kind, k, att, v] = t.dataset.mark.split('|'); const tt = c[kind === 'CPL' ? 'cpl' : 'ir'];

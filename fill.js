@@ -163,7 +163,7 @@
             const v = m[att]; if (!v) return;
             if (v === 'P') tick(r.p, r.cx[att * 2], cy, 5);
             else if (v === 'F') tick(r.p, r.cx[att * 2 + 1], cy, 5);
-            else if (v === 'NA') at(r.p, (r.cx[att * 2] + r.cx[att * 2 + 1]) / 2, cy + 3, 'N/A', 7.5, { center: true });
+            else if (v === 'NA') at(r.p, r.cx[att * 2], cy + 2.5, 'N/A', 7, { center: true, w: 24 });
           });
           const cm = t.comments && t.comments[sec.s + id];
           if (cm) { const x = r.cx[3] + 16; at(r.p, x, cy + 3, cm, 7.5, { w: 562 - x }); }
@@ -183,6 +183,19 @@
     const exName = clean(ex.displayName || '').toUpperCase();
     const cpl = c.cpl || {}, ir = c.ir || {};
     let keep = null;
+    /* στοιχεία υποψηφίου στη σελίδα 1 (320B / 420A) */
+    const U = v => (v || '').toUpperCase();
+    const licNoFull = A.licNo ? (/^EL/i.test(A.licNo) ? U(A.licNo) : 'EL/FCL/' + A.licNo) : '';
+    function applicantPage() {
+      text('a_surname', U(A.surname)); text('a_first', U(A.first)); text('a_title', A.title); text('a_dob', dob);
+      text('a_nat', U(A.nationality)); text('a_pobtown', U(A.pobTown)); text('a_pobcountry', U(A.pobCountry));
+      text('a_addr1', U([A.address, A.city].filter(Boolean).join(', '))); text('a_postcode', A.postcode);
+      text('a_tel', A.tel); text('a_mobile', A.mobile); text('a_email', A.email);
+      if (licNoFull || A.licType) {
+        text('a_lstate', U(A.licState || 'GREECE')); text('a_ltype', U(A.licType || 'PPL(A)')); text('a_ltype2', U(A.licType || 'PPL(A)'));
+        text('a_lcat', 'AEROPLANE'); text('a_lno', licNoFull); text('a_lno2', licNoFull); text('a_lexp', dmy(A.licExp));
+      }
+    }
 
     if (form === '320A' || form === '320B') {
       const s = testSummary(cpl);
@@ -210,6 +223,14 @@
         if (cpl.retest.result === 'fail') { text('p2r_ft_ac', cpl.retest.ft && cpl.retest.ft.ac); text('p2r_ft_sim', cpl.retest.ft && cpl.retest.ft.sim); text('p2r_ft_gnd', cpl.retest.ft && cpl.retest.ft.gnd); }
       }
       text('p6_name', name); text('p6_dob', dob);
+      if (form === '320B') {
+        applicantPage();
+        const sep = c.classSE != null ? c.classSE : cpl.engine === 'SE', mep = c.classME != null ? c.classME : cpl.engine !== 'SE';
+        boxTick('cls_sep', sep); boxTick('cls_mep', mep);
+        const ct = c.courseType || (c.tests.ir ? 'cplir' : 'cpl');
+        boxTick('crs_atp', ct === 'atp'); boxTick('crs_cplir', ct === 'cplir'); boxTick('crs_cpl', ct === 'cpl');
+        text('s6_name', name); text('s12_date', dmy(c.signDate));
+      }
       marksTables('CPL', cpl);
       keep = form === '320B' ? [3, 4, 5, 6, 7, 8] : [4, 5, 6, 7, 8];
     }
@@ -227,6 +248,8 @@
         text('p2r_comments', ir.retest.comment);
       }
       [5, 6, 7, 8].forEach(p => { text('h' + p + '_name', name); text('h' + p + '_dob', dob); });
+      applicantPage(); text('a_decldate', dmy(c.signDate)); text('a_appdate', dmy(c.signDate));
+      boxTick('ir_se', ir.engine === 'SE'); boxTick('ir_me', ir.engine !== 'SE');
       marksTables('IR', ir);
       keep = [4, 5, 6, 7, 8];
     }

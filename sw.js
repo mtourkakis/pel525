@@ -1,4 +1,4 @@
-const CACHE="pel525-v15";
+const CACHE="pel525-v16";
 const FILES=["./","index.html","manifest.json","icon-180.png","icon-512.png",
 "forms.html","office.html","fill.js","layout.js","pdf-lib.min.js","320A.pdf","320B.pdf","420A.pdf","1000.pdf",
 "https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"];
