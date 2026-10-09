@@ -159,7 +159,7 @@ function editorHTML() {
   <div class="grid"><label class="f">Κατηγορία<select data-e="cat">${Object.entries(CATS).map(([k, v]) => `<option value="${k}" ${e.cat === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>${fld('date', 'Ημερομηνία', 'date', e.date)}${fld('name', 'Όνομα', 'text', e.name, 'autocapitalize="characters" list="dl_name" placeholder="ΕΠΩΝΥΜΟ ΟΝΟΜΑ"')}${fld('lic', 'Αρ. άδειας', 'text', e.lic, 'autocapitalize="characters"')}</div>
   ${e.cat === 'exam' ? `<div class="grid" style="margin-top:10px">${fld('test', 'Skill test / Prof. check', 'text', e.test, 'autocapitalize="characters" list="dl_test"')}${fld('type', 'A/C type / class', 'text', e.type, 'autocapitalize="characters" list="dl_type" placeholder="C-172 /SEP"')}${fld('reg', 'Registration', 'text', e.reg, 'autocapitalize="characters" list="dl_reg" placeholder="SX ACO"')}${fld('dep', 'Departure / Arrival', 'text', e.dep, 'autocapitalize="characters" list="dl_dep" placeholder="LGMG/LGMG"')}${fld('time', 'Χρόνος (h:mm)', 'text', e.time, 'placeholder="1:30"')}<label class="f">Αποτέλεσμα<select data-e="result"><option value=""></option>${Object.entries(RES).map(([k, v]) => `<option value="${k}" ${e.result === k ? 'selected' : ''}>${k} · ${v}</option>`).join('')}</select></label></div>
   <label class="chk"><input type="checkbox" data-e="in801" ${e.in801 !== false ? 'checked' : ''}> Μπαίνει στο PEL-FCL 801</label>` : ''}
-  ${e.cat === 'stud' ? `<div class="grid" style="margin-top:10px"><label class="f">Πληρώνει<select data-e="payer">${Object.entries(PAYER).map(([k, v]) => `<option value="${k}" ${(e.payer || 'club') === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label></div>` : ''}
+  ${e.cat === 'stud' ? `<div class="grid" style="margin-top:10px">${fld('time', 'Διάρκεια (ώρες:λεπτά)', 'text', e.time || hm(lessonHrs(e)), 'inputmode="decimal"')}<label class="f">Είδος<select data-e="kind">${Object.entries(KIND).map(([k, v]) => `<option value="${k}" ${(e.kind || 'dual') === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label><label class="f">Πληρώνει<select data-e="payer">${Object.entries(PAYER).map(([k, v]) => `<option value="${k}" ${(e.payer || 'club') === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label></div>` : ''}
   <div class="grid" style="margin-top:10px"><label class="f">Πελάτης / χρέωση<select data-e="client">${clientOptions(e.client)}</select></label>${fld('price', 'Ποσό €', 'text', e.price == null ? '' : e.price, 'inputmode="decimal"')}${fld('qty', 'Ώρες / τεμ. (προαιρ.)', 'text', e.qty || '', 'inputmode="decimal"')}</div>
   <div class="grid" style="margin-top:10px">${fld('email', 'Email υποψηφίου', 'email', e.email)}${fld('phone', 'Τηλέφωνο', 'tel', e.phone)}</div>
   <h3>Λήξεις υποψηφίου</h3>${exps}<button class="btn alt" id="addExp" style="margin-top:6px">+ Λήξη</button>
@@ -213,10 +213,17 @@ function suggestPrice(e) {
   return m ? m.price : null;
 }
 
-/* ---------- Μαθητές: μαθήματα που δεν μπαίνουν στο 801 ούτε τιμολογούνται ένα-ένα ---------- */
-let stDate = todayISO(), stPayer = 'club', stEdit = null;
+/* ---------- Μαθητές: πληρωμή με την ώρα, δεν μπαίνουν στο 801 ούτε τιμολογούνται ένα-ένα ---------- */
+let stDate = todayISO(), stPayer = 'club', stEdit = null, stDur = '1:00', stKind = 'dual';
+const KIND = { dual: 'Διπλό', solo: 'Σόλο' };
+const soloRate = () => O.rateSolo != null ? O.rateSolo : 20;
 const PAYER = { club: 'Λέσχη', direct: 'Απευθείας' };
 const payerOf = e => e.payer || 'club';
+const hrs = v => { if (v == null || v === '') return null; if (typeof v === 'number') return v; const s = String(v).trim(); let m = /^(\d{1,2})[:.](\d{2})$/.exec(s); if (m && s.includes(':')) return +m[1] + (+m[2]) / 60; const n = num(s); return n; };
+const hm = h => { if (h == null || isNaN(h)) return ''; const t = Math.round(h * 60); return Math.floor(t / 60) + ':' + pad(t % 60); };
+const defRate = p => p === 'direct' ? (O.rateDirect != null ? O.rateDirect : 50) : (O.rateClub != null ? O.rateClub : 40);
+const rateOf = st => st.rate != null ? st.rate : defRate(st.payer || 'club');
+const lessonHrs = e => e.hours != null ? e.hours : (e.price != null && e.rate ? e.price / e.rate : 1);
 function vStudents() {
   const act = O.students.filter(x => x.active !== false).sort((a, b) => a.name.localeCompare(b.name));
   const arch = O.students.filter(x => x.active === false).sort((a, b) => a.name.localeCompare(b.name));
@@ -224,25 +231,29 @@ function vStudents() {
   const mon = L.filter(e => inMonth(e, curMonth)).sort(sortByDate);
   const yr = L.filter(e => (e.date || '').startsWith(curYear));
   const per = (arr, n) => arr.filter(e => nkey(e.name) === nkey(n));
-  let h = `<div class="card"><div class="body" style="padding-top:14px"><h3 style="margin-top:0">Ενεργοί μαθητές</h3>
-  <div class="grid"><label class="f">Ημερομηνία μαθήματος<input type="date" id="stDate" value="${stDate}"></label></div></div>
+  const sum = (a, k) => a.filter(e => !k || payerOf(e) === k).reduce((s, e) => s + (e.price || 0), 0);
+  const hsum = (a, k) => a.filter(e => !k || payerOf(e) === k).reduce((s, e) => s + lessonHrs(e), 0);
+  let h = `<div class="card"><div class="body" style="padding-top:14px"><h3 style="margin-top:0">Νέο μάθημα</h3>
+  <div class="grid"><label class="f">Ημερομηνία<input type="date" id="stDate" value="${stDate}"></label><label class="f">Διάρκεια (ώρες:λεπτά)<input id="stDur" value="${esc(stDur)}" inputmode="decimal" placeholder="1:30"></label></div>
+  <div class="row"><div class="seg">${Object.entries(KIND).map(([k, v]) => `<button data-skind="${k}" class="${stKind === k ? 'on' : ''}">${v}</button>`).join('')}</div>${['1:00', '1:30', '2:00'].map(d => `<button class="btn alt" data-sdur="${d}" style="padding:7px 12px">${d}</button>`).join('')}</div>
+  <p class="hint" style="margin:0">Διάλεξε Διπλό ή Σόλο και διάρκεια, και πάτα «+ Μάθημα» δίπλα στον μαθητή. Το ποσό διορθώνεται και με το χέρι, αν πατήσεις πάνω στο μάθημα.</p></div>
   <div class="list">${act.map(st => { const m = per(mon, st.name);
-    if (stEdit === st.id) return `<div class="item" style="display:block"><div class="grid"><label class="f">Όνομα<input id="stEName" autocapitalize="characters" value="${esc(st.name)}"></label><label class="f">Τιμή μαθήματος €<input id="stEPrice" inputmode="decimal" value="${st.price != null ? st.price : ''}"></label></div>
+    if (stEdit === st.id) return `<div class="item" style="display:block"><div class="grid"><label class="f">Όνομα<input id="stEName" autocapitalize="characters" value="${esc(st.name)}"></label><label class="f">€ / ώρα (κενό = ${defRate(st.payer)} ${PAYER[st.payer || 'club']})<input id="stERate" inputmode="decimal" value="${st.rate != null ? st.rate : ''}"></label></div>
       <div class="row"><button class="btn" data-ssave="${st.id}">Αποθήκευση</button><button class="btn alt" id="stECancel">Άκυρο</button><button class="btn danger" data-sleave="${st.id}">Αποχώρησε</button></div>
       <p class="hint" style="margin:0">Αν διορθώσεις το όνομα, διορθώνεται και σε όλα τα μαθήματά του.</p></div>`;
-    return `<div class="item"><div style="flex:1;min-width:0" data-sedit="${st.id}"><b>${esc(st.name)}</b><span>${st.price != null ? eur(st.price) + ' / μάθημα' : 'χωρίς τιμή'} · ${monthLabel(curMonth)}: ${m.length} · ${eur(m.reduce((s, e) => s + (e.price || 0), 0))}</span></div><button class="btn alt" data-spay="${st.id}" title="Ποιος πληρώνει">${PAYER[st.payer || 'club']}</button><button class="btn amber" data-sadd="${st.id}">+ Μάθημα</button></div>`; }).join('') || '<div class="item"><span>Κανένας ακόμα. Πρόσθεσε από κάτω.</span></div>'}</div>
-  <div class="body"><div class="grid"><label class="f">Νέος μαθητής<input id="stNewName" autocapitalize="characters" placeholder="ΕΠΩΝΥΜΟ ΟΝΟΜΑ"></label><label class="f">Τιμή μαθήματος €<input id="stNewPrice" inputmode="decimal" placeholder="50"></label><button class="btn" id="stAdd" style="align-self:end">Προσθήκη</button></div>
+    return `<div class="item"><div style="flex:1;min-width:0" data-sedit="${st.id}"><b>${esc(st.name)}</b><span>${eur(rateOf(st))} / ώρα · ${monthLabel(curMonth)}: ${hm(hsum(m))} ώρες · ${eur(sum(m))}</span></div><button class="btn alt" data-spay="${st.id}" title="Ποιος πληρώνει">${PAYER[st.payer || 'club']}</button><button class="btn amber" data-sadd="${st.id}">+ Μάθημα</button></div>`; }).join('') || '<div class="item"><span>Κανένας ακόμα. Πρόσθεσε από κάτω.</span></div>'}</div>
+  <div class="body"><div class="grid"><label class="f">Νέος μαθητής<input id="stNewName" autocapitalize="characters" placeholder="ΕΠΩΝΥΜΟ ΟΝΟΜΑ"></label><button class="btn" id="stAdd" style="align-self:end">Προσθήκη</button></div>
   <div class="row"><span class="hint" style="margin:0">Πληρώνει:</span><div class="seg">${Object.entries(PAYER).map(([k, v]) => `<button data-snewpay="${k}" class="${stPayer === k ? 'on' : ''}">${v}</button>`).join('')}</div></div>
-  <p class="hint">Πάτα το όνομα για διόρθωση ονόματος, αλλαγή τιμής ή «Αποχώρησε». Το κουμπί «Λέσχη / Απευθείας» αλλάζει ποιος πληρώνει (ισχύει για τα επόμενα μαθήματα). Τα μαθήματα δεν μπαίνουν στο 801 ούτε στα «Ατιμολόγητα».</p></div></div>`;
+  <div class="grid" style="margin-top:6px"><label class="f">€ / ώρα · Λέσχη<input id="rateClub" inputmode="decimal" value="${defRate('club')}"></label><label class="f">€ / ώρα · Απευθείας<input id="rateDirect" inputmode="decimal" value="${defRate('direct')}"></label><label class="f">€ / ώρα · Σόλο<input id="rateSolo" inputmode="decimal" value="${soloRate()}"></label></div>
+  <p class="hint">Το ποσό βγαίνει ώρες × τιμή ώρας (π.χ. 1:30 × €40 = €60). Πάτα το όνομα για διόρθωση ονόματος, ειδική τιμή ώρας ή «Αποχώρησε». Το «Λέσχη / Απευθείας» αλλάζει ποιος πληρώνει. Τα μαθήματα δεν μπαίνουν στο 801.</p></div></div>`;
   h += monthPicker();
-  const sum = (a, k) => a.filter(e => !k || payerOf(e) === k).reduce((s, e) => s + (e.price || 0), 0);
-  h += `<div class="card list">${mon.map(e => `<div class="item" data-edit="${e.id}"><div style="flex:1"><b>${dmy(e.date)} · ${esc(e.name)}</b><span>${PAYER[payerOf(e)]}${e.invoice ? ' · τιμ. ' + esc(e.invoice) : ''}${e.note ? ' · ' + esc(e.note) : ''}</span></div><b>${e.price != null ? eur(e.price) : '—'}</b></div>`).join('') || '<div class="item"><span>Κανένα μάθημα αυτόν τον μήνα.</span></div>'}</div>
-  <p class="hint">${mon.length} μαθήματα · Λέσχη ${eur(sum(mon, 'club'))} · Απευθείας ${eur(sum(mon, 'direct'))} · σύνολο ${eur(sum(mon))}</p>`;
+  h += `<div class="card list">${mon.map(e => `<div class="item" data-edit="${e.id}"><div style="flex:1"><b>${dmy(e.date)} · ${esc(e.name)}</b><span>${hm(lessonHrs(e))} ώρες${e.kind === 'solo' ? ' · Σόλο' : ''} · ${PAYER[payerOf(e)]}${e.invoice ? ' · τιμ. ' + esc(e.invoice) : ''}${e.note ? ' · ' + esc(e.note) : ''}</span></div><b>${e.price != null ? eur(e.price) : '—'}</b></div>`).join('') || '<div class="item"><span>Κανένα μάθημα αυτόν τον μήνα.</span></div>'}</div>
+  <p class="hint">${mon.length} μαθήματα · ${hm(hsum(mon))} ώρες · Λέσχη ${eur(sum(mon, 'club'))} · Απευθείας ${eur(sum(mon, 'direct'))} · σύνολο ${eur(sum(mon))}</p>`;
   const names = [...new Set(yr.map(e => nkey(e.name)))].sort();
-  h += `<div class="card"><div class="body" style="padding-top:14px;overflow-x:auto"><h3 style="margin-top:0">Σύνολα ${curYear} ανά μαθητή</h3><table class="t"><tr><th>Μαθητής</th><th>Μαθήματα</th><th>Λέσχη</th><th>Απευθείας</th><th>Σύνολο</th></tr>
-  ${names.map(n => { const a = yr.filter(e => nkey(e.name) === n); return `<tr><td>${esc(n)}</td><td>${a.length}</td><td>${sum(a, 'club') ? eur(sum(a, 'club')) : ''}</td><td>${sum(a, 'direct') ? eur(sum(a, 'direct')) : ''}</td><td>${eur(sum(a))}</td></tr>`; }).join('') || '<tr><td colspan="5">—</td></tr>'}
-  <tr class="tot"><td>Σύνολο</td><td>${yr.length}</td><td>${eur(sum(yr, 'club'))}</td><td>${eur(sum(yr, 'direct'))}</td><td>${eur(sum(yr))}</td></tr></table>
-  <p class="hint">Το ποσό της στήλης «Λέσχη» είναι αυτό που τιμολογείς συγκεντρωτικά στη λέσχη (π.χ. στο τέλος, Δεκέλεια).</p></div></div>`;
+  h += `<div class="card"><div class="body" style="padding-top:14px;overflow-x:auto"><h3 style="margin-top:0">Σύνολα ${curYear} ανά μαθητή</h3><table class="t"><tr><th>Μαθητής</th><th>Ώρες</th><th>Λέσχη</th><th>Απευθείας</th><th>Σύνολο</th></tr>
+  ${names.map(n => { const a = yr.filter(e => nkey(e.name) === n); return `<tr><td>${esc(n)}</td><td>${hm(hsum(a))}</td><td>${sum(a, 'club') ? eur(sum(a, 'club')) : ''}</td><td>${sum(a, 'direct') ? eur(sum(a, 'direct')) : ''}</td><td>${eur(sum(a))}</td></tr>`; }).join('') || '<tr><td colspan="5">—</td></tr>'}
+  <tr class="tot"><td>Σύνολο</td><td>${hm(hsum(yr))}</td><td>${eur(sum(yr, 'club'))}</td><td>${eur(sum(yr, 'direct'))}</td><td>${eur(sum(yr))}</td></tr></table>
+  <p class="hint">Λέσχη: ${hm(hsum(yr, 'club'))} ώρες. Αυτά μπαίνουν στο τιμολόγιο της λέσχης με το κουμπί «+ Μαθήματα λέσχης».</p></div></div>`;
   if (arch.length) h += `<details class="card"><summary style="padding:14px 16px;font-weight:650">Παλιοί μαθητές (${arch.length})</summary><div class="list">${arch.map(st => `<div class="item"><div style="flex:1"><b>${esc(st.name)}</b></div><button class="btn alt" data-srest="${st.id}">Επαναφορά</button><button class="btn danger" data-sdel="${st.id}">Διαγραφή</button></div>`).join('')}</div></details>`;
   return h;
 }
@@ -309,7 +320,7 @@ function invEditor() {
   <h3>Γραμμές</h3>
   ${i.lines.map((l, k) => `<div class="flight"><div class="grid">${`<label class="f">Περιγραφή<input data-l="${k}.desc" value="${esc(l.desc)}"></label><label class="f">Time / Days<input data-l="${k}.qty" value="${esc(l.qty)}" inputmode="decimal"></label><label class="f">Service fee €<input data-l="${k}.fee" value="${esc(l.fee)}" inputmode="decimal"></label>`}<div style="align-self:end;display:flex;gap:8px;align-items:center"><b>${eur(lineTotal(l))}</b><button class="btn danger" data-dell="${k}">✕</button></div></div></div>`).join('')}
   <button class="btn alt" id="addL">+ Γραμμή</button>
-  ${(() => { const cl = clubLessons(i); if (!cl.length) return ''; return `<div class="row"><button class="btn amber" id="addClub">+ Μαθήματα λέσχης (${cl.length} · ${eur(cl.reduce((s, e) => s + (e.price || 0), 0))})</button><span class="hint" style="margin:0">ατιμολόγητα έως ${dmy(i.date)}, χωρίς ονόματα</span></div>`; })()}
+  ${(() => { const cl = clubLessons(i); if (!cl.length) return ''; return `<div class="row"><button class="btn amber" id="addClub">+ Μαθήματα λέσχης (${hm(cl.reduce((s, e) => s + lessonHrs(e), 0))} ώρες · ${eur(cl.reduce((s, e) => s + (e.price || 0), 0))})</button><span class="hint" style="margin:0">ατιμολόγητα έως ${dmy(i.date)}, χωρίς ονόματα</span></div>`; })()}
   <label class="f" style="margin-top:10px">Σημείωση κάτω από το σύνολο (π.χ. VAT exempted in Cyprus)<input data-i="note" value="${esc(i.note)}"></label>
   <p style="font-size:18px"><b>Σύνολο: ${eur(invTotal(i))}</b></p>
   <div class="row"><button class="btn" id="saveInv">Αποθήκευση</button><button class="btn amber" id="pdfInv">PDF</button><button class="btn alt" id="closeInv">Κλείσιμο</button><button class="btn danger" id="delInv">Διαγραφή</button></div>
@@ -358,12 +369,16 @@ document.addEventListener('click', async ev => {
   const t = ev.target.closest('button,[data-edit],[data-inv],[data-month],[data-unb],[data-tab],[data-sedit]'); if (!t) return;
   if (t.dataset.tab) { tab = t.dataset.tab; edit = null; invEdit = null; render(); window.scrollTo(0, 0); return; }
   if (t.dataset.mstep) { const [y, m] = curMonth.split('-').map(Number); const d = new Date(y, m - 1 + (+t.dataset.mstep), 1); curMonth = d.getFullYear() + '-' + pad(d.getMonth() + 1); edit = null; render(); return; }
+  if (t.dataset.sdur) { stDur = t.dataset.sdur; render(); return; }
+  if (t.dataset.skind) { stKind = t.dataset.skind; render(); return; }
   if (t.id === 'stAdd') { const n = nkey($('#stNewName').value); if (!n) { toast('Γράψε όνομα'); return; } if (O.students.some(x => nkey(x.name) === n && x.active !== false)) { toast('Υπάρχει ήδη'); return; }
-    const old = O.students.find(x => nkey(x.name) === n); const pr = num($('#stNewPrice').value);
-    if (old) { old.active = true; old.payer = stPayer; if (pr != null) old.price = pr; } else O.students.push({ id: uid(), name: n, price: pr, active: true, payer: stPayer }); saveO(); render(); toast('Προστέθηκε'); return; }
+    const old = O.students.find(x => nkey(x.name) === n);
+    if (old) { old.active = true; old.payer = stPayer; } else O.students.push({ id: uid(), name: n, rate: null, active: true, payer: stPayer }); saveO(); render(); toast('Προστέθηκε'); return; }
   if (t.dataset.sadd) { const st = O.students.find(x => x.id === t.dataset.sadd); const d = ($('#stDate') || {}).value || todayISO(); stDate = d;
-    LOG.push({ id: uid(), src: 'stud', cat: 'stud', date: d, name: st.name, price: st.price != null ? st.price : null, payer: st.payer || 'club', in801: false, exp: [] }); saveLog();
-    curMonth = d.slice(0, 7); render(); toast('Μάθημα ' + st.name + ' · ' + dmy(d)); return; }
+    const hh = hrs(($('#stDur') || {}).value || stDur); if (!hh || hh <= 0) { toast('Γράψε διάρκεια, π.χ. 1:30'); return; } stDur = hm(hh);
+    const r = stKind === 'solo' ? soloRate() : rateOf(st);
+    LOG.push({ id: uid(), src: 'stud', cat: 'stud', date: d, name: st.name, kind: stKind, hours: hh, time: hm(hh), rate: r, price: Math.round(hh * r * 100) / 100, payer: st.payer || 'club', in801: false, exp: [] }); saveLog();
+    curMonth = d.slice(0, 7); render(); toast(st.name + ' · ' + (stKind === 'solo' ? 'Σόλο ' : '') + hm(hh) + ' ώρες · ' + eur(hh * r)); return; }
   if (t.dataset.sedit) { stEdit = t.dataset.sedit; render(); const i = $('#stEName'); if (i) i.focus(); return; }
   if (t.id === 'stECancel') { stEdit = null; render(); return; }
   if (t.dataset.sleave) { const st = O.students.find(x => x.id === t.dataset.sleave); st.active = false; stEdit = null; saveO(); render(); toast(st.name + ' → παλιοί μαθητές'); return; }
@@ -371,12 +386,13 @@ document.addEventListener('click', async ev => {
     if (nn !== nkey(st.name) && O.students.some(x => x.id !== st.id && nkey(x.name) === nn)) { toast('Υπάρχει ήδη μαθητής με αυτό το όνομα'); return; }
     const old = nkey(st.name); let n = 0;
     if (nn !== old) { LOG.forEach(e => { if (e.cat === 'stud' && nkey(e.name) === old) { e.name = nn; n++; } }); saveLog(); st.name = nn; }
-    const pv = num($('#stEPrice').value); st.price = pv;
+    st.rate = num($('#stERate').value);
     stEdit = null; saveO(); render(); toast(n ? 'Διορθώθηκε και σε ' + n + ' μαθήματα' : 'Αποθηκεύτηκε'); return; }
   if (t.dataset.snewpay) { stPayer = t.dataset.snewpay; render(); return; }
   if (t.dataset.spay) { const st = O.students.find(x => x.id === t.dataset.spay); st.payer = (st.payer || 'club') === 'club' ? 'direct' : 'club';
-    const past = LOG.filter(e => e.cat === 'stud' && nkey(e.name) === nkey(st.name) && payerOf(e) !== st.payer);
-    let n = 0; if (past.length && confirm(st.name + ': πληρώνει πλέον ' + PAYER[st.payer] + '.\n\nΝα αλλάξουν και τα ' + past.length + ' μαθήματα που έχει ήδη;')) { past.forEach(e => e.payer = st.payer); n = past.length; saveLog(); }
+    const past = LOG.filter(e => e.cat === 'stud' && nkey(e.name) === nkey(st.name) && payerOf(e) !== st.payer && !e.invoice);
+    let n = 0; if (past.length && confirm(st.name + ': πληρώνει πλέον ' + PAYER[st.payer] + ' (' + eur(rateOf(st)) + '/ώρα).\n\nΝα αλλάξουν και τα ' + past.length + ' μαθήματα που έχει ήδη (με νέα τιμή);')) {
+      const r = rateOf(st); past.forEach(e => { e.payer = st.payer; if (e.kind === 'solo') return; e.rate = r; e.price = Math.round(lessonHrs(e) * r * 100) / 100; }); n = past.length; saveLog(); }
     saveO(); render(); toast(st.name + ': ' + PAYER[st.payer] + (n ? ' · άλλαξαν ' + n + ' μαθήματα' : '')); return; }
   if (t.dataset.sdel) { const st = O.students.find(x => x.id === t.dataset.sdel); if (!confirm('Διαγραφή του μαθητή ' + st.name + ';')) return;
     const ls = LOG.filter(e => e.cat === 'stud' && nkey(e.name) === nkey(st.name)); let n = 0;
@@ -411,9 +427,9 @@ document.addEventListener('click', async ev => {
     render(); window.scrollTo(0, 0); return;
   }
   if (t.dataset.inv) { invEdit = JSON.parse(JSON.stringify(O.invoices.find(i => i.id === t.dataset.inv))); render(); window.scrollTo(0, 0); return; }
-  if (t.id === 'addClub') { const cl = clubLessons(invEdit); const g = {}; cl.forEach(e => { const k = e.price != null ? e.price : 0; g[k] = (g[k] || 0) + 1; });
+  if (t.id === 'addClub') { const cl = clubLessons(invEdit); const g = {}; cl.forEach(e => { const h = lessonHrs(e); const r = e.rate || (h ? (e.price || 0) / h : 0); const k = (e.kind === 'solo' ? 'solo' : 'dual') + '|' + Math.round(r * 100) / 100; g[k] = (g[k] || 0) + h; });
     invEdit.lines = invEdit.lines.filter(l => (l.desc || l.qty || l.fee));
-    Object.keys(g).sort((a, b) => b - a).forEach(pr => invEdit.lines.push({ desc: 'Flight training lessons', qty: String(g[pr]), fee: String(pr) }));
+    Object.keys(g).sort().forEach(k => { const [kd, r] = k.split('|'); invEdit.lines.push({ desc: kd === 'solo' ? 'Solo flights (hours)' : 'Flight training (hours)', qty: String(Math.round(g[k] * 100) / 100), fee: r }); });
     invEdit.entries = (invEdit.entries || []).concat(cl.map(e => e.id)); render(); toast('Προστέθηκαν ' + cl.length + ' μαθήματα'); return; }
   if (t.id === 'addL') { invEdit.lines.push({ desc: '', qty: '', fee: '' }); render(); return; }
   if (t.dataset.dell) { invEdit.lines.splice(+t.dataset.dell, 1); render(); return; }
@@ -444,13 +460,18 @@ document.addEventListener('click', async ev => {
 });
 document.addEventListener('input', ev => {
   if (ev.target.id === 'stDate') { stDate = ev.target.value || todayISO(); return; }
+  if (ev.target.id === 'stDur') { stDur = ev.target.value; return; }
+  if (ev.target.id === 'rateClub' || ev.target.id === 'rateDirect' || ev.target.id === 'rateSolo') { const v = num(ev.target.value); if (v != null) { O[ev.target.id] = v; saveO(); } return; }
   const el = ev.target;
   if (el.dataset.e) {
     const k = el.dataset.e; const v = el.type === 'checkbox' ? el.checked : el.value;
     if (k.startsWith('exp.')) { const [, i, f] = k.split('.'); edit.exp[+i][f] = v; return; }
-    if (k === 'price') { edit.price = num(v); return; }
+    if (k === 'price') { edit.price = num(v); if (edit.cat === 'stud') { const h = lessonHrs(edit); if (h && edit.price != null) edit.rate = edit.price / h; } return; }
     edit[k] = v;
     if (k === 'name') { fillPerson(); return; }
+    if (edit.cat === 'stud' && (k === 'time' || k === 'payer' || k === 'kind')) { const h = hrs(edit.time || hm(lessonHrs(edit))); if (h != null && h > 0) {
+      const st = O.students.find(x => nkey(x.name) === nkey(edit.name)); const r = edit.kind === 'solo' ? soloRate() : (k === 'time' && edit.rate) ? edit.rate : (st && st.rate != null ? st.rate : defRate(payerOf(edit)));
+      edit.hours = h; edit.rate = r; setField('price', Math.round(h * r * 100) / 100); } return; }
     if (k === 'client' || k === 'cat') { if (edit.price == null) edit.price = suggestPrice(edit); render(); }
     if (k === 'test' && edit.client && edit.price == null) { const p = suggestPrice(edit); if (p != null) { edit.price = p; const pi = document.querySelector('[data-e=price]'); if (pi) pi.value = p; } }
     return;
@@ -652,7 +673,7 @@ function buildXlsx(year) {
       for (let i = 0; i < n; i++) {
         const r = [dmy(d)]; const put = e => e ? [e.name || '', e.price == null ? '' : e.price] : ['', ''];
         r.push(...put(X[i]), ...put(D[i]), ...put(A[i]));
-        S.forEach(a => { const e = a[i]; r.push(e ? (payerOf(e) === 'direct' ? 'Απευθείας' : 'Λέσχη') : '', e && e.price != null ? e.price : ''); });
+        S.forEach(a => { const e = a[i]; r.push(e ? hm(lessonHrs(e)) + ' · ' + (payerOf(e) === 'direct' ? 'Απευθείας' : 'Λέσχη') : '', e && e.price != null ? e.price : ''); });
         R.push(r);
       }
     });
