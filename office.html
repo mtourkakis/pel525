@@ -236,7 +236,7 @@ function vStudents() {
   <p class="hint">Πάτα το όνομα για διόρθωση ονόματος, αλλαγή τιμής ή «Αποχώρησε». Το κουμπί «Λέσχη / Απευθείας» αλλάζει ποιος πληρώνει (ισχύει για τα επόμενα μαθήματα). Τα μαθήματα δεν μπαίνουν στο 801 ούτε στα «Ατιμολόγητα».</p></div></div>`;
   h += monthPicker();
   const sum = (a, k) => a.filter(e => !k || payerOf(e) === k).reduce((s, e) => s + (e.price || 0), 0);
-  h += `<div class="card list">${mon.map(e => `<div class="item" data-edit="${e.id}"><div style="flex:1"><b>${dmy(e.date)} · ${esc(e.name)}</b><span>${PAYER[payerOf(e)]}${e.note ? ' · ' + esc(e.note) : ''}</span></div><b>${e.price != null ? eur(e.price) : '—'}</b></div>`).join('') || '<div class="item"><span>Κανένα μάθημα αυτόν τον μήνα.</span></div>'}</div>
+  h += `<div class="card list">${mon.map(e => `<div class="item" data-edit="${e.id}"><div style="flex:1"><b>${dmy(e.date)} · ${esc(e.name)}</b><span>${PAYER[payerOf(e)]}${e.invoice ? ' · τιμ. ' + esc(e.invoice) : ''}${e.note ? ' · ' + esc(e.note) : ''}</span></div><b>${e.price != null ? eur(e.price) : '—'}</b></div>`).join('') || '<div class="item"><span>Κανένα μάθημα αυτόν τον μήνα.</span></div>'}</div>
   <p class="hint">${mon.length} μαθήματα · Λέσχη ${eur(sum(mon, 'club'))} · Απευθείας ${eur(sum(mon, 'direct'))} · σύνολο ${eur(sum(mon))}</p>`;
   const names = [...new Set(yr.map(e => nkey(e.name)))].sort();
   h += `<div class="card"><div class="body" style="padding-top:14px;overflow-x:auto"><h3 style="margin-top:0">Σύνολα ${curYear} ανά μαθητή</h3><table class="t"><tr><th>Μαθητής</th><th>Μαθήματα</th><th>Λέσχη</th><th>Απευθείας</th><th>Σύνολο</th></tr>
@@ -297,6 +297,8 @@ function vInvoices() {
   </div></div>
   <div class="card list">${list.map(i => `<div class="item" data-inv="${i.id}"><div style="flex:1"><b>${esc(i.no)} · ${esc(i.client === '__self' ? (i.clientLines || '').split('\n')[0] : (i.clientName || cname(i.client)))}</b><span>${dmy(i.date)}</span></div><b>${eur(invTotal(i))}</b></div>`).join('') || '<div class="item"><span>Κανένα τιμολόγιο ακόμα.</span></div>'}</div>`;
 }
+/* μαθήματα που πληρώνει η λέσχη και δεν έχουν μπει ακόμα σε τιμολόγιο */
+function clubLessons(inv) { const used = new Set(inv.entries || []); return LOG.filter(e => e.cat === 'stud' && payerOf(e) !== 'direct' && !e.invoice && !used.has(e.id) && (!inv.date || (e.date || '') <= inv.date)).sort(sortByDate); }
 function invEditor() {
   const i = invEdit;
   return `<div class="card"><div class="body" style="padding-top:14px">
@@ -307,6 +309,7 @@ function invEditor() {
   <h3>Γραμμές</h3>
   ${i.lines.map((l, k) => `<div class="flight"><div class="grid">${`<label class="f">Περιγραφή<input data-l="${k}.desc" value="${esc(l.desc)}"></label><label class="f">Time / Days<input data-l="${k}.qty" value="${esc(l.qty)}" inputmode="decimal"></label><label class="f">Service fee €<input data-l="${k}.fee" value="${esc(l.fee)}" inputmode="decimal"></label>`}<div style="align-self:end;display:flex;gap:8px;align-items:center"><b>${eur(lineTotal(l))}</b><button class="btn danger" data-dell="${k}">✕</button></div></div></div>`).join('')}
   <button class="btn alt" id="addL">+ Γραμμή</button>
+  ${(() => { const cl = clubLessons(i); if (!cl.length) return ''; return `<div class="row"><button class="btn amber" id="addClub">+ Μαθήματα λέσχης (${cl.length} · ${eur(cl.reduce((s, e) => s + (e.price || 0), 0))})</button><span class="hint" style="margin:0">ατιμολόγητα έως ${dmy(i.date)}, χωρίς ονόματα</span></div>`; })()}
   <label class="f" style="margin-top:10px">Σημείωση κάτω από το σύνολο (π.χ. VAT exempted in Cyprus)<input data-i="note" value="${esc(i.note)}"></label>
   <p style="font-size:18px"><b>Σύνολο: ${eur(invTotal(i))}</b></p>
   <div class="row"><button class="btn" id="saveInv">Αποθήκευση</button><button class="btn amber" id="pdfInv">PDF</button><button class="btn alt" id="closeInv">Κλείσιμο</button><button class="btn danger" id="delInv">Διαγραφή</button></div>
@@ -408,6 +411,10 @@ document.addEventListener('click', async ev => {
     render(); window.scrollTo(0, 0); return;
   }
   if (t.dataset.inv) { invEdit = JSON.parse(JSON.stringify(O.invoices.find(i => i.id === t.dataset.inv))); render(); window.scrollTo(0, 0); return; }
+  if (t.id === 'addClub') { const cl = clubLessons(invEdit); const g = {}; cl.forEach(e => { const k = e.price != null ? e.price : 0; g[k] = (g[k] || 0) + 1; });
+    invEdit.lines = invEdit.lines.filter(l => (l.desc || l.qty || l.fee));
+    Object.keys(g).sort((a, b) => b - a).forEach(pr => invEdit.lines.push({ desc: 'Flight training lessons', qty: String(g[pr]), fee: String(pr) }));
+    invEdit.entries = (invEdit.entries || []).concat(cl.map(e => e.id)); render(); toast('Προστέθηκαν ' + cl.length + ' μαθήματα'); return; }
   if (t.id === 'addL') { invEdit.lines.push({ desc: '', qty: '', fee: '' }); render(); return; }
   if (t.dataset.dell) { invEdit.lines.splice(+t.dataset.dell, 1); render(); return; }
   if (t.id === 'closeInv') { invEdit = null; render(); return; }
