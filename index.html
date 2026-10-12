@@ -12,6 +12,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="docs.js"></script>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 --bg:#eef1f4;--panel:#fff;--ink:#14202e;--muted:#5c6b7a;--line:#d4dbe3;--accent:#d98a00;--accent-ink:#1a1200;--chip:#f4f6f8;--on:#14202e;--on-ink:#ffd27a;--warn:#b3261e;--ok:#1e7a46}
@@ -74,7 +75,7 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
 </head>
 <body>
 <div class="wrap">
-<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v26</span><a class="swl" href="forms.html">CPL · IR · PBN ›</a><a class="swl" style="margin-left:6px" href="office.html">Γραφείο ›</a></header>
+<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v27</span><a class="swl" href="forms.html">CPL · IR · PBN ›</a><a class="swl" style="margin-left:6px" href="office.html">Γραφείο ›</a></header>
 
 <details id="exBox">
 <summary>Εγώ · Examiner <em id="exSum">ρύθμιση</em></summary>
@@ -220,6 +221,12 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
 </section>
 
 <section>
+<h2>Επισύναψη στο PDF</h2>
+<div class="chips" id="attChips"><button class="chip" data-att="doc:lic">Πτυχίο</button><button class="chip" data-att="doc:med">Medical</button><button class="chip" data-att="doc:exm">Examiner</button><button class="chip" data-att="inv">Τιμολόγιο</button></div>
+<div class="note" id="attNote">Μπαίνουν στο τέλος του PDF. Τα ανεβάζεις μία φορά στο Γραφείο → Ρυθμίσεις.</div>
+</section>
+
+<section>
 <h2>Θέμα e-mail προς ΥΠΑ</h2>
 <div class="subj" id="subj">PEL-FCL-</div>
 <div class="note">Προς info@hcaa.gov.gr. Πάτα παρατεταμένα για αντιγραφή.</div>
@@ -324,6 +331,15 @@ if(!$("date").value){$("date").value=today();checkInput();}
 if(!Object.keys(S.items).length)C.items.forEach(i=>S.items[i.id]=!!i.m);
 renderCands();fillCand();renderChips();renderItems();renderTpls();refresh();
 
+/* επισύναψη εγγράφων */
+function renderAtt(){S.att=S.att||{};document.querySelectorAll("[data-att]").forEach(b=>b.setAttribute("aria-pressed",S.att[b.dataset.att]?"true":"false"));
+ if(window.PELDOCS)PELDOCS.status().then(st=>{const miss=st.filter(d=>!d.name&&S.att["doc:"+d.k]).map(d=>d.l);$("attNote").textContent=miss.length?"Δεν έχουν ανέβει: "+miss.join(", ")+" (Γραφείο → Ρυθμίσεις).":"Μπαίνουν στο τέλος του PDF. Τα ανεβάζεις μία φορά στο Γραφείο → Ρυθμίσεις.";}).catch(()=>{});}
+document.querySelectorAll("[data-att]").forEach(b=>b.addEventListener("click",()=>{S.att=S.att||{};S.att[b.dataset.att]=!S.att[b.dataset.att];persist();renderAtt();}));
+renderAtt();
+async function attachDocs(bytes){S.att=S.att||{};if(!window.PELDOCS)return{bytes,info:""};const keys=["doc:lic","doc:med","doc:exm"].filter(k=>S.att[k]);let info="";
+ if(S.att.inv){const name=(upper($("c_surname").value)+" "+upper($("c_first").value)).trim();const inv=await PELDOCS.findInvoice("525|"+name+"|"+$("date").value);if(inv)keys.push(inv.key);else info=" · χωρίς τιμολόγιο (δεν έχει βγει ακόμα)";}
+ if(!keys.length)return{bytes,info};const r=await PELDOCS.append(PDFLib,bytes,keys);if(r.missing.length)info+=" · λείπει: "+r.missing.map(PELDOCS.label).join(", ");return{bytes:r.bytes,info};}
+
 /* PDF */
 function setStatus(t,c){const s=$("status");s.textContent=t;s.className="status"+(c?" "+c:"");}
 function b64ToBytes(b){const s=atob(b),a=new Uint8Array(s.length);for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a;}
@@ -424,14 +440,14 @@ let dl=null;(async()=>{try{dl=await window.claude?.use?.("downloads")??null;}cat
 $("go").addEventListener("click",async()=>{const btn=$("go");btn.disabled=true;setStatus("Δημιουργία…");
  try{if(!window.PDFLib)throw 0;
   if(nonLatin($("c_surname").value)||nonLatin($("c_first").value)){setStatus("Το όνομα του υποψηφίου πρέπει να είναι με λατινικούς.","err");return;}
-  const bytes=await build();try{logExam525();}catch(e){}const sn=upper($("c_surname").value).replace(/[^A-Z0-9]+/g,"-")||"APPLICANT";
+  let bytes=await build();try{logExam525();}catch(e){}let ainfo="";try{const a=await attachDocs(bytes);bytes=a.bytes;ainfo=a.info;}catch(e){ainfo=" · η επισύναψη απέτυχε";}const sn=upper($("c_surname").value).replace(/[^A-Z0-9]+/g,"-")||"APPLICANT";
   const fn="PEL-FCL-525_"+sn+"_"+dmy($("date").value).replace(/\//g,"-")+".pdf";
   if(!dl){const blob=new Blob([bytes],{type:"application/pdf"}),file=new File([blob],fn,{type:"application/pdf"});
-   try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:fn});setStatus("Έτοιμο: "+fn,"ok");return;}}
+   try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:fn});setStatus("Έτοιμο: "+fn+ainfo,"ok");return;}}
    catch(e){if(e&&e.name==="AbortError"){setStatus("Ακυρώθηκε.","err");return;}}
    const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=fn;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);
-   setStatus("Έτοιμο: "+fn,"ok");return;}
-  try{await dl.save({filename:fn,data:new Blob([bytes],{type:"application/pdf"})});setStatus("Έτοιμο: "+fn,"ok");}
+   setStatus("Έτοιμο: "+fn+ainfo,"ok");return;}
+  try{await dl.save({filename:fn,data:new Blob([bytes],{type:"application/pdf"})});setStatus("Έτοιμο: "+fn+ainfo,"ok");}
   catch(e){const k=e&&e.code;setStatus(k==="declined"?"Ακυρώθηκε.":k==="rate_limited"?"Περίμενε λίγο και ξαναδοκίμασε.":"Δεν ήταν δυνατή η αποθήκευση.","err");}
  }catch(e){setStatus("Σφάλμα κατά τη δημιουργία του PDF.","err");}finally{btn.disabled=false;}});
 </script>

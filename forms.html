@@ -86,6 +86,7 @@ header{padding-left:calc(env(safe-area-inset-left) + 78px)}
 <script src="pdf-lib.min.js"></script>
 <script src="layout.js"></script>
 <script src="fill.js"></script>
+<script src="docs.js"></script>
 <script>
 const F = window.PELFILL, LAYOUT = window.PEL_LAYOUT, KEY = 'pelfcl_forms_v1';
 const $ = s => document.querySelector(s);
@@ -257,7 +258,9 @@ function editView() {
   const W = F.checks(c, S.ex);
   const warnN = W.filter(w => !w.startsWith('ℹ️')).length;
   h += sec('chk', 'Έλεγχοι', `<ul class="warn">${W.length ? W.map(w => `<li class="${w.startsWith('ℹ️') ? 'i' : ''}">${esc(w)}</li>`).join('') : ''}${!warnN ? '<li class="good">✓ Κανένα πρόβλημα.</li>' : ''}</ul>`, warnN ? `<span class="tag bad">${warnN}</span>` : '<span class="tag ok">OK</span>');
+  S.att = S.att || {};
   h += sec('out', 'Έκδοση PDF', `<div class="row">${segPages()}</div>
+    <div class="row"><span class="hint" style="margin:0">Επισύναψη στο τέλος:</span>${[['doc:lic', 'Πτυχίο'], ['doc:med', 'Medical'], ['doc:exm', 'Examiner'], ['inv', 'Τιμολόγιο']].map(([k, l]) => `<label class="chk" style="margin:0"><input type="checkbox" data-att="${k}" ${S.att[k] ? 'checked' : ''}> ${l}</label>`).join('')}</div>
     <div class="row">${fs.map(f => `<button class="btn" data-gen="${f}">${f}</button>`).join('')}${fs.length > 1 ? '<button class="btn amber" data-gen="ALL">Όλα σε ένα PDF</button>' : ''}</div>
     <div class="out" id="out"></div>`);
   h += `<div class="row"><button class="btn alt" id="dup">Αντιγραφή σε νέο υποψήφιο</button><button class="btn danger" id="del">Διαγραφή</button></div>`;
@@ -321,6 +324,7 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => {
   const el = e.target;
   if (el.id === 'imp') { const f = el.files[0]; if (!f) return; f.text().then(t => { try { const d = JSON.parse(t); if (!d.cands) throw new Error('μη έγκυρο'); if (confirm('Αντικατάσταση όλων των δεδομένων με το backup;')) { S = d; save(); render(); toast('Έγινε εισαγωγή'); } } catch (err) { alert('Σφάλμα: ' + err.message); } }); return; }
+  if (el.dataset.att) { S.att = S.att || {}; S.att[el.dataset.att] = el.checked; save(); return; }
   if (el.dataset.chk) { setP(cur(), el.dataset.chk, el.checked); save(); render(); return; }
   if (el.dataset.p && (el.type === 'date' || el.type === 'time')) { setP(view === 'settings' ? S : cur(), el.dataset.p, el.value); save(); if (view === 'edit') { const y = window.scrollY; render(); window.scrollTo(0, y); } }
 });
@@ -352,6 +356,13 @@ async function generate(which, btn) {
       files = [{ name: `Forms_${fs.join('_')}_${nm}.pdf`, blob: new Blob([await doc.save()], { type: 'application/pdf' }) }];
     } else files = outs.map(o => ({ name: `Form_${o.f}_${nm}.pdf`, blob: new Blob([o.bytes], { type: 'application/pdf' }) }));
     try { logForms(c); } catch (e) { }
+    /* επισύναψη: πτυχίο / medical / examiner / τιμολόγιο στο τέλος κάθε PDF */
+    const att = S.att || {}; const keys = ['doc:lic', 'doc:med', 'doc:exm'].filter(k => att[k]); let info = '';
+    if (att.inv && window.PELDOCS) { const inv = await PELDOCS.findInvoice('forms|' + c.id); if (inv) keys.push(inv.key); else info = 'Τιμολόγιο: δεν έχει βγει ακόμα για αυτόν τον υποψήφιο.'; }
+    if (keys.length && window.PELDOCS) { const miss = new Set();
+      for (const fl of files) { const r = await PELDOCS.append(PDFLib, new Uint8Array(await fl.blob.arrayBuffer()), keys); r.missing.forEach(m => miss.add(m)); fl.blob = new Blob([r.bytes], { type: 'application/pdf' }); }
+      if (miss.size) info = (info ? info + ' ' : '') + 'Λείπουν: ' + [...miss].map(PELDOCS.label).join(', ') + ' (Γραφείο → Ρυθμίσεις).'; }
+    if (info) toast(info);
     deliver(files);
   } catch (err) { alert('Σφάλμα στη δημιουργία PDF: ' + err.message); console.error(err); }
   btn.disabled = false; btn.textContent = old;
