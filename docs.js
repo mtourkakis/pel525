@@ -89,16 +89,45 @@
     for (const f of r.files) { if (f.kind === 'pdf') { try { n += (await PDFLib.PDFDocument.load(f.bytes, { ignoreEncryption: true })).getPageCount(); } catch (e) { } } else n++; }
     return n;
   }
-  async function compose(PDFLib, fullBytes, overlayBytes, key) {
+  /* JPEG της σελίδας ενός σκαναρισμένου PDF (iPhone: μία εικόνα ανά σελίδα) */
+  function pageJpeg(PDFLib, d, i) {
+    try {
+      const { PDFName } = PDFLib; const p = d.getPage(i); const xo = p.node.Resources().lookup(PDFName.of('XObject'));
+      if (!xo || xo.keys().length !== 1) return null; const st = d.context.lookup(xo.get(xo.keys()[0]));
+      if (!st || !st.dict || String(st.dict.get(PDFName.of('Filter'))) !== '/DCTDecode' || !st.contents) return null;
+      return st.contents;
+    } catch (e) { return null; }
+  }
+  /* περίγραμμα περιεχομένου (κλάσματα 0..1, πάνω-αριστερά) — ίδιος αλγόριθμος με τα πρότυπα */
+  function bboxOf(bytes, type) {
+    return new Promise(res => {
+      const url = URL.createObjectURL(new Blob([bytes], { type: type || 'image/jpeg' })); const im = new Image();
+      im.onload = () => {
+        const w = 500, h = Math.round(500 * im.naturalHeight / im.naturalWidth); const c = document.createElement('canvas'); c.width = w; c.height = h;
+        const g = c.getContext('2d'); g.drawImage(im, 0, 0, w, h); URL.revokeObjectURL(url);
+        const px = g.getImageData(0, 0, w, h).data; const cc = new Uint32Array(w), rc = new Uint32Array(h); const m = Math.floor(0.01 * w), n = Math.floor(0.01 * h);
+        for (let y = n; y < h - n; y++) for (let x = m; x < w - m; x++) { const k = (y * w + x) * 4; if (0.299 * px[k] + 0.587 * px[k + 1] + 0.114 * px[k + 2] < 150) { cc[x]++; rc[y]++; } }
+        let x0 = -1, x1 = -1, y0 = -1, y1 = -1;
+        for (let x = 0; x < w; x++) if (cc[x] >= 0.02 * h) { if (x0 < 0) x0 = x; x1 = x + 1; }
+        for (let y = 0; y < h; y++) if (rc[y] >= 0.02 * w) { if (y0 < 0) y0 = y; y1 = y + 1; }
+        res(x0 < 0 || y0 < 0 ? null : [x0 / w, y0 / h, x1 / w, y1 / h]);
+      };
+      im.onerror = () => { URL.revokeObjectURL(url); res(null); }; im.src = url;
+    });
+  }
+  async function compose(PDFLib, fullBytes, overlayBytes, key, tplBox) {
     const { PDFDocument } = PDFLib;
     const r = await get(key); if (!r || !r.files || !r.files.length) return fullBytes;
     const full = await PDFDocument.load(fullBytes), ov = await PDFDocument.load(overlayBytes), out = await PDFDocument.create();
     const N = full.getPageCount();
-    /* μάζεμα σελίδων σκαναρίσματος με τη σειρά */
+    /* σελίδες σκαναρίσματος με τη σειρά: εικόνα (με περίγραμμα για ευθυγράμμιση) ή σελίδα PDF */
     const src = [];
+    const addImg = async (bytes, type) => { let img = null; try { img = /png/i.test(type) ? await out.embedPng(bytes) : /jpe?g/i.test(type) ? await out.embedJpg(bytes) : null; } catch (e) { img = null; }
+      if (!img) { bytes = await toJpeg(bytes, type); type = 'image/jpeg'; img = await out.embedJpg(bytes); } src.push({ img, bb: await bboxOf(bytes, type) }); };
     for (const f of r.files) {
-      if (f.kind === 'pdf') { const d = await PDFDocument.load(f.bytes, { ignoreEncryption: true }); const eps = await out.embedPdf(d, d.getPageIndices()); eps.forEach(e => src.push({ ep: e })); }
-      else { let img; try { img = /png/i.test(f.type) ? await out.embedPng(f.bytes) : /jpe?g/i.test(f.type) ? await out.embedJpg(f.bytes) : null; } catch (e) { img = null; } if (!img) img = await out.embedJpg(await toJpeg(f.bytes, f.type)); src.push({ img }); }
+      if (f.kind === 'pdf') { const d = await PDFDocument.load(f.bytes, { ignoreEncryption: true });
+        for (let i = 0; i < d.getPageCount(); i++) { const j = pageJpeg(PDFLib, d, i); if (j) await addImg(j, 'image/jpeg'); else { const [ep] = await out.embedPdf(d, [i]); src.push({ ep }); } } }
+      else await addImg(f.bytes, f.type);
     }
     const fullCopies = await out.copyPages(full, full.getPageIndices());
     const ovEmb = [];
@@ -106,8 +135,22 @@
     for (let i = 0; i < N; i++) {
       if (i < src.length) {
         const fp = full.getPage(i), W = fp.getWidth(), H = fp.getHeight(); const pg = out.addPage([W, H]);
-        if (src[i].ep) pg.drawPage(src[i].ep, { x: 0, y: 0, width: W, height: H }); else pg.drawImage(src[i].img, { x: 0, y: 0, width: W, height: H });
-        if (ovEmb[i]) pg.drawPage(ovEmb[i], { x: 0, y: 0, width: W, height: H });
+        /* σχεδόν A4 → τεντώνεται σε όλη τη σελίδα· αλλιώς χωράει χωρίς παραμόρφωση */
+        const o = src[i].ep || src[i].img, sw = o.width, sh = o.height, fit = Math.abs((sw / sh) / (W / H) - 1) > 0.04;
+        let box = { x: 0, y: 0, width: W, height: H };
+        if (fit) { const k = Math.min(W / sw, H / sh); box = { x: (W - sw * k) / 2, y: (H - sh * k) / 2, width: sw * k, height: sh * k }; }
+        if (src[i].ep) pg.drawPage(src[i].ep, box); else pg.drawImage(src[i].img, box);
+        if (ovEmb[i]) {
+          /* ευθυγράμμιση: το περίγραμμα του προτύπου πάνω στο περίγραμμα του σκαναρίσματος */
+          let T = { x: 0, y: 0, width: W, height: H }; const tb = tplBox && tplBox[String(i + 1)], sb = src[i].bb;
+          if (tb && sb) {
+            const sx0 = box.x + sb[0] * box.width, sx1 = box.x + sb[2] * box.width, st0 = (H - box.y - box.height) + sb[1] * box.height, st1 = (H - box.y - box.height) + sb[3] * box.height;
+            const tx0 = tb[0] * W, tx1 = tb[2] * W, tt0 = tb[1] * H, tt1 = tb[3] * H;
+            const kx = (sx1 - sx0) / (tx1 - tx0), ky = (st1 - st0) / (tt1 - tt0);
+            if (kx > 0.85 && kx < 1.15 && ky > 0.85 && ky < 1.15) T = { x: sx0 - tx0 * kx, y: H - st0 - (H - tt0) * ky, width: W * kx, height: H * ky };
+          }
+          pg.drawPage(ovEmb[i], T);
+        }
       } else out.addPage(fullCopies[i]);
     }
     return await out.save();

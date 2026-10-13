@@ -369,7 +369,7 @@ async function generate(which, btn) {
       if (n) { /* σκαναρισμένο ολόκληρο έντυπο → όλες οι σελίδες, ώστε να αντιστοιχούν 1-1 */
         const tplN = (await PDFLib.PDFDocument.load(base.pdfBytes)).getPageCount(); if (n >= tplN) { base.pagesMode = 'full'; base.keepAll = true; }
         const full = await F.build(base), ov = await F.build(Object.assign({}, base, { overlay: true }));
-        outs.push({ f, bytes: await PELDOCS.compose(PDFLib, full, ov, sk) });
+        outs.push({ f, bytes: await PELDOCS.compose(PDFLib, full, ov, sk, (LAYOUT[f] || {}).bbox) });
       } else outs.push({ f, bytes: await F.build(base) });
     }
     const nm = ((c.applicant.surname || 'X') + '_' + (c.applicant.first || '')).replace(/[^A-Za-z0-9_]+/g, '_').replace(/_+$/, '');
