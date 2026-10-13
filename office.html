@@ -134,6 +134,7 @@ function render() {
   document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
   const v = { log: vLog, stud: vStudents, r801: v801, inc: vIncome, inv: vInvoices, exp: vExpiry, set: vSettings }[tab]();
   $('#app').innerHTML = v;
+  $('#app').querySelectorAll('input[data-v]').forEach(i => { i.value = i.dataset.v; });
   if (tab === 'set') fillMyDocs();
 }
 /* τα έγγραφά μου για επισύναψη στις φόρμες */
@@ -146,7 +147,7 @@ async function fillMyDocs() {
 function monthPicker() {
   return `<div class="row"><button class="btn alt" data-mstep="-1">‹</button><b style="min-width:150px;text-align:center">${monthLabel(curMonth)}</b><button class="btn alt" data-mstep="1">›</button></div>`;
 }
-function fld(k, label, type, val, extra) { return `<label class="f">${label}<input data-e="${k}" type="${type || 'text'}" value="${esc(val)}" ${extra || ''}></label>`; }
+function fld(k, label, type, val, extra) { if (type === 'date' || type === 'time') return `<label class="f">${label}<input data-e="${k}" type="${type}" data-v="${esc(val)}" ${extra || ''}></label>`; return `<label class="f">${label}<input data-e="${k}" type="${type || 'text'}" value="${esc(val)}" ${extra || ''}></label>`; }
 function clientOptions(sel) { return `<option value="">— χωρίς —</option><option value="__self" ${sel === '__self' ? 'selected' : ''}>Ιδιώτης (ο ίδιος ο υποψήφιος)</option>` + O.clients.map(c => `<option value="${c.id}" ${c.id === sel ? 'selected' : ''}>${esc(c.name)}</option>`).join(''); }
 
 function vLog() {
@@ -512,6 +513,8 @@ document.addEventListener('change', ev => {
   if (el.dataset.mydoc) { const f = el.files && el.files[0]; if (!f) return; PELDOCS.saveFile('doc:' + el.dataset.mydoc, f).then(() => { toast('Αποθηκεύτηκε: ' + f.name); fillMyDocs(); }).catch(e => alert('Σφάλμα αποθήκευσης: ' + e.message)); return; }
   if (el.dataset.e === 'in801') { edit.in801 = el.checked; return; }
   if (el.dataset.e === 'noInv') { edit.noInv = el.checked; return; }
+  if (el.dataset.e && edit && (el.type === 'date' || el.type === 'time') && !el.dataset.e.startsWith('exp.')) { edit[el.dataset.e] = el.value; return; }
+  if (el.dataset.e && edit && el.dataset.e.startsWith('exp.') && el.type === 'date') { const [, i, f] = el.dataset.e.split('.'); edit.exp[+i][f] = el.value; return; }
   if (el.dataset.i === 'client') { invEdit.client = el.value; const cl = client(el.value) || {}; invEdit.clientName = el.value === '__self' ? 'Individual' : (cl.name || ''); invEdit.clientLines = el.value === '__self' ? '' : (cl.lines || ''); render(); return; }
   if (el.dataset.e && el.tagName === 'SELECT') return;
   if (el.id === 'impB') {

@@ -121,6 +121,8 @@ function setP(o, p, v) { const ks = p.split('.'); let a = o; ks.slice(0, -1).for
 function inp(path, label, type, extra) {
   const c = view === 'settings' ? S : cur();
   const v = getP(c, path) ?? '';
+  /* ημερομηνία/ώρα: η τιμή μπαίνει με JS, ώστε το «Επαναφορά» του iPad να την αδειάζει (αλλιώς γυρίζει στην αρχική) */
+  if (type === 'date' || type === 'time') return `<label class="f">${label}<input data-p="${path}" type="${type}" data-v="${esc(v)}" ${extra || ''}></label>`;
   return `<label class="f">${label}<input data-p="${path}" type="${type || 'text'}" value="${esc(v)}" ${extra || ''}></label>`;
 }
 function seg(path, opts, rer) {
@@ -153,6 +155,7 @@ function render() {
   else app.innerHTML = editView();
   if (view === 'settings') initSig();
   if (view === 'edit') renderCF();
+  app.querySelectorAll('input[data-v]').forEach(i => { i.value = i.dataset.v; });
 }
 function listView() {
   const items = S.cands.map(c => {
