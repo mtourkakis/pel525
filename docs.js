@@ -82,6 +82,36 @@
     }
     return { bytes: await doc.save(), missing };
   }
+  /* σκαναρισμένο έντυπο εταιρείας: οι σελίδες του μπαίνουν στη θέση των αντίστοιχων σελίδων της φόρμας
+     και από πάνω μπαίνουν ΜΟΝΟ τα δικά μου (overlay). Οι υπόλοιπες σελίδες έρχονται από την εφαρμογή. */
+  async function scanCount(PDFLib, key) {
+    const r = await get(key); if (!r || !r.files) return 0; let n = 0;
+    for (const f of r.files) { if (f.kind === 'pdf') { try { n += (await PDFLib.PDFDocument.load(f.bytes, { ignoreEncryption: true })).getPageCount(); } catch (e) { } } else n++; }
+    return n;
+  }
+  async function compose(PDFLib, fullBytes, overlayBytes, key) {
+    const { PDFDocument } = PDFLib;
+    const r = await get(key); if (!r || !r.files || !r.files.length) return fullBytes;
+    const full = await PDFDocument.load(fullBytes), ov = await PDFDocument.load(overlayBytes), out = await PDFDocument.create();
+    const N = full.getPageCount();
+    /* μάζεμα σελίδων σκαναρίσματος με τη σειρά */
+    const src = [];
+    for (const f of r.files) {
+      if (f.kind === 'pdf') { const d = await PDFDocument.load(f.bytes, { ignoreEncryption: true }); const eps = await out.embedPdf(d, d.getPageIndices()); eps.forEach(e => src.push({ ep: e })); }
+      else { let img; try { img = /png/i.test(f.type) ? await out.embedPng(f.bytes) : /jpe?g/i.test(f.type) ? await out.embedJpg(f.bytes) : null; } catch (e) { img = null; } if (!img) img = await out.embedJpg(await toJpeg(f.bytes, f.type)); src.push({ img }); }
+    }
+    const fullCopies = await out.copyPages(full, full.getPageIndices());
+    const ovEmb = [];
+    for (let i = 0; i < Math.min(src.length, N, ov.getPageCount()); i++) { const op = ov.getPage(i); ovEmb.push(op.node.Contents() ? await out.embedPage(op) : null); } /* κενή σελίδα overlay = τίποτα δικό μου εκεί */
+    for (let i = 0; i < N; i++) {
+      if (i < src.length) {
+        const fp = full.getPage(i), W = fp.getWidth(), H = fp.getHeight(); const pg = out.addPage([W, H]);
+        if (src[i].ep) pg.drawPage(src[i].ep, { x: 0, y: 0, width: W, height: H }); else pg.drawImage(src[i].img, { x: 0, y: 0, width: W, height: H });
+        if (ovEmb[i]) pg.drawPage(ovEmb[i], { x: 0, y: 0, width: W, height: H });
+      } else out.addPage(fullCopies[i]);
+    }
+    return await out.save();
+  }
   /* τιμολόγια: το Γραφείο κρατάει κάθε PDF τιμολογίου μαζί με τις εξετάσεις που περιέχει */
   async function saveInvoice(no, entries, bytes, date) {
     await put('inv:' + no, { name: 'Invoice ' + no + '.pdf', type: 'application/pdf', kind: 'pdf', bytes: bytes.buffer ? bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) : bytes, added: Date.now() });
@@ -106,5 +136,5 @@
   const LABEL = { 'doc:lic': 'Πτυχίο', 'doc:med': 'Medical', 'doc:exm': 'Examiner' };
   const label = k => LABEL[k] || (k.startsWith('inv:') ? 'Τιμολόγιο ' + k.slice(4) : k);
 
-  root.PELDOCS = { MY, saveFile, get, del, put, status, append, saveInvoice, dropInvoice, findInvoice, label, candFiles, addCandFiles, removeCandFile };
+  root.PELDOCS = { MY, saveFile, get, del, put, status, append, saveInvoice, dropInvoice, findInvoice, label, candFiles, addCandFiles, removeCandFile, compose, scanCount };
 })(typeof window !== 'undefined' ? window : globalThis);

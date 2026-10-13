@@ -77,7 +77,11 @@
     const { PDFLib, layout, pdfBytes, ex, c, form, sigBytes } = opts; let pagesMode = opts.pagesMode;
     const { PDFDocument, StandardFonts, rgb } = PDFLib;
     const L = layout[form];
-    const doc = await PDFDocument.load(pdfBytes);
+    let doc = await PDFDocument.load(pdfBytes);
+    /* overlay: ίδιες σελίδες αλλά λευκές, για να μπουν μόνο τα δικά μου πάνω σε σκαναρισμένο έντυπο */
+    if (opts.overlay) { const tpl = doc; doc = await PDFDocument.create(); tpl.getPages().forEach(p => doc.addPage([p.getWidth(), p.getHeight()])); }
+    const SKIP0 = /^(a_|s6_name$|s12_date$|cls_|crs_|ir_se$|ir_me$|att_420$)/, SKIP1000 = /^(lic|surname|first|title|dob|addr1|postcode|mobile|email|ato|atono|atoaddr|atotel|atoemail|appdate)$/;
+    const SKIP = { test: k => SKIP0.test(k) || (form === '1000' && SKIP1000.test(k)) };
     const font = await doc.embedFont(StandardFonts.Helvetica);
     const bold = await doc.embedFont(StandardFonts.HelveticaBold);
     const INK = rgb(0.05, 0.12, 0.45), STAMP = rgb(0.12, 0.2, 0.55);
@@ -89,7 +93,7 @@
 
     function fit(t, w, s, f) { f = f || font; let size = s; while (size > 5 && f.widthOfTextAtSize(t, size) > w) size -= 0.25; return size; }
     function text(key, val, o) {
-      const d = L.text[key]; if (!d) return;
+      const d = L.text[key]; if (!d) return; if (opts.overlay && SKIP.test(key)) return;
       const t = clean(val); if (!t) return;
       const f = (o && o.bold) ? bold : font;
       if (d.lines) {
@@ -117,7 +121,7 @@
       page.drawLine({ start: { x: cx - sz * 0.2, y: h - cy - sz * 0.7 }, end: { x: cx + sz, y: h - cy + sz * 0.9 }, thickness: 1.4, color: INK });
     }
     function boxTick(key, on) {
-      const b = L.box && L.box[key]; if (!b || !on) return;
+      const b = L.box && L.box[key]; if (!b || !on) return; if (opts.overlay && SKIP.test(key)) return;
       tick(b.p, b.x + b.w / 2, b.top + b.h / 2, Math.min(b.w, b.h) * 0.42);
     }
     function circle(p, b) {
@@ -141,7 +145,7 @@
       stamp(d.p, d.x, d.top + 17, d.w);
     }
     function cells(key, str) {
-      const d = L.cells[key]; if (!d) return;
+      const d = L.cells[key]; if (!d) return; if (opts.overlay && SKIP.test(key)) return;
       const chars = clean(str).replace(/\s/g, '').split('');
       d.xs.forEach((x, i) => { if (chars[i]) { const w = (d.xs[i + 1] ? Math.min(d.xs[i + 1] - x, 20) : 16); at(d.p, x + w / 2, d.top + d.h - 4.5, chars[i], 10, { center: true }); } });
     }
@@ -254,7 +258,7 @@
       marksTables('IR', ir);
       keep = [4, 5, 6, 7, 8];
       /* integrated CPL/IR: στο 320B επισυνάπτεται ΜΟΝΟ το Part 2 του 420A */
-      if (c.course === 'integrated' && c.tests.cpl) pagesMode = 'examiner';
+      if (c.course === 'integrated' && c.tests.cpl && !opts.keepAll) pagesMode = 'examiner';
     }
     if (form === '1000') {
       const T = c.ato || {};

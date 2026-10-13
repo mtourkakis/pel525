@@ -75,7 +75,7 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
 </head>
 <body>
 <div class="wrap">
-<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v29</span><a class="swl" href="forms.html">CPL · IR · PBN ›</a><a class="swl" style="margin-left:6px" href="office.html">Γραφείο ›</a></header>
+<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v30</span><a class="swl" href="forms.html">CPL · IR · PBN ›</a><a class="swl" style="margin-left:6px" href="office.html">Γραφείο ›</a></header>
 
 <details id="exBox">
 <summary>Εγώ · Examiner <em id="exSum">ρύθμιση</em></summary>
@@ -224,6 +224,10 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
 <h2>Επισύναψη στο PDF</h2>
 <div class="chips" id="attChips"><button class="chip" data-att="doc:lic">Πτυχίο</button><button class="chip" data-att="doc:med">Medical</button><button class="chip" data-att="doc:exm">Examiner</button><button class="chip" data-att="inv">Τιμολόγιο</button></div>
 <div class="note" id="attNote">Μπαίνουν στο τέλος του PDF. Τα ανεβάζεις μία φορά στο Γραφείο → Ρυθμίσεις.</div>
+<div class="grp">Σκαναρισμένο έντυπο εταιρείας</div>
+<div id="scanInfo" class="note" style="margin-top:0"></div>
+<div class="tools"><label class="mini" style="display:inline-flex;align-items:center;cursor:pointer" id="scanLbl">⬆ Ανέβασμα σκαναρισμένου<input type="file" id="scanAdd" accept="application/pdf,image/*" multiple style="display:none"></label><button class="mini" id="scanDel" hidden>✕ Αφαίρεση</button></div>
+<div class="note">Αν η εταιρεία σού δίνει την 525 συμπληρωμένη (π.χ. τη σελίδα 1–2), ανέβασέ τη: οι σελίδες της μπαίνουν όπως είναι και η εφαρμογή βάζει μόνο τα υπόλοιπα.</div>
 <div class="grp">Συνημμένα αυτού του υποψηφίου</div>
 <div id="cfList" class="note" style="margin-top:0"></div>
 <div class="tools"><label class="mini" style="display:inline-flex;align-items:center;cursor:pointer">+ Notification email / άλλο έγγραφο<input type="file" id="cfAdd" accept="application/pdf,image/*" multiple style="display:none"></label></div>
@@ -337,7 +341,11 @@ renderCands();fillCand();renderChips();renderItems();renderTpls();refresh();
 
 /* επισύναψη εγγράφων */
 function candKey(){const c=S.cands[S.cur];if(!c)return null;if(!c.id){c.id=Math.random().toString(36).slice(2,10);persist();}return "cand:525:"+c.id;}
-async function renderCF(){const k=candKey(),box=$("cfList");if(!box)return;if(!k||!window.PELDOCS){box.textContent="—";return;}
+async function renderScan(){const c=S.cands[S.cur];const info=$("scanInfo");if(!info)return;if(!c||!window.PELDOCS){info.textContent="—";return;}const k="scan:525:"+(c.id||"x");const n=c.id?await PELDOCS.scanCount(PDFLib,k):0;
+ info.textContent=n?"✓ "+n+(n===1?" σελίδα":" σελίδες")+" από την εταιρεία (μπαίνουν στη θέση των σελίδων 1"+(n>1?"–"+n:"")+")":"Κανένα.";$("scanDel").hidden=!n;}
+$("scanAdd").addEventListener("change",async e=>{const ck=candKey();if(!ck){alert("Συμπλήρωσε πρώτα υποψήφιο.");return;}const k="scan:525:"+S.cands[S.cur].id;const f=e.target.files;if(!f||!f.length)return;try{await PELDOCS.del(k);await PELDOCS.addCandFiles(k,f);}catch(err){alert("Σφάλμα: "+err.message);}e.target.value="";renderScan();});
+$("scanDel").addEventListener("click",async()=>{const c=S.cands[S.cur];if(!c||!c.id||!confirm("Αφαίρεση σκαναρισμένου;"))return;await PELDOCS.del("scan:525:"+c.id);renderScan();});
+async function renderCF(){renderScan();const k=candKey(),box=$("cfList");if(!box)return;if(!k||!window.PELDOCS){box.textContent="—";return;}
  const fs=await PELDOCS.candFiles(k);box.innerHTML=fs.length?fs.map((f,i)=>'<div style="display:flex;gap:8px;align-items:center;margin:4px 0">📎 <span style="flex:1">'+f.name.replace(/[<&]/g,"")+'</span><button class="mini" data-cfdel="'+i+'">✕</button></div>').join(""):"Κανένα.";
  box.querySelectorAll("[data-cfdel]").forEach(b=>b.addEventListener("click",async()=>{if(!confirm("Αφαίρεση συνημμένου;"))return;await PELDOCS.removeCandFile(k,+b.dataset.cfdel);renderCF();}));}
 $("cfAdd").addEventListener("change",async e=>{const k=candKey();if(!k){alert("Συμπλήρωσε πρώτα υποψήφιο.");return;}const f=e.target.files;if(!f||!f.length)return;try{await PELDOCS.addCandFiles(k,f);}catch(err){alert("Σφάλμα: "+err.message);}e.target.value="";renderCF();});
@@ -352,11 +360,12 @@ async function attachDocs(bytes){S.att=S.att||{};if(!window.PELDOCS)return{bytes
 /* PDF */
 function setStatus(t,c){const s=$("status");s.textContent=t;s.className="status"+(c?" "+c:"");}
 function b64ToBytes(b){const s=atob(b),a=new Uint8Array(s.length);for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a;}
-async function build(){
- const {PDFDocument,StandardFonts,rgb,degrees}=PDFLib;const doc=await PDFDocument.load(b64ToBytes(PDF_B64));
+async function build(ov){
+ const {PDFDocument,StandardFonts,rgb,degrees}=PDFLib;let doc=await PDFDocument.load(b64ToBytes(PDF_B64));
+ if(ov){const tpl=doc;doc=await PDFDocument.create();tpl.getPages().forEach(p=>doc.addPage([p.getWidth(),p.getHeight()]));}
  const f=await doc.embedFont(StandardFonts.Helvetica),fb=await doc.embedFont(StandardFonts.HelveticaBold);
  const H=C.H,ink=rgb(0.05,0.12,0.45),P=doc.getPages();
- const put=(pg,x,top,text,o={})=>{text=clean(text);if(!text)return;const fn=o.bold?fb:f;let z=o.size||8.5;
+ const put=(pg,x,top,text,o={})=>{text=clean(text);if(!text)return;if(ov&&pg===0)return;const fn=o.bold?fb:f;let z=o.size||8.5;
   if(o.maxW){while(z>6.5&&fn.widthOfTextAtSize(text,z)>o.maxW)z-=0.25;
    if(fn.widthOfTextAtSize(text,z)>o.maxW&&text.length>3){ // doesn't fit: two lines, top and bottom
     let cut=-1,best=1e9;for(let i=1;i<text.length;i++)if("/ ".includes(text[i-1])&&Math.abs(i-text.length/2)<best){best=Math.abs(i-text.length/2);cut=i;}
@@ -364,7 +373,7 @@ async function build(){
     let y=7.5;while(y>4.5&&Math.max(fn.widthOfTextAtSize(a,y),fn.widthOfTextAtSize(b,y))>o.maxW)y-=0.25;
     const base=H-top-(o.off??5.5);P[pg].drawText(a,{x,y:base+4,size:y,font:fn,color:ink});P[pg].drawText(b,{x,y:base-4.6,size:y,font:fn,color:ink});return;}}
   P[pg].drawText(text,{x,y:H-top-(o.off??5.5)-((o.size||8.5)-z)*0.35,size:z,font:fn,color:ink});};
- const X=(pg,x,top,small)=>P[pg].drawText("X",small?{x:x+1.8,y:H-top-13,size:10,font:fb,color:ink}:{x:x+2.3,y:H-top-14.2,size:11,font:fb,color:ink});
+ const X=(pg,x,top,small)=>ov&&pg===0?0:P[pg].drawText("X",small?{x:x+1.8,y:H-top-13,size:10,font:fb,color:ink}:{x:x+2.3,y:H-top-14.2,size:11,font:fb,color:ink});
  const v=id=>$(id).value,c=k=>$("c_"+k).value,ch=S.chips;
  const name=clean(upper(c("surname"))+" "+upper(c("first"))).trim(),dob=dmy(c("dob")),d=dmy(v("date")),ac=upper(v("actype"));
  /* page 1 */
@@ -449,7 +458,7 @@ let dl=null;(async()=>{try{dl=await window.claude?.use?.("downloads")??null;}cat
 $("go").addEventListener("click",async()=>{const btn=$("go");btn.disabled=true;setStatus("Δημιουργία…");
  try{if(!window.PDFLib)throw 0;
   if(nonLatin($("c_surname").value)||nonLatin($("c_first").value)){setStatus("Το όνομα του υποψηφίου πρέπει να είναι με λατινικούς.","err");return;}
-  let bytes=await build();try{logExam525();}catch(e){}let ainfo="";try{const a=await attachDocs(bytes);bytes=a.bytes;ainfo=a.info;}catch(e){ainfo=" · η επισύναψη απέτυχε";}const sn=upper($("c_surname").value).replace(/[^A-Z0-9]+/g,"-")||"APPLICANT";
+  let bytes=await build();const cc=S.cands[S.cur];if(cc&&cc.id&&window.PELDOCS){const sk="scan:525:"+cc.id;if(await PELDOCS.scanCount(PDFLib,sk))bytes=await PELDOCS.compose(PDFLib,bytes,await build(true),sk);}try{logExam525();}catch(e){}let ainfo="";try{const a=await attachDocs(bytes);bytes=a.bytes;ainfo=a.info;}catch(e){ainfo=" · η επισύναψη απέτυχε";}const sn=upper($("c_surname").value).replace(/[^A-Z0-9]+/g,"-")||"APPLICANT";
   const fn="PEL-FCL-525_"+sn+"_"+dmy($("date").value).replace(/\//g,"-")+".pdf";
   if(!dl){const blob=new Blob([bytes],{type:"application/pdf"}),file=new File([blob],fn,{type:"application/pdf"});
    try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:fn});setStatus("Έτοιμο: "+fn+ainfo,"ok");return;}}
