@@ -75,7 +75,7 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
 </head>
 <body>
 <div class="wrap">
-<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v27</span><a class="swl" href="forms.html">CPL · IR · PBN ›</a><a class="swl" style="margin-left:6px" href="office.html">Γραφείο ›</a></header>
+<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v28</span><a class="swl" href="forms.html">CPL · IR · PBN ›</a><a class="swl" style="margin-left:6px" href="office.html">Γραφείο ›</a></header>
 
 <details id="exBox">
 <summary>Εγώ · Examiner <em id="exSum">ρύθμιση</em></summary>
@@ -224,6 +224,10 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
 <h2>Επισύναψη στο PDF</h2>
 <div class="chips" id="attChips"><button class="chip" data-att="doc:lic">Πτυχίο</button><button class="chip" data-att="doc:med">Medical</button><button class="chip" data-att="doc:exm">Examiner</button><button class="chip" data-att="inv">Τιμολόγιο</button></div>
 <div class="note" id="attNote">Μπαίνουν στο τέλος του PDF. Τα ανεβάζεις μία φορά στο Γραφείο → Ρυθμίσεις.</div>
+<div class="grp">Συνημμένα αυτού του υποψηφίου</div>
+<div id="cfList" class="note" style="margin-top:0"></div>
+<div class="tools"><label class="mini" style="display:inline-flex;align-items:center;cursor:pointer">+ Notification email / άλλο έγγραφο<input type="file" id="cfAdd" accept="application/pdf,image/*" multiple style="display:none"></label></div>
+<div class="note">Π.χ. το email «Notification of Test» της ΥΠΑ (σε PDF ή φωτογραφία) ή το FSTD certificate. Μπαίνουν πάντα στο τέλος του PDF αυτού του υποψηφίου.</div>
 </section>
 
 <section>
@@ -264,7 +268,7 @@ function renderCands(){const sel=$("candSel");sel.innerHTML="";
  S.cands.forEach((c,i)=>{const o=document.createElement("option");o.value=i;o.textContent=candLabel(c);sel.appendChild(o);});
  if(!S.cands.length){const o=document.createElement("option");o.textContent="Κανένας ακόμα";o.value=-1;sel.appendChild(o);}
  sel.value=S.cur;$("candCount").textContent=S.cands.length?S.cands.length+" αποθηκευμένοι":"";}
-function fillCand(){const c=S.cands[S.cur]||{};CF.forEach(f=>$("c_"+f).value=c[f]||(f==="lictype"?"ATPL(A)":""));refresh();}
+function fillCand(){setTimeout(()=>{try{renderCF();}catch(e){}},0);const c=S.cands[S.cur]||{};CF.forEach(f=>$("c_"+f).value=c[f]||(f==="lictype"?"ATPL(A)":""));refresh();}
 function candInput(){if(S.cur<0){S.cands.push({});S.cur=S.cands.length-1;}
  const c=S.cands[S.cur];CF.forEach(f=>c[f]=$("c_"+f).value);persist();
  const o=$("candSel").options[S.cur];if(o)o.textContent=candLabel(c);else renderCands();refresh();}
@@ -332,11 +336,16 @@ if(!Object.keys(S.items).length)C.items.forEach(i=>S.items[i.id]=!!i.m);
 renderCands();fillCand();renderChips();renderItems();renderTpls();refresh();
 
 /* επισύναψη εγγράφων */
+function candKey(){const c=S.cands[S.cur];if(!c)return null;if(!c.id){c.id=Math.random().toString(36).slice(2,10);persist();}return "cand:525:"+c.id;}
+async function renderCF(){const k=candKey(),box=$("cfList");if(!box)return;if(!k||!window.PELDOCS){box.textContent="—";return;}
+ const fs=await PELDOCS.candFiles(k);box.innerHTML=fs.length?fs.map((f,i)=>'<div style="display:flex;gap:8px;align-items:center;margin:4px 0">📎 <span style="flex:1">'+f.name.replace(/[<&]/g,"")+'</span><button class="mini" data-cfdel="'+i+'">✕</button></div>').join(""):"Κανένα.";
+ box.querySelectorAll("[data-cfdel]").forEach(b=>b.addEventListener("click",async()=>{if(!confirm("Αφαίρεση συνημμένου;"))return;await PELDOCS.removeCandFile(k,+b.dataset.cfdel);renderCF();}));}
+$("cfAdd").addEventListener("change",async e=>{const k=candKey();if(!k){alert("Συμπλήρωσε πρώτα υποψήφιο.");return;}const f=e.target.files;if(!f||!f.length)return;try{await PELDOCS.addCandFiles(k,f);}catch(err){alert("Σφάλμα: "+err.message);}e.target.value="";renderCF();});
 function renderAtt(){S.att=S.att||{};document.querySelectorAll("[data-att]").forEach(b=>b.setAttribute("aria-pressed",S.att[b.dataset.att]?"true":"false"));
  if(window.PELDOCS)PELDOCS.status().then(st=>{const miss=st.filter(d=>!d.name&&S.att["doc:"+d.k]).map(d=>d.l);$("attNote").textContent=miss.length?"Δεν έχουν ανέβει: "+miss.join(", ")+" (Γραφείο → Ρυθμίσεις).":"Μπαίνουν στο τέλος του PDF. Τα ανεβάζεις μία φορά στο Γραφείο → Ρυθμίσεις.";}).catch(()=>{});}
 document.querySelectorAll("[data-att]").forEach(b=>b.addEventListener("click",()=>{S.att=S.att||{};S.att[b.dataset.att]=!S.att[b.dataset.att];persist();renderAtt();}));
-renderAtt();
-async function attachDocs(bytes){S.att=S.att||{};if(!window.PELDOCS)return{bytes,info:""};const keys=["doc:lic","doc:med","doc:exm"].filter(k=>S.att[k]);let info="";
+renderAtt();renderCF();
+async function attachDocs(bytes){S.att=S.att||{};if(!window.PELDOCS)return{bytes,info:""};const keys=["doc:lic","doc:exm","doc:med"].filter(k=>S.att[k]);let info="";const ck=candKey();if(ck)keys.push(ck);
  if(S.att.inv){const name=(upper($("c_surname").value)+" "+upper($("c_first").value)).trim();const inv=await PELDOCS.findInvoice("525|"+name+"|"+$("date").value);if(inv)keys.push(inv.key);else info=" · χωρίς τιμολόγιο (δεν έχει βγει ακόμα)";}
  if(!keys.length)return{bytes,info};const r=await PELDOCS.append(PDFLib,bytes,keys);if(r.missing.length)info+=" · λείπει: "+r.missing.map(PELDOCS.label).join(", ");return{bytes:r.bytes,info};}
 

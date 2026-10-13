@@ -59,9 +59,10 @@
     const { PDFDocument } = PDFLib;
     const doc = await PDFDocument.load(pdfBytes);
     const missing = [];
-    for (const key of keys) {
-      const r = await get(key);
-      if (!r || !r.bytes) { missing.push(key); continue; }
+    const recs = [];
+    for (const key of keys) { const r = await get(key); if (r && r.files) r.files.forEach(f => recs.push([key, f])); else recs.push([key, r]); }
+    for (const [key, r] of recs) {
+      if (!r || !r.bytes) { if (!(key.startsWith('cand:'))) missing.push(key); continue; }
       try {
         if (r.kind === 'pdf') {
           const src = await PDFDocument.load(r.bytes, { ignoreEncryption: true });
@@ -94,8 +95,16 @@
     const m = idx.filter(x => (x.entries || []).some(e => ids.includes(e))).pop();
     return m ? { key: 'inv:' + m.no, no: m.no } : null;
   }
+  /* συνημμένα ανά υποψήφιο (π.χ. Notification of Test email, FSTD certificate) */
+  async function candFiles(key) { const r = await get(key); return (r && r.files) || []; }
+  async function addCandFiles(key, fileList) {
+    const files = await candFiles(key);
+    for (const f of Array.from(fileList)) files.push({ name: f.name, type: f.type || '', kind: kindOf(f.name, f.type), bytes: await f.arrayBuffer(), added: Date.now() });
+    await put(key, { files });
+  }
+  async function removeCandFile(key, i) { const files = await candFiles(key); files.splice(i, 1); if (files.length) await put(key, { files }); else await del(key); }
   const LABEL = { 'doc:lic': 'Πτυχίο', 'doc:med': 'Medical', 'doc:exm': 'Examiner' };
   const label = k => LABEL[k] || (k.startsWith('inv:') ? 'Τιμολόγιο ' + k.slice(4) : k);
 
-  root.PELDOCS = { MY, saveFile, get, del, put, status, append, saveInvoice, dropInvoice, findInvoice, label };
+  root.PELDOCS = { MY, saveFile, get, del, put, status, append, saveInvoice, dropInvoice, findInvoice, label, candFiles, addCandFiles, removeCandFile };
 })(typeof window !== 'undefined' ? window : globalThis);
