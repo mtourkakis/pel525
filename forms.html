@@ -254,6 +254,7 @@ function editView() {
       return `<h3>320B · Ενότ. 3</h3><div class="row"><div class="seg">${[['atp', 'ATP Integrated'], ['cplir', 'CPL/IR Integrated'], ['cpl', 'CPL Integrated']].map(([v, l]) => `<button data-ctype="${v}" class="${ct === v ? 'on' : ''}">${l}</button>`).join('')}</div></div>
       <label class="chk"><input type="checkbox" data-chk="classSE" ${se ? 'checked' : ''}> Single-engine Piston (Land)</label><label class="chk"><input type="checkbox" data-chk="classME" ${me ? 'checked' : ''}> Multi-engine Piston (Land)</label>`; })() : ''}
     <div class="grid">${inp('signDate', 'Ημερομηνία υπογραφής εξεταστή', 'date')}${inp('notif', 'Notification of Test στην HCAA', 'date')}</div>
+    ${fs.length ? `<div class="grid">${fs.map(f => inp('fdate.' + f, 'Ημερομηνία ' + f + ' (αν είναι άλλη μέρα)', 'date')).join('')}</div><p class="hint">Κενό = η ημερομηνία υπογραφής από πάνω.</p>` : ''}
     <p class="hint">Τα στοιχεία συμπληρώνονται μία φορά και περνούν σε όλα τα έντυπα.</p>`, `<span class="tag">${c.course === 'integrated' ? 'INT' : 'MOD'}</span>`);
   const UC = 'autocapitalize="characters"';
   h += sec('app', 'Υποψήφιος', `<div class="grid">${inp(A + 'title', 'Title')}${inp(A + 'surname', 'Surname', 'text', UC)}${inp(A + 'first', 'First name(s)', 'text', UC)}${inp(A + 'dob', 'Date of birth', 'date')}</div>

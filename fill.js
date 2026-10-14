@@ -76,6 +76,7 @@
   async function build(opts) {
     const { PDFLib, layout, pdfBytes, ex, c, form, sigBytes } = opts; let pagesMode = opts.pagesMode;
     const { PDFDocument, StandardFonts, rgb } = PDFLib;
+    const SD = f => (c.fdate && c.fdate[f]) || c.signDate;
     const L = layout[form];
     let doc = await PDFDocument.load(pdfBytes);
     /* overlay: ίδιες σελίδες αλλά λευκές, για να μπουν μόνο τα δικά μου πάνω σε σκαναρισμένο έντυπο */
@@ -206,13 +207,13 @@
       text('s9_name', name);
       text('s9_passdate', dmy(s.passDate)); text('s9_actype', s.types); text('s9_reg', s.regs);
       text('s9_exname', exName); text('s9_exnum', ex.number); text('s9_auth', ex.authority);
-      sig('s9_sig'); text('s9_date', dmy(c.signDate || s.passDate));
+      sig('s9_sig'); text('s9_date', dmy(SD(form) || s.passDate));
       if (form === '320B' && c.tests.ir) {
         const si = testSummary(ir);
         text('s10_name', name); text('s10_passdate', dmy(si.passDate)); text('s10_actype', si.types); text('s10_reg', si.regs);
         boxTick('s10_pbn_yes', ir.pbn === 'yes'); boxTick('s10_pbn_no', ir.pbn === 'no');
         text('s10_exname', exName); text('s10_exnum', ex.number); text('s10_auth', ex.authority);
-        sig('s10_sig'); text('s10_date', dmy(c.signDate || si.passDate));
+        sig('s10_sig'); text('s10_date', dmy(SD(form) || si.passDate));
       }
       text('p2_name', name); text('p2_dob', dob); text('p2_attempt', cpl.attempt || '1'); text('p2_date', dmy(cpl.flights && cpl.flights[0] && cpl.flights[0].date));
       text('p2_place', cpl.place); text('p2_logname', name); text('p2_exname', exName); text('p2_exnum', ex.number); text('p2_auth', ex.authority);
@@ -233,7 +234,7 @@
         boxTick('cls_sep', sep); boxTick('cls_mep', mep);
         const ct = c.courseType || (c.tests.ir ? 'cplir' : 'cpl');
         boxTick('crs_atp', ct === 'atp'); boxTick('crs_cplir', ct === 'cplir'); boxTick('crs_cpl', ct === 'cpl');
-        text('s6_name', name); text('s12_date', dmy(c.signDate)); boxTick('att_420', !!c.tests.ir);
+        text('s6_name', name); text('s12_date', dmy(SD(form))); boxTick('att_420', !!c.tests.ir);
       }
       marksTables('CPL', cpl);
       keep = form === '320B' ? [3, 4, 5, 6, 7, 8] : [4, 5, 6, 7, 8];
@@ -252,7 +253,7 @@
         text('p2r_comments', ir.retest.comment);
       }
       [5, 6, 7, 8].forEach(p => { text('h' + p + '_name', name); text('h' + p + '_dob', dob); });
-      applicantPage(); text('a_decldate', dmy(c.signDate)); text('a_appdate', dmy(c.signDate));
+      applicantPage(); text('a_decldate', dmy(SD(form))); text('a_appdate', dmy(SD(form)));
       boxTick('ir_se', ir.engine === 'SE'); boxTick('ir_me', ir.engine !== 'SE');
       { const si = testSummary(ir); text('s10_date', dmy(si.passDate)); text('s10_ex', exName); text('s10_exnum', ex.number); text('s10_auth', ex.authority); }
       marksTables('IR', ir);
@@ -267,13 +268,13 @@
       cells('dob', dmy(A.dob, ''));
       text('addr1', (A.address || '').toUpperCase()); text('postcode', A.postcode); text('mobile', A.mobile); text('email', A.email);
       text('ato', (T.name || '').toUpperCase()); text('atono', T.number); text('atoaddr', (T.address || '').toUpperCase()); text('atotel', T.tel); text('atoemail', T.email);
-      cells('appdate', dmy(c.pbnAppDate || c.signDate, '').replace(/^(\d{4})(\d{2})(\d{2})$/, '$1$2$3').replace(/^(\d{2})(\d{2})\d{2}(\d{2})$/, '$1$2$3'));
+      cells('appdate', dmy(c.pbnAppDate || SD(form), '').replace(/^(\d{4})(\d{2})(\d{2})$/, '$1$2$3').replace(/^(\d{2})(\d{2})\d{2}(\d{2})$/, '$1$2$3'));
       cells('exlic', ex.licNo || '');
       text('exstate', ex.state); cells('exdob', dmy(ex.dob, ''));
       text('exsurname', (ex.surname || '').toUpperCase()); text('exfirst', (ex.first || '').toUpperCase()); text('extitle', ex.title);
       text('exmobile', ex.mobile); text('exemail', ex.email);
       sig('exsig');
-      cells('exdate', dmy(c.signDate, '').replace(/^(\d{2})(\d{2})\d{2}(\d{2})$/, '$1$2$3'));
+      cells('exdate', dmy(SD(form), '').replace(/^(\d{2})(\d{2})\d{2}(\d{2})$/, '$1$2$3'));
       const cl = c.pbnChecklist || {};
       boxTick('cl_pc', cl.pc); boxTick('cl_lic', cl.lic); boxTick('cl_pbn', cl.pbn); boxTick('cl_ato', cl.ato);
       keep = [1, 2];
