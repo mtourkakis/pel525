@@ -82,6 +82,7 @@ table.t{width:100%;border-collapse:collapse;font-size:13.5px}
 table.t th{text-align:left;color:var(--mute);font-size:11.5px;letter-spacing:.3px;padding:6px;border-bottom:2px solid var(--line);white-space:nowrap}
 table.t td{padding:7px 6px;border-bottom:1px solid #eef1f6;white-space:nowrap}
 table.t tr[data-edit],table.t tr[data-month]{cursor:pointer}
+table.t tr.grp td{background:#f3f5f8;padding-top:10px}
 table.t tr.sel td{background:#fff4d6}
 table.t tr.tot td{font-weight:700;border-top:2px solid var(--line)}
 .tag.warnt{background:#fff1cc;color:#8a5a00}
@@ -295,12 +296,21 @@ function vIncome() {
     const tot = s.exam + s.dek + s.stud + s.other; Object.keys(T).forEach(k => T[k] += s[k]);
     if (tot || ym <= todayISO().slice(0, 7)) rows += `<tr data-month="${ym}" class="${ym === curMonth ? 'sel' : ''}"><td>${MONTHS[m - 1]}</td><td>${s.exam ? eur(s.exam) : ''}</td><td>${s.dek ? eur(s.dek) : ''}</td><td>${s.stud ? eur(s.stud) : ''}</td><td>${s.other ? eur(s.other) : ''}</td><td><b>${eur(tot)}</b></td></tr>`;
   }
-  const byC = {}; E.filter(e => inMonth(e, curMonth)).forEach(e => { const k = e.client ? cname(e.client) : '— χωρίς πελάτη —'; byC[k] = (byC[k] || 0) + (e.price || 0); });
+  const ME = E.filter(e => inMonth(e, curMonth)).sort(sortByDate);
+  const det = ['exam', 'dek', 'stud', 'other'].map(c => { const L = ME.filter(e => (e.cat || 'exam') === c); if (!L.length) return '';
+    const sub = L.reduce((a, e) => a + (e.price || 0), 0);
+    return `<tr class="grp"><td colspan="3"><b>${CATS[c]}</b> <span class="hint" style="margin:0">(${L.length})</span></td><td><b>${eur(sub)}</b></td></tr>` + L.map(e => {
+      const info = c === 'stud' ? [hm(lessonHrs(e)) + ' ώρες', e.kind === 'solo' ? 'Σόλο' : '', PAYER[payerOf(e)]] : [e.test, e.client ? cname(e.client) : ''];
+      const st = e.invoice ? 'τιμ. ' + e.invoice : e.noInv ? 'χωρίς τιμ.' : (e.price != null && (e.client || c === 'stud') ? '<i style="color:#b26b00">ατιμολόγητο</i>' : '');
+      return `<tr data-edit="${e.id}"><td>${dmy(e.date)}</td><td><b>${esc(e.name || '—')}</b><br><span class="hint" style="margin:0">${esc(info.filter(Boolean).join(' · '))}</span></td><td class="hint" style="margin:0">${st}</td><td>${e.price != null ? eur(e.price) : '<i style="color:#c62f2f">—</i>'}</td></tr>`; }).join(''); }).join('');
+  const mTot = ME.reduce((a, e) => a + (e.price || 0), 0);
+  const byC = {}; ME.forEach(e => { const k = e.client ? cname(e.client) : '— χωρίς πελάτη —'; byC[k] = (byC[k] || 0) + (e.price || 0); });
   const unpriced = E.filter(e => e.price == null && e.cat === 'exam').length;
   return `<div class="row"><div class="seg">${ys.map(y => `<button data-year="${y}" class="${y === curYear ? 'on' : ''}">${y}</button>`).join('')}</div></div>
   <div class="card"><div class="body" style="padding-top:14px;overflow-x:auto"><table class="t"><tr><th>Μήνας</th><th>Εξετάσεις</th><th>Δεκέλεια</th><th>Μαθητές</th><th>Άλλα</th><th>Σύνολο</th></tr>${rows}
   <tr class="tot"><td>Σύνολο ${curYear}</td><td>${eur(T.exam)}</td><td>${eur(T.dek)}</td><td>${eur(T.stud)}</td><td>${eur(T.other)}</td><td>${eur(T.exam + T.dek + T.stud + T.other)}</td></tr></table>
   ${unpriced ? `<p class="hint" style="color:#c62f2f">${unpriced} εξετάσεις του ${curYear} χωρίς ποσό.</p>` : ''}</div></div>
+  <div class="card" id="mdet"><div class="body" style="padding-top:14px"><h3 style="margin-top:0">Αναλυτικά · ${monthLabel(curMonth)} · ${eur(mTot)}</h3><div style="overflow-x:auto"><table class="t">${det || '<tr><td>Καμία εγγραφή αυτόν τον μήνα.</td></tr>'}${det ? `<tr class="tot"><td colspan="3">Σύνολο ${monthLabel(curMonth)}</td><td>${eur(mTot)}</td></tr>` : ''}</table></div></div></div>
   <div class="card"><div class="body" style="padding-top:14px"><h3 style="margin-top:0">Ανά πελάτη · ${monthLabel(curMonth)}</h3><table class="t">${Object.entries(byC).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${eur(v)}</td></tr>`).join('') || '<tr><td>—</td></tr>'}</table>
   <div class="row" style="margin-top:12px"><button class="btn" id="xlsx">Excel ${curYear}</button></div><div class="out" id="out"></div></div></div>`;
 }
@@ -427,6 +437,7 @@ document.addEventListener('click', async ev => {
     O.students = O.students.filter(x => x.id !== st.id); saveO(); render(); toast('Διαγράφηκε ' + st.name + (n ? ' και ' + n + ' μαθήματα' : '')); return; }
   if (t.dataset.srest) { const st = O.students.find(x => x.id === t.dataset.srest); st.active = true; saveO(); render(); return; }
   if (t.dataset.edit && tab === 'stud') { const e = LOG.find(x => x.id === t.dataset.edit); edit = JSON.parse(JSON.stringify(e)); backTab = null; render(); window.scrollTo(0, 0); return; }
+  if (t.dataset.edit && tab === 'inc') { const e = LOG.find(x => x.id === t.dataset.edit); edit = JSON.parse(JSON.stringify(e)); backTab = 'inc'; tab = e.cat === 'stud' ? 'stud' : 'log'; curMonth = e.date.slice(0, 7); render(); window.scrollTo(0, 0); return; }
   if (t.dataset.edit) { const e = LOG.find(x => x.id === t.dataset.edit); edit = JSON.parse(JSON.stringify(e)); backTab = (tab === 'inv' || tab === 'stud') ? tab : null; tab = 'log'; curMonth = e.date.slice(0, 7); render(); window.scrollTo(0, 0); return; }
   if (t.id === 'addE') { edit = { id: uid(), src: 'manual', cat: 'exam', date: curMonth === todayISO().slice(0, 7) ? todayISO() : curMonth + '-01', in801: true, exp: [], price: null }; render(); window.scrollTo(0, 0); return; }
   if (t.id === 'cancelE') { edit = null; if (backTab) { tab = backTab; backTab = null; } render(); return; }
@@ -442,7 +453,7 @@ document.addEventListener('click', async ev => {
   if (t.id === 'mail801') { location.href = `mailto:info@hcaa.gov.gr?subject=${encodeURIComponent('PEL-FCL 801 - Examiner Activity Report - ' + curMonth + ' - ' + ($('#ex801').value || ''))}&body=${encodeURIComponent('Please find attached the Examiner Activity Report (PEL-FCL 801) for ' + monthLabel(curMonth) + '.\n\n' + ($('#ex801').value || ''))}`; return; }
   if (t.dataset.x801 || t.dataset.in801) { const e = LOG.find(x => x.id === (t.dataset.x801 || t.dataset.in801)); if (e) { e.in801 = !!t.dataset.in801; e.manualEdit = true; saveLog(); render(); toast(e.in801 ? 'Μπήκε ξανά στο 801' : 'Βγήκε από το 801'); } return; }
   if (t.dataset.year) { curYear = t.dataset.year; render(); return; }
-  if (t.dataset.month) { curMonth = t.dataset.month; render(); return; }
+  if (t.dataset.month) { curMonth = t.dataset.month; render(); const d = $('#mdet'); if (d) d.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
   if (t.id === 'xlsx') { deliver([{ name: `Exetaseis_${curYear}.xlsx`, blob: buildXlsx(curYear) }]); return; }
   if (t.id === 'newInv' || t.dataset.unb) {
     let c, m, eid; if (t.dataset.unb) [c, m, eid] = t.dataset.unb.split('|'); else { c = $('#ni_c').value; m = $('#ni_m').value; }
