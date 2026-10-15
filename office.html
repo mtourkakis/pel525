@@ -237,6 +237,23 @@ function findPerson(name) {
   const hits = Object.keys(P).filter(n => n.split(' ')[0] === k); return hits.length === 1 ? P[hits[0]] : null;
 }
 /* ό,τι συμπληρώθηκε στο Γραφείο περνάει στις κενές θέσεις των καρτελών υποψηφίων */
+/* στοιχεία ιδιώτη για το τιμολόγιο: όνομα, πτυχίο, τηλέφωνο — από εξετάσεις, 525 και φόρμες */
+function personInfo(name) {
+  const k = nkey(name), r = { lic: '', phone: '' }; if (!k) return r;
+  const take = (lic, ph) => { if (!r.lic && lic) r.lic = String(lic).trim(); if (!r.phone && ph) r.phone = String(ph).trim(); };
+  LOG.filter(e => nkey(e.name) === k).sort((a, b) => (b.date || '').localeCompare(a.date || '')).forEach(e => take(e.lic, e.phone));
+  try { (JSON.parse(localStorage.getItem('pel525-ex-v1')).cands || []).forEach(c => { if (nkey((c.surname || '') + ' ' + (c.first || '')) === k) take(c.licno, c.phone); }); } catch (e) { }
+  try { (JSON.parse(localStorage.getItem('pelfcl_forms_v1')).cands || []).forEach(c => { const a = c.applicant || {}; if (nkey((a.surname || '') + ' ' + (a.first || '')) === k) take(a.licNo, a.mobile || a.tel); }); } catch (e) { }
+  return r;
+}
+function selfLines(name) { if (!name) return ''; const p = personInfo(name); return [nkey(name), p.lic ? 'Licence ' + p.lic : '', p.phone ? 'Phone no    ' + p.phone : ''].filter(Boolean).join('\n'); }
+/* ιδιώτης χωρίς δεμένη εξέταση: διάλεξε από τις ατιμολόγητες εξετάσεις του μήνα */
+function pickSelfEntry(m) {
+  const c = LOG.filter(e => (!m || inMonth(e, m)) && !e.invoice && !e.noInv && (e.cat === 'exam' || !e.cat) && (!e.client || e.client === '__self')).sort(sortByDate);
+  if (!c.length) return null; if (c.length === 1) return c[0];
+  const a = prompt('Για ποια εξέταση είναι το τιμολόγιο;\n' + c.map((e, i) => (i + 1) + '. ' + dmy(e.date) + ' ' + e.name + ' ' + (e.test || '')).join('\n'), '1');
+  const i = parseInt(a) - 1; return c[i] || null;
+}
 function syncPerson(e) {
   const k = nkey(e.name); if (!k) return;
   try { const d = lsGet(K525, null); if (d && d.cands) { let ch = false; d.cands.forEach(c => { if (nkey((c.surname || '') + ' ' + (c.first || '')) !== k) return;
@@ -385,6 +402,7 @@ function invEditor() {
   <div class="grid"><label class="f">Αριθμός<input data-i="no" value="${esc(i.no)}"></label><label class="f">Ημερομηνία<input data-i="date" type="date" value="${esc(i.date)}"></label><label class="f">Πελάτης<select data-i="client">${clientOptions(i.client)}</select></label></div>
   <div class="grid" style="margin-top:10px"><label class="f">Όνομα πελάτη στο τιμολόγιο<input data-i="clientName" value="${esc(i.clientName != null ? i.clientName : cname(i.client))}"></label></div>
   <label class="f" style="margin-top:10px">Στοιχεία πελάτη (μία γραμμή η καθεμία)<textarea data-i="clientLines" rows="4">${esc(i.clientLines != null ? i.clientLines : ((client(i.client) || {}).lines || ''))}</textarea></label>
+  ${i.client === '__self' ? '<div class="row" style="margin-top:6px"><button class="btn alt" id="refillSelf">↺ Όνομα & πτυχίο από την εξέταση</button></div>' : ''}
   <label class="f" style="margin-top:10px">Επικεφαλίδα περιγραφής<input data-i="title" value="${esc(i.title)}"></label>
   <h3>Γραμμές</h3>
   ${i.lines.map((l, k) => `<div class="flight"><div class="grid">${`<label class="f">Περιγραφή<input data-l="${k}.desc" value="${esc(l.desc)}"></label><label class="f">Time / Days<input data-l="${k}.qty" value="${esc(l.qty)}" inputmode="decimal"></label><label class="f">Service fee €<input data-l="${k}.fee" value="${esc(l.fee)}" inputmode="decimal"></label>`}<div style="align-self:end;display:flex;gap:8px;align-items:center"><b>${eur(lineTotal(l))}</b><button class="btn danger" data-dell="${k}">✕</button></div></div></div>`).join('')}
@@ -495,15 +513,18 @@ document.addEventListener('click', async ev => {
   if (t.id === 'newInv' || t.dataset.unb) {
     let c, m, eid; if (t.dataset.unb) [c, m, eid] = t.dataset.unb.split('|'); else { c = $('#ni_c').value; m = $('#ni_m').value; }
     if (!c) { toast('Διάλεξε πελάτη'); return; }
-    const es = LOG.filter(e => e.client === c && inMonth(e, m) && !e.invoice && (!eid || e.id === eid)).sort(sortByDate);
+    let es = LOG.filter(e => e.client === c && inMonth(e, m) && !e.invoice && (!eid || e.id === eid)).sort(sortByDate);
+    if (c === '__self' && !es.length) { const pe = pickSelfEntry(m); if (pe) { pe.client = '__self'; saveLog(); es = [pe]; } }
     const cl = client(c) || {}; const p0 = es[0] || {};
-    const cLines = c === '__self' ? [p0.name, p0.lic ? 'Licence ' + p0.lic : '', p0.phone ? 'Phone no    ' + p0.phone : ''].filter(Boolean).join('\n') : (cl.lines || '');
+    const cLines = c === '__self' ? selfLines(p0.name) : (cl.lines || '');
     invEdit = { id: uid(), no: nextNo(), date: todayISO(), client: c, clientName: c === '__self' ? 'Individual' : (cl.name || ''), clientLines: cLines, title: 'Aviation Training services and exam', note: '', entries: es.map(e => e.id),
       lines: es.length ? es.map(e => ({ desc: [e.name, e.test].filter(Boolean).join(' '), qty: e.qty || '', fee: e.price != null ? String(e.price) : '' })) : [{ desc: '', qty: '', fee: '' }] };
     if (c === O.clubClient || (!O.clubClient && /aero ?club|λέσχη|dekel/i.test(cl.name || ''))) { if (addClubLines(invEdit)) O.clubClient = c, saveO(); }
     render(); window.scrollTo(0, 0); return;
   }
   if (t.dataset.inv) { invEdit = JSON.parse(JSON.stringify(O.invoices.find(i => i.id === t.dataset.inv))); render(); window.scrollTo(0, 0); return; }
+  if (t.id === 'refillSelf') { let e = LOG.find(x => (invEdit.entries || []).includes(x.id)); if (!e) { e = pickSelfEntry((invEdit.date || '').slice(0, 7)) || pickSelfEntry(''); if (e) invEdit.entries = [e.id]; }
+    if (!e) { toast('Δεν βρέθηκε εξέταση ιδιώτη'); return; } invEdit.clientLines = selfLines(e.name); render(); toast(personInfo(e.name).lic ? 'Συμπληρώθηκαν' : 'Δεν βρέθηκε αρ. πτυχίου — γράψ' + 'τον στην εξέταση'); return; }
   if (t.id === 'addClub') { addClubLines(invEdit); if (invEdit.client && invEdit.client !== '__self') { O.clubClient = invEdit.client; saveO(); } render(); return; }
   if (t.id === 'addL') { invEdit.lines.push({ desc: '', qty: '', fee: '' }); render(); return; }
   if (t.dataset.dell) { invEdit.lines.splice(+t.dataset.dell, 1); render(); return; }
@@ -572,7 +593,7 @@ document.addEventListener('change', ev => {
   if (el.dataset.e === 'noInv') { edit.noInv = el.checked; return; }
   if (el.dataset.e && edit && (el.type === 'date' || el.type === 'time') && !el.dataset.e.startsWith('exp.')) { edit[el.dataset.e] = el.value; return; }
   if (el.dataset.e && edit && el.dataset.e.startsWith('exp.') && el.type === 'date') { const [, i, f] = el.dataset.e.split('.'); edit.exp[+i][f] = el.value; return; }
-  if (el.dataset.i === 'client') { invEdit.client = el.value; const cl = client(el.value) || {}; invEdit.clientName = el.value === '__self' ? 'Individual' : (cl.name || ''); invEdit.clientLines = el.value === '__self' ? '' : (cl.lines || ''); render(); return; }
+  if (el.dataset.i === 'client') { invEdit.client = el.value; const cl = client(el.value) || {}; invEdit.clientName = el.value === '__self' ? 'Individual' : (cl.name || ''); invEdit.clientLines = el.value === '__self' ? (() => { let e = LOG.find(x => (invEdit.entries || []).includes(x.id)); if (!e) { e = pickSelfEntry((invEdit.date || '').slice(0, 7)) || pickSelfEntry(''); if (e) { invEdit.entries = [e.id]; if (!invEdit.lines.some(l => l.desc || l.fee)) invEdit.lines = [{ desc: [e.name, e.test].filter(Boolean).join(' '), qty: e.qty || '', fee: e.price != null ? String(e.price) : '' }]; } } return e ? selfLines(e.name) : ''; })() : (cl.lines || ''); render(); return; }
   if (el.dataset.e && el.tagName === 'SELECT') return;
   if (el.id === 'impB') {
     const f = el.files[0]; if (!f) return;
