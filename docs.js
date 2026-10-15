@@ -181,7 +181,7 @@
 
   /* αρχείο: κάθε PDF που βγαίνει (525 / φόρμες) κρατιέται εδώ. Ίδιο αρχείο ξανά = αντικαθίσταται η παλιά έκδοση */
   async function saveOut(logId, name, bytes, meta) {
-    const key = 'out:' + logId + '|' + name;
+    const key = (meta && meta.key) || ('out:' + logId + '|' + name);
     const ab = bytes.buffer ? bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) : bytes;
     await put(key, { name, type: 'application/pdf', kind: 'pdf', bytes: ab, added: Date.now() });
     const idx = ((await get('outindex')) || []).filter(x => x.key !== key);
@@ -189,9 +189,26 @@
     await put('outindex', idx);
     try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { }
   }
+  /* φωτογραφίες / σκαναρίσματα / PDF → ένα PDF (όλες οι σελίδες με τη σειρά) */
+  async function filesToPdf(PDFLib, fileList) {
+    const { PDFDocument } = PDFLib; const doc = await PDFDocument.create();
+    for (const f of Array.from(fileList)) {
+      const b = await f.arrayBuffer();
+      if (kindOf(f.name, f.type) === 'pdf') { const d = await PDFDocument.load(b, { ignoreEncryption: true }); (await doc.copyPages(d, d.getPageIndices())).forEach(p => doc.addPage(p)); continue; }
+      const im = await doc.embedJpg(await toJpeg(b, f.type));
+      const land = im.width > im.height, W = land ? 842 : 595, H = land ? 595 : 842, k = Math.min((W - 24) / im.width, (H - 24) / im.height);
+      const pg = doc.addPage([W, H]); pg.drawImage(im, { x: (W - im.width * k) / 2, y: (H - im.height * k) / 2, width: im.width * k, height: im.height * k });
+    }
+    return await doc.save();
+  }
+  async function addUpload(PDFLib, fileList, o) {
+    const bytes = await filesToPdf(PDFLib, fileList); const id = Math.random().toString(36).slice(2, 8);
+    const name = ((o.title || 'Document') + (o.cand ? '_' + o.cand : '')).replace(/[^A-Za-z0-9Α-Ωα-ωΆ-ώ]+/g, '_').replace(/^_|_$/g, '') + '.pdf';
+    await saveOut(o.logId || ('up|' + id), name, bytes, { key: 'out:up|' + id, up: true, label: o.title || '', cand: o.cand || '', date: o.date || '' });
+  }
   async function listOut() { return (await get('outindex')) || []; }
   async function dropOut(key) { await del(key); await put('outindex', ((await get('outindex')) || []).filter(x => x.key !== key)); }
   async function invList() { return (await get('invindex')) || []; }
 
-  root.PELDOCS = { MY, saveFile, get, del, put, status, append, saveInvoice, dropInvoice, findInvoice, label, candFiles, addCandFiles, removeCandFile, compose, scanCount, saveOut, listOut, dropOut, invList };
+  root.PELDOCS = { MY, saveFile, get, del, put, status, append, saveInvoice, dropInvoice, findInvoice, label, candFiles, addCandFiles, removeCandFile, compose, scanCount, saveOut, listOut, dropOut, invList, addUpload };
 })(typeof window !== 'undefined' ? window : globalThis);

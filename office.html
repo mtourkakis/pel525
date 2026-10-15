@@ -149,11 +149,13 @@ async function fillMyDocs() {
 let arcQ = '';
 function vArchive() {
   return `<div class="card"><div class="body" style="padding-top:14px"><input id="arcQ" placeholder="🔍 Αναζήτηση ονόματος / εντύπου…" value="${esc(arcQ)}" style="width:100%;font-size:16px;padding:10px;border:1px solid #d5dbe4;border-radius:10px">
+  <div class="row" style="margin-top:12px"><label class="btn amber" style="cursor:pointer">+ Προσθήκη αρχείου / φωτογραφίας / σκαναρίσματος<input type="file" data-upload="free" accept="application/pdf,image/*" multiple style="display:none"></label></div>
+  <p class="hint">Π.χ. techlog, logbook, βεβαίωση. Αν διαλέξεις πολλές φωτογραφίες, γίνονται <b>ένα PDF</b> με τη σειρά.</p>
   <p class="hint">Κάθε έντυπο που βγάζεις (525, 320A/B, 420A, 1000) και κάθε τιμολόγιο κρατιέται εδώ αυτόματα. Αν το ξαναβγάλεις, μένει η τελευταία έκδοση.</p></div></div><div id="arcBox"><p class="hint">Φόρτωση…</p></div>`;
 }
 async function arcItems() {
   if (!window.PELDOCS) return [];
-  const out = (await PELDOCS.listOut()).map(x => ({ key: x.key, kind: 'form', title: x.cand || '—', sub: x.forms ? 'PEL-FCL ' + x.forms : x.name, name: x.name, date: x.date || '', size: x.size, logId: x.logId }));
+  const out = (await PELDOCS.listOut()).map(x => ({ key: x.key, kind: 'form', title: x.cand || x.label || '—', sub: x.up ? '📎 ' + (x.cand && x.label ? x.label : 'Αρχείο') : x.forms ? 'PEL-FCL ' + x.forms : x.name, name: x.name, date: x.date || '', size: x.size, logId: x.logId }));
   const inv = (await PELDOCS.invList()).map(x => { const i = O.invoices.find(v => v.no === x.no) || {};
     return { key: 'inv:' + x.no, kind: 'inv', title: 'Τιμολόγιο ' + x.no, sub: i.client ? (i.client === '__self' ? (i.clientLines || '').split('\n')[0] : (i.clientName || cname(i.client))) : '', name: 'Invoice ' + x.no + '.pdf', date: x.date || i.date || '' }; });
   return out.concat(inv).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
@@ -174,7 +176,8 @@ async function fillArchive() {
 async function fillEntryPdfs() {
   const box = $('#entryPdfs'); if (!box || !edit || !window.PELDOCS) return;
   const L = (await arcItems()).filter(x => x.logId === edit.id || (edit.invoice && x.key === 'inv:' + edit.invoice));
-  box.innerHTML = L.length ? `<h3>Αποθηκευμένα PDF</h3><div class="card list" style="margin:0">${L.map(x => arcRow(x, false)).join('')}</div>` : '';
+  box.innerHTML = `<h3>Αποθηκευμένα PDF</h3>${L.length ? `<div class="card list" style="margin:0">${L.map(x => arcRow(x, x.sub.startsWith('📎'))).join('')}</div>` : ''}
+  <div class="row"><label class="btn alt" style="cursor:pointer">+ Συνημμένο (techlog, φωτογραφία…)<input type="file" data-upload="entry" accept="application/pdf,image/*" multiple style="display:none"></label></div>`;
 }
 async function arcFile(key) { const r = await PELDOCS.get(key); if (!r) { alert('Το αρχείο δεν βρέθηκε.'); return null; } return new File([r.bytes], r.name || 'document.pdf', { type: 'application/pdf' }); }
 
@@ -514,7 +517,7 @@ document.addEventListener('click', async ev => {
   }
   if (t.dataset.arcopen) { const f = await arcFile(t.dataset.arcopen); if (f) { const u = URL.createObjectURL(f); const a = document.createElement('a'); a.href = u; a.target = '_blank'; a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); } return; }
   if (t.dataset.arcshare) { const f = await arcFile(t.dataset.arcshare); if (f) { try { await navigator.share({ files: [f] }); } catch (e) { } } return; }
-  if (t.dataset.arcdel) { if (confirm('Διαγραφή αυτού του PDF από το αρχείο;')) { await PELDOCS.dropOut(t.dataset.arcdel); fillArchive(); } return; }
+  if (t.dataset.arcdel) { if (confirm('Διαγραφή αυτού του PDF από το αρχείο;')) { await PELDOCS.dropOut(t.dataset.arcdel); fillArchive(); fillEntryPdfs(); } return; }
   if (t.dataset.mydocdel) { if (confirm('Αφαίρεση εγγράφου;')) { await PELDOCS.del('doc:' + t.dataset.mydocdel); fillMyDocs(); } return; }
   if (t.id === 'delInv') { if (confirm('Διαγραφή τιμολογίου ' + invEdit.no + ';')) { try { PELDOCS.dropInvoice(invEdit.no); } catch (e) { } LOG.forEach(e => { if (e.invoice === invEdit.no) delete e.invoice; }); O.invoices = O.invoices.filter(x => x.id !== invEdit.id); saveO(); saveLog(); invEdit = null; render(); } return; }
   if (t.id === 'addMy') { const w = $('#my_w').value.trim(), d = $('#my_d').value; if (!w || !d) { toast('Συμπλήρωσε τι και πότε'); return; } O.mydocs.push({ what: w, date: d }); saveO(); render(); return; }
@@ -559,6 +562,11 @@ document.addEventListener('input', ev => {
 });
 document.addEventListener('change', ev => {
   const el = ev.target;
+  if (el.dataset.upload) { const fl = el.files; if (!fl || !fl.length) return; const ent = el.dataset.upload === 'entry' && edit;
+    const title = prompt(ent ? 'Τι είναι; (π.χ. Techlog)' : 'Τίτλος (π.χ. Techlog SX-ABC, Logbook ΠΑΠΑΣ)', ent ? 'Techlog' : ''); if (title === null) { el.value = ''; return; }
+    toast('Αποθήκευση…');
+    PELDOCS.addUpload(PDFLib, fl, ent ? { logId: edit.id, title: title || 'Αρχείο', cand: edit.name || '', date: edit.date } : { title: title || (fl[0].name || 'Αρχείο').replace(/\.[^.]+$/, ''), date: todayISO() })
+      .then(() => { toast('Αποθηκεύτηκε στο Αρχείο'); el.value = ''; fillArchive(); fillEntryPdfs(); }).catch(e => alert('Σφάλμα: ' + e.message)); return; }
   if (el.dataset.mydoc) { const f = el.files && el.files[0]; if (!f) return; PELDOCS.saveFile('doc:' + el.dataset.mydoc, f).then(() => { toast('Αποθηκεύτηκε: ' + f.name); fillMyDocs(); }).catch(e => alert('Σφάλμα αποθήκευσης: ' + e.message)); return; }
   if (el.dataset.e === 'in801') { edit.in801 = el.checked; return; }
   if (el.dataset.e === 'noInv') { edit.noInv = el.checked; return; }
