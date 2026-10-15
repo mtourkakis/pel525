@@ -75,7 +75,7 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
 </head>
 <body>
 <div class="wrap">
-<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v34</span><a class="swl" href="forms.html">CPL · IR · PBN ›</a><a class="swl" style="margin-left:6px" href="office.html">Γραφείο ›</a></header>
+<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v35</span><a class="swl" href="forms.html">CPL · IR · PBN ›</a><a class="swl" style="margin-left:6px" href="office.html">Γραφείο ›</a></header>
 
 <details id="exBox">
 <summary>Εγώ · Examiner <em id="exSum">ρύθμιση</em></summary>
@@ -461,6 +461,7 @@ $("go").addEventListener("click",async()=>{const btn=$("go");btn.disabled=true;s
   if(nonLatin($("c_surname").value)||nonLatin($("c_first").value)){setStatus("Το όνομα του υποψηφίου πρέπει να είναι με λατινικούς.","err");return;}
   let bytes=await build();const cc=S.cands[S.cur];if(cc&&cc.id&&window.PELDOCS){const sk="scan:525:"+cc.id;if(await PELDOCS.scanCount(PDFLib,sk))bytes=await PELDOCS.compose(PDFLib,bytes,await build(true),sk,BB525);}try{logExam525();}catch(e){}let ainfo="";try{const a=await attachDocs(bytes);bytes=a.bytes;ainfo=a.info;}catch(e){ainfo=" · η επισύναψη απέτυχε";}const sn=upper($("c_surname").value).replace(/[^A-Z0-9]+/g,"-")||"APPLICANT";
   const fn="PEL-FCL-525_"+sn+"_"+dmy($("date").value).replace(/\//g,"-")+".pdf";
+  try{if(window.PELDOCS&&$("date").value){const nm=(upper($("c_surname").value)+" "+upper($("c_first").value)).trim();await PELDOCS.saveOut("525|"+nm+"|"+$("date").value,fn,bytes,{date:$("date").value,cand:nm,forms:"525"});}}catch(e){}
   if(!dl){const blob=new Blob([bytes],{type:"application/pdf"}),file=new File([blob],fn,{type:"application/pdf"});
    try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:fn});setStatus("Έτοιμο: "+fn+ainfo,"ok");return;}}
    catch(e){if(e&&e.name==="AbortError"){setStatus("Ακυρώθηκε.","err");return;}}

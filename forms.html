@@ -391,6 +391,9 @@ async function generate(which, btn) {
       for (const fl of files) { const r = await PELDOCS.append(PDFLib, new Uint8Array(await fl.blob.arrayBuffer()), keys); r.missing.forEach(m => miss.add(m)); fl.blob = new Blob([r.bytes], { type: 'application/pdf' }); }
       if (miss.size) info = (info ? info + ' ' : '') + 'Λείπουν: ' + [...miss].map(PELDOCS.label).join(', ') + ' (Γραφείο → Ρυθμίσεις).'; }
     if (info) toast(info);
+    if (window.PELDOCS) { const A = c.applicant || {}; const tl = [...((c.cpl && c.cpl.flights) || []), ...((c.ir && c.ir.flights) || [])].map(x => x && x.date).filter(Boolean).sort();
+      const sd = c.signDate || tl.pop() || new Date().toISOString().slice(0, 10);
+      for (const fl of files) { try { await PELDOCS.saveOut('forms|' + c.id, fl.name, new Uint8Array(await fl.blob.arrayBuffer()), { date: (c.fdate && fs.length === 1 && c.fdate[fs[0]]) || sd, cand: ((A.surname || '') + ' ' + (A.first || '')).toUpperCase().trim(), forms: fs.join(' + ') }); } catch (e) { } } }
     deliver(files);
   } catch (err) { alert('Σφάλμα στη δημιουργία PDF: ' + err.message); console.error(err); }
   btn.disabled = false; btn.textContent = old;

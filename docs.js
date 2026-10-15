@@ -179,5 +179,19 @@
   const LABEL = { 'doc:lic': 'Πτυχίο', 'doc:med': 'Medical', 'doc:exm': 'Examiner' };
   const label = k => LABEL[k] || (k.startsWith('inv:') ? 'Τιμολόγιο ' + k.slice(4) : k);
 
-  root.PELDOCS = { MY, saveFile, get, del, put, status, append, saveInvoice, dropInvoice, findInvoice, label, candFiles, addCandFiles, removeCandFile, compose, scanCount };
+  /* αρχείο: κάθε PDF που βγαίνει (525 / φόρμες) κρατιέται εδώ. Ίδιο αρχείο ξανά = αντικαθίσταται η παλιά έκδοση */
+  async function saveOut(logId, name, bytes, meta) {
+    const key = 'out:' + logId + '|' + name;
+    const ab = bytes.buffer ? bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) : bytes;
+    await put(key, { name, type: 'application/pdf', kind: 'pdf', bytes: ab, added: Date.now() });
+    const idx = ((await get('outindex')) || []).filter(x => x.key !== key);
+    idx.push(Object.assign({ key, logId, name, saved: Date.now(), size: ab.byteLength }, meta || {}));
+    await put('outindex', idx);
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { }
+  }
+  async function listOut() { return (await get('outindex')) || []; }
+  async function dropOut(key) { await del(key); await put('outindex', ((await get('outindex')) || []).filter(x => x.key !== key)); }
+  async function invList() { return (await get('invindex')) || []; }
+
+  root.PELDOCS = { MY, saveFile, get, del, put, status, append, saveInvoice, dropInvoice, findInvoice, label, candFiles, addCandFiles, removeCandFile, compose, scanCount, saveOut, listOut, dropOut, invList };
 })(typeof window !== 'undefined' ? window : globalThis);

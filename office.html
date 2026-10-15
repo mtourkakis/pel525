@@ -94,7 +94,7 @@ header{padding-left:calc(env(safe-area-inset-left) + 78px)}
 </head>
 <body>
 <header><a href="index.html" class="nav">‹ 525</a><h1>Γραφείο<small>801 · Έσοδα · Τιμολόγια · Λήξεις</small></h1><a href="forms.html" class="nav">CPL·IR·PBN</a></header>
-<nav class="tabs"><button data-tab="log">Εξετάσεις</button><button data-tab="stud">Μαθητές</button><button data-tab="r801">801</button><button data-tab="inc">Έσοδα</button><button data-tab="inv">Τιμολόγια</button><button data-tab="exp">Λήξεις</button><button data-tab="set">Ρυθμίσεις</button></nav>
+<nav class="tabs"><button data-tab="log">Εξετάσεις</button><button data-tab="stud">Μαθητές</button><button data-tab="r801">801</button><button data-tab="inc">Έσοδα</button><button data-tab="inv">Τιμολόγια</button><button data-tab="arc">Αρχείο</button><button data-tab="exp">Λήξεις</button><button data-tab="set">Ρυθμίσεις</button></nav>
 <main id="app"></main>
 <div class="toast" id="toast"></div>
 <script src="pdf-lib.min.js"></script>
@@ -133,10 +133,10 @@ const sortByDate = (a, b) => (a.date || '').localeCompare(b.date || '');
 /* ---------- render ---------- */
 function render() {
   document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
-  const v = { log: vLog, stud: vStudents, r801: v801, inc: vIncome, inv: vInvoices, exp: vExpiry, set: vSettings }[tab]();
+  const v = { log: vLog, stud: vStudents, r801: v801, inc: vIncome, inv: vInvoices, arc: vArchive, exp: vExpiry, set: vSettings }[tab]();
   $('#app').innerHTML = v;
   $('#app').querySelectorAll('input[data-v]').forEach(i => { i.value = i.dataset.v; });
-  if (tab === 'set') fillMyDocs();
+  if (tab === 'set') fillMyDocs(); if (tab === 'arc') fillArchive(); if (edit && tab === 'log') fillEntryPdfs();
 }
 /* τα έγγραφά μου για επισύναψη στις φόρμες */
 async function fillMyDocs() {
@@ -145,6 +145,39 @@ async function fillMyDocs() {
   box.innerHTML = st.map(d => `<div class="flight"><div class="row" style="margin:0;justify-content:space-between"><div><b>${esc(d.l)}</b><br><span class="hint" style="margin:0">${d.name ? esc(d.name) + ' · ' + Math.round(d.size / 1024) + ' KB' : 'δεν έχει ανέβει'}</span></div>
     <div class="row" style="margin:0"><label class="btn alt" style="cursor:pointer">${d.name ? 'Αλλαγή' : 'Ανέβασμα'}<input type="file" data-mydoc="${d.k}" accept="application/pdf,image/*" style="display:none"></label>${d.name ? `<button class="btn danger" data-mydocdel="${d.k}">✕</button>` : ''}</div></div></div>`).join('');
 }
+/* ---------- Αρχείο: όλα τα PDF που έβγαλα (525, φόρμες, τιμολόγια) ---------- */
+let arcQ = '';
+function vArchive() {
+  return `<div class="card"><div class="body" style="padding-top:14px"><input id="arcQ" placeholder="🔍 Αναζήτηση ονόματος / εντύπου…" value="${esc(arcQ)}" style="width:100%;font-size:16px;padding:10px;border:1px solid #d5dbe4;border-radius:10px">
+  <p class="hint">Κάθε έντυπο που βγάζεις (525, 320A/B, 420A, 1000) και κάθε τιμολόγιο κρατιέται εδώ αυτόματα. Αν το ξαναβγάλεις, μένει η τελευταία έκδοση.</p></div></div><div id="arcBox"><p class="hint">Φόρτωση…</p></div>`;
+}
+async function arcItems() {
+  if (!window.PELDOCS) return [];
+  const out = (await PELDOCS.listOut()).map(x => ({ key: x.key, kind: 'form', title: x.cand || '—', sub: x.forms ? 'PEL-FCL ' + x.forms : x.name, name: x.name, date: x.date || '', size: x.size, logId: x.logId }));
+  const inv = (await PELDOCS.invList()).map(x => { const i = O.invoices.find(v => v.no === x.no) || {};
+    return { key: 'inv:' + x.no, kind: 'inv', title: 'Τιμολόγιο ' + x.no, sub: i.client ? (i.client === '__self' ? (i.clientLines || '').split('\n')[0] : (i.clientName || cname(i.client))) : '', name: 'Invoice ' + x.no + '.pdf', date: x.date || i.date || '' }; });
+  return out.concat(inv).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+}
+function arcRow(x, del) {
+  return `<div class="item"><div style="flex:1;min-width:0"><b>${esc(x.title)}</b><span>${dmy(x.date)}${x.sub ? ' · ' + esc(x.sub) : ''}${x.size ? ' · ' + Math.round(x.size / 1024) + ' KB' : ''}</span></div>
+  <div class="row" style="margin:0;flex-wrap:nowrap"><button class="btn alt" data-arcopen="${esc(x.key)}">Άνοιγμα</button>${navigator.canShare ? `<button class="btn" data-arcshare="${esc(x.key)}">Κοινοποίηση</button>` : ''}${del && x.kind === 'form' ? `<button class="btn danger" data-arcdel="${esc(x.key)}">✕</button>` : ''}</div></div>`;
+}
+async function fillArchive() {
+  const box = $('#arcBox'); if (!box) return;
+  const q = arcQ.trim().toUpperCase(); let L = await arcItems();
+  if (q) L = L.filter(x => (x.title + ' ' + x.sub + ' ' + x.name).toUpperCase().includes(q));
+  if (!$('#arcBox')) return;
+  if (!L.length) { box.innerHTML = `<div class="card list"><div class="item"><span>${q ? 'Δεν βρέθηκε τίποτα.' : 'Δεν υπάρχουν αποθηκευμένα PDF ακόμα. Θα μπαίνουν εδώ μόλις βγάζεις έντυπα.'}</span></div></div>`; return; }
+  const G = {}; L.forEach(x => { const m = (x.date || '').slice(0, 7) || '—'; (G[m] = G[m] || []).push(x); });
+  box.innerHTML = Object.entries(G).map(([m, xs]) => `<h3 style="margin:16px 4px 6px">${m === '—' ? 'Χωρίς ημερομηνία' : monthLabel(m)} <span class="hint" style="margin:0">(${xs.length})</span></h3><div class="card list">${xs.map(x => arcRow(x, true)).join('')}</div>`).join('');
+}
+async function fillEntryPdfs() {
+  const box = $('#entryPdfs'); if (!box || !edit || !window.PELDOCS) return;
+  const L = (await arcItems()).filter(x => x.logId === edit.id || (edit.invoice && x.key === 'inv:' + edit.invoice));
+  box.innerHTML = L.length ? `<h3>Αποθηκευμένα PDF</h3><div class="card list" style="margin:0">${L.map(x => arcRow(x, false)).join('')}</div>` : '';
+}
+async function arcFile(key) { const r = await PELDOCS.get(key); if (!r) { alert('Το αρχείο δεν βρέθηκε.'); return null; } return new File([r.bytes], r.name || 'document.pdf', { type: 'application/pdf' }); }
+
 function monthPicker() {
   return `<div class="row"><button class="btn alt" data-mstep="-1">‹</button><b style="min-width:150px;text-align:center">${monthLabel(curMonth)}</b><button class="btn alt" data-mstep="1">›</button></div>`;
 }
@@ -176,6 +209,7 @@ function editorHTML() {
   <div class="grid" style="margin-top:10px">${fld('email', 'Email υποψηφίου', 'email', e.email)}${fld('phone', 'Τηλέφωνο', 'tel', e.phone)}</div>
   <h3>Λήξεις υποψηφίου</h3>${exps}<button class="btn alt" id="addExp" style="margin-top:6px">+ Λήξη</button>
   <label class="f" style="margin-top:10px">Σημείωση<input data-e="note" value="${esc(e.note)}"></label>
+  <div id="entryPdfs"></div>
   <div class="row" style="margin-top:12px"><button class="btn" id="saveE">Αποθήκευση</button>${isNew ? '<button class="btn amber" id="saveNext">Αποθήκευση & επόμενη</button>' : ''}<button class="btn alt" id="cancelE">Άκυρο</button>${LOG.some(x => x.id === e.id) ? '<button class="btn danger" id="delE">Διαγραφή</button>' : ''}</div>
   <datalist id="dl_test">${[...new Set(LOG.map(x => x.test).filter(Boolean))].map(t => `<option value="${esc(t)}">`).join('')}</datalist>
   ${['type', 'reg', 'dep'].map(f => `<datalist id="dl_${f}">${[...new Set(LOG.map(x => x[f]).filter(Boolean))].map(t => `<option value="${esc(t)}">`).join('')}</datalist>`).join('')}
@@ -478,6 +512,9 @@ document.addEventListener('click', async ev => {
     if (t.id === 'pdfInv') { const b = await pdfInvoice(invEdit); try { await PELDOCS.saveInvoice(invEdit.no, invEdit.entries, b, invEdit.date); } catch (e) { } const cn = ((invEdit.client === '__self' ? (invEdit.clientLines || '').split('\n')[0] : (invEdit.clientName || cname(invEdit.client))) || 'client').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'client'; const ym = (invEdit.date || new Date().toISOString()).slice(0, 7); deliver([{ name: `${ym}_${invEdit.no}_${cn}.pdf`, blob: new Blob([b], { type: 'application/pdf' }) }]); }
     else toast('Αποθηκεύτηκε'); return;
   }
+  if (t.dataset.arcopen) { const f = await arcFile(t.dataset.arcopen); if (f) { const u = URL.createObjectURL(f); const a = document.createElement('a'); a.href = u; a.target = '_blank'; a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); } return; }
+  if (t.dataset.arcshare) { const f = await arcFile(t.dataset.arcshare); if (f) { try { await navigator.share({ files: [f] }); } catch (e) { } } return; }
+  if (t.dataset.arcdel) { if (confirm('Διαγραφή αυτού του PDF από το αρχείο;')) { await PELDOCS.dropOut(t.dataset.arcdel); fillArchive(); } return; }
   if (t.dataset.mydocdel) { if (confirm('Αφαίρεση εγγράφου;')) { await PELDOCS.del('doc:' + t.dataset.mydocdel); fillMyDocs(); } return; }
   if (t.id === 'delInv') { if (confirm('Διαγραφή τιμολογίου ' + invEdit.no + ';')) { try { PELDOCS.dropInvoice(invEdit.no); } catch (e) { } LOG.forEach(e => { if (e.invoice === invEdit.no) delete e.invoice; }); O.invoices = O.invoices.filter(x => x.id !== invEdit.id); saveO(); saveLog(); invEdit = null; render(); } return; }
   if (t.id === 'addMy') { const w = $('#my_w').value.trim(), d = $('#my_d').value; if (!w || !d) { toast('Συμπλήρωσε τι και πότε'); return; } O.mydocs.push({ what: w, date: d }); saveO(); render(); return; }
@@ -497,6 +534,7 @@ document.addEventListener('click', async ev => {
   if (t.id === 'expB') { deliver([{ name: 'pel-office-backup-' + todayISO() + '.json', blob: new Blob([JSON.stringify({ office: O, log: LOG }, null, 1)], { type: 'application/json' }) }]); return; }
 });
 document.addEventListener('input', ev => {
+  if (ev.target.id === 'arcQ') { arcQ = ev.target.value; fillArchive(); return; }
   if (ev.target.id === 'stDate') { stDate = ev.target.value || todayISO(); return; }
   if (ev.target.id === 'stDur') { stDur = ev.target.value; return; }
   if (ev.target.id === 'rateClub' || ev.target.id === 'rateDirect' || ev.target.id === 'rateSolo') { const v = num(ev.target.value); if (v != null) { O[ev.target.id] = v; saveO(); } return; }
