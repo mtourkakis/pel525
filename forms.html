@@ -89,6 +89,7 @@ header{padding-left:calc(env(safe-area-inset-left) + 78px)}
 <script src="docs.js"></script>
 <script>
 const F = window.PELFILL, LAYOUT = window.PEL_LAYOUT, KEY = 'pelfcl_forms_v1';
+const TK = { CPL: 'cpl', IR: 'ir', PPL: 'ppl' };
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
@@ -101,6 +102,7 @@ function load() {
   s = s || {};
   s.ex = Object.assign({ title: 'CPT', surname: 'TOURKAKIS', first: 'MICHAIL', displayName: 'M. TOURKAKIS', number: 'EL/FE/IRE/FIE/TRE/4015', licNo: '4015', state: 'HCAA', authority: 'HCAA', dob: '', mobile: '', email: '', stamp1: 'CPT TOURKAKIS MICHAIL', stamp2: 'EL/FE/IRE/FIE/TRE/4015', sig: '' }, s.ex || {});
   s.cands = s.cands || []; s.pages = s.pages || 'full';
+  s.cands.forEach(c => { if (!c.ppl) c.ppl = Object.assign(blankTest(2), { engine: 'SE', lic: 'PPL' }); });
   return s;
 }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Αποθήκευση απέτυχε: ' + e.message); } }
@@ -110,7 +112,7 @@ function newCand() {
   const c = { id: uid(), created: Date.now(), course: 'integrated', tests: { cpl: true, ir: true, pbn: true }, notif: '', signDate: today(),
     applicant: { title: 'Mr', surname: '', first: '', dob: '', licNo: '', address: '', postcode: '', mobile: '', email: '' },
     ato: Object.assign({ name: '', number: '', address: '', tel: '', email: '' }, (S.cands[0] && S.cands[0].ato) || {}),
-    cpl: blankTest(2), ir: blankTest(3), pbnChecklist: { pc: true, lic: true, pbn: true, ato: true } };
+    cpl: blankTest(2), ir: blankTest(3), ppl: Object.assign(blankTest(2), { engine: 'SE', lic: 'PPL' }), pbnChecklist: { pc: true, lic: true, pbn: true, ato: true } };
   S.cands.unshift(c); save(); return c;
 }
 const cur = () => S.cands.find(c => c.id === S.cur);
@@ -134,9 +136,10 @@ function formsFor(c) {
   if (c.course === 'integrated') { if (c.tests.cpl || c.tests.ir) f.push('320B'); if (c.tests.ir) f.push('420A'); }
   else { if (c.tests.cpl) f.push('320A'); if (c.tests.ir) f.push('420A'); }
   if (c.tests.pbn) f.push('1000');
+  if (c.tests.ppl) f.push('220A');
   return f;
 }
-const FORMNAME = { '320A': 'PEL-FCL 320A · CPL Modular', '320B': 'PEL-FCL 320B · CPL Integrated', '420A': 'PEL-FCL 420A · IR Part 2', '1000': 'PEL-FCL 1000 · PBN' };
+const FORMNAME = { '320A': 'PEL-FCL 320A · CPL Modular', '320B': 'PEL-FCL 320B · CPL Integrated', '420A': 'PEL-FCL 420A · IR Part 2', '1000': 'PEL-FCL 1000 · PBN', '220A': 'PEL-FCL 220A · LAPL/PPL(A)' };
 
 /* ---------- views ---------- */
 /* συνημμένα ανά υποψήφιο (Notification of Test email, FSTD cert κ.λπ.) */
@@ -159,8 +162,8 @@ function render() {
 }
 function listView() {
   const items = S.cands.map(c => {
-    const a = c.applicant; const fl = [...(c.cpl.flights || []), ...(c.ir.flights || [])].map(f => f.date).filter(Boolean).sort();
-    return `<div class="item" data-open="${c.id}"><div><b>${esc(((a.surname || '').toUpperCase() + ' ' + (a.first || '')).trim() || 'Νέος υποψήφιος')}</b><span>${c.course === 'integrated' ? 'Integrated' : 'Modular'} · ${formsFor(c).join(' + ')}${fl.length ? ' · ' + F.dmy(fl[fl.length - 1]) : ''}</span></div><span class="go">›</span></div>`;
+    const a = c.applicant; const fl = [...(c.cpl.flights || []), ...(c.ir.flights || []), ...((c.tests.ppl && c.ppl && c.ppl.flights) || [])].map(f => f.date).filter(Boolean).sort();
+    return `<div class="item" data-open="${c.id}"><div><b>${esc(((a.surname || '').toUpperCase() + ' ' + (a.first || '')).trim() || 'Νέος υποψήφιος')}</b><span>${c.tests.ppl && !c.tests.cpl && !c.tests.ir ? (c.ppl.lic === 'LAPL' ? 'LAPL(A)' : 'PPL(A)') : c.course === 'integrated' ? 'Integrated' : 'Modular'} · ${formsFor(c).join(' + ')}${fl.length ? ' · ' + F.dmy(fl[fl.length - 1]) : ''}</span></div><span class="go">›</span></div>`;
   }).join('');
   return `<div class="card list">${items || '<div class="item"><span>Δεν υπάρχουν υποψήφιοι ακόμα. Πάτησε «+ Νέος».</span></div>'}</div>
   <div class="row"><button class="btn alt" id="exp">Εξαγωγή backup</button><label class="btn alt" style="display:inline-block">Εισαγωγή backup<input type="file" id="imp" accept=".json,application/json" hidden></label></div>
@@ -199,7 +202,7 @@ function flightsHTML(path, n, fstd) {
 }
 function marksHTML(kind, t) {
   const secs = F.ITEMS[kind]; const two = t.second;
-  let h = `<div class="row"><button class="btn alt" data-allpass="${kind}">Όλα ✓ (1η προσπάθεια)</button><label class="chk"><input type="checkbox" data-chk="${kind === 'CPL' ? 'cpl' : 'ir'}.second" ${two ? 'checked' : ''}> 2η προσπάθεια</label></div>`;
+  let h = `<div class="row"><button class="btn alt" data-allpass="${kind}">Όλα ✓ (1η προσπάθεια)</button><label class="chk"><input type="checkbox" data-chk="${TK[kind]}.second" ${two ? 'checked' : ''}> 2η προσπάθεια</label></div>`;
   secs.forEach(s => {
     const r1 = F.sectionResult(t.marks, s, 0), r2 = two ? F.sectionResult(t.marks, s, 1) : '';
     const tg = r => r ? `<span class="tag ${r === 'P' ? 'ok' : 'bad'}">${r === 'P' ? 'PASS' : 'FAIL'}</span>` : '';
@@ -209,26 +212,26 @@ function marksHTML(kind, t) {
       const mk = att => ['P', 'F', 'N'].map(v => { const val = v === 'N' ? 'NA' : v; return `<button class="${v} ${m[att] === val ? 'on' : ''}" data-mark="${kind}|${k}|${att}|${val}">${v === 'P' ? '✓' : v === 'F' ? '✗' : 'N/A'}</button>`; }).join('');
       const cm = (t.comments || {})[k];
       h += `<div class="it"><span class="k">${id.replace(/(\D)(\d)/, '$1($2)')}</span><span class="l">${esc(lab)} <button class="cmb" data-cm="${kind}|${k}">💬</button></span><span class="mk">${mk(0)}${two ? '<span class="sep"></span>' + mk(1) : ''}</span>
-      ${cm != null ? `<input class="cm" data-p="${kind === 'CPL' ? 'cpl' : 'ir'}.comments.${k}" value="${esc(cm)}" placeholder="Comments">` : ''}</div>`;
+      ${cm != null ? `<input class="cm" data-p="${TK[kind]}.comments.${k}" value="${esc(cm)}" placeholder="Comments">` : ''}</div>`;
     });
     h += '</div>';
   });
   return h;
 }
 function testHTML(kind) {
-  const c = cur(); const key = kind === 'CPL' ? 'cpl' : 'ir'; const t = c[key];
-  const n = kind === 'CPL' ? 2 : 3;
-  let h = `<div class="row">${seg(key + '.engine', [['SE', 'Single-engine'], ['ME', 'Multi-engine']])}</div>
-  <div class="grid">${inp(key + '.attempt', 'Attempt No.', 'text', 'inputmode="numeric"')}${kind === 'CPL' ? inp(key + '.place', 'Place of Test', 'text', 'list="dl_place" autocapitalize="characters"') : ''}${inp(key + '.notif', 'Notification HCAA (αν διαφέρει)', 'date')}</div>
+  const c = cur(); const key = TK[kind]; const t = c[key];
+  const n = kind === 'IR' ? 3 : 2;
+  let h = `<div class="row">${seg(key + '.engine', [['SE', 'Single-engine'], ['ME', 'Multi-engine']])}${kind === 'PPL' ? seg('ppl.lic', [['PPL', 'PPL(A)'], ['LAPL', 'LAPL(A)']]) : ''}</div>
+  <div class="grid">${inp(key + '.attempt', 'Attempt No.', 'text', 'inputmode="numeric"')}${kind !== 'IR' ? inp(key + '.place', 'Place of Test', 'text', 'list="dl_place" autocapitalize="characters"') : ''}${inp(key + '.notif', 'Notification HCAA (αν διαφέρει)', 'date')}</div>
   <h3>Details of flight(s)</h3>${kind === 'IR' && c.tests.cpl ? '<div class="row"><button class="btn alt" data-cplfl="1">+ Πτήση αεροσκάφους από το CPL</button></div>' : ''}${flightsHTML(key + '.flights', n, kind === 'IR')}
   <h3>Αποτέλεσμα</h3><div class="row">${seg(key + '.result', [['pass', 'Pass'], ['partial', 'Partial pass'], ['fail', 'Fail']])}</div>`;
-  if (t.result === 'partial' || t.result === 'fail') h += `<div class="grid">${inp(key + '.ft.ac', 'Further training A/C (h)')}${inp(key + '.ft.sim', kind === 'CPL' ? 'Sim/FNPT II (h)' : 'FSTD (h)')}${inp(key + '.ft.gnd', 'Ground (h)')}</div>`;
+  if (t.result === 'partial' || t.result === 'fail') h += `<div class="grid">${inp(key + '.ft.ac', 'Further training A/C (h)')}${inp(key + '.ft.sim', kind !== 'IR' ? 'Sim/FNPT II (h)' : 'FSTD (h)')}${inp(key + '.ft.gnd', 'Ground (h)')}</div>`;
   if (kind === 'IR') h += `<label class="f" style="margin-top:10px">Comments (Part 2)<textarea data-p="ir.comment">${esc(t.comment)}</textarea></label>
    <h3>PBN competency (320B Ενότ. 10 / 1000)</h3><div class="row">${seg('ir.pbn', [['yes', 'YES'], ['no', 'NO']])}</div>`;
   h += `<label class="chk"><input type="checkbox" data-chk="${key}.retest.on" ${t.retest.on ? 'checked' : ''}> Partial Pass Re-test</label>`;
   if (t.retest.on) {
     h += flightsHTML(key + '.retest.flights', 2, kind === 'IR') + `<div class="row">${seg(key + '.retest.result', [['pass', 'Pass'], ['fail', 'Fail']])}</div>`;
-    if (t.retest.result === 'fail') h += `<div class="grid">${inp(key + '.retest.ft.ac', 'A/C (h)')}${inp(key + '.retest.ft.sim', kind === 'CPL' ? 'Sim/FNPT II (h)' : 'FSTD (h)')}${inp(key + '.retest.ft.gnd', 'Ground (h)')}</div>`;
+    if (t.retest.result === 'fail') h += `<div class="grid">${inp(key + '.retest.ft.ac', 'A/C (h)')}${inp(key + '.retest.ft.sim', kind !== 'IR' ? 'Sim/FNPT II (h)' : 'FSTD (h)')}${inp(key + '.retest.ft.gnd', 'Ground (h)')}</div>`;
     if (kind === 'IR') h += `<label class="f">Comments (re-test)<textarea data-p="ir.retest.comment">${esc(t.retest.comment)}</textarea></label>`;
   }
   h += `<h3>Skill test items</h3>` + marksHTML(kind, t);
@@ -249,6 +252,7 @@ function editView() {
     <label class="chk"><input type="checkbox" data-chk="tests.cpl" ${c.tests.cpl ? 'checked' : ''}> CPL(A) skill test</label>
     <label class="chk"><input type="checkbox" data-chk="tests.ir" ${c.tests.ir ? 'checked' : ''}> IR(A) skill test</label>
     <label class="chk"><input type="checkbox" data-chk="tests.pbn" ${c.tests.pbn ? 'checked' : ''}> PBN endorsement (PEL-FCL 1000)</label>
+    <label class="chk"><input type="checkbox" data-chk="tests.ppl" ${c.tests.ppl ? 'checked' : ''}> LAPL(A) / PPL(A) skill test (PEL-FCL 220A)</label>
     <p class="forms">→ ${fs.map(f => FORMNAME[f]).join('<br>→ ') || '—'}</p>
     ${fs.includes('320B') ? (() => { const ct = c.courseType || (c.tests.ir ? 'cplir' : 'cpl'); const se = c.classSE != null ? c.classSE : c.cpl.engine === 'SE', me = c.classME != null ? c.classME : c.cpl.engine !== 'SE';
       return `<h3>320B · Ενότ. 3</h3><div class="row"><div class="seg">${[['atp', 'ATP Integrated'], ['cplir', 'CPL/IR Integrated'], ['cpl', 'CPL Integrated']].map(([v, l]) => `<button data-ctype="${v}" class="${ct === v ? 'on' : ''}">${l}</button>`).join('')}</div></div>
@@ -268,6 +272,7 @@ function editView() {
     ${[['pc', 'Proficiency Check / Skill Test'], ['lic', 'Examiner’s EU Part-FCL licence'], ['pbn', 'Examiner’s PBN endorsement'], ['ato', 'PBN letter/certificate για ATO/AOC από την αρχή']].map(([k, l]) => `<label class="chk"><input type="checkbox" data-chk="pbnChecklist.${k}" ${c.pbnChecklist[k] ? 'checked' : ''}> ${l}</label>`).join('')}`);
   if (c.tests.cpl) h += sec('cpl', 'CPL(A) skill test', testHTML('CPL'), overall(c.cpl, 'CPL'));
   if (c.tests.ir) h += sec('ir', 'IR(A) skill test', testHTML('IR'), overall(c.ir, 'IR'));
+  if (c.tests.ppl) h += sec('ppl', (c.ppl.lic === 'LAPL' ? 'LAPL(A)' : 'PPL(A)') + ' skill test', testHTML('PPL'), overall(c.ppl, 'PPL'));
   const W = F.checks(c, S.ex);
   const warnN = W.filter(w => !w.startsWith('ℹ️')).length;
   h += sec('chk', 'Έλεγχοι', `<ul class="warn">${W.length ? W.map(w => `<li class="${w.startsWith('ℹ️') ? 'i' : ''}">${esc(w)}</li>`).join('') : ''}${!warnN ? '<li class="good">✓ Κανένα πρόβλημα.</li>' : ''}</ul>`, warnN ? `<span class="tag bad">${warnN}</span>` : '<span class="tag ok">OK</span>');
@@ -286,7 +291,7 @@ function editView() {
 function segPages() { return `<div class="seg"><button data-pages="full" class="${S.pages === 'full' ? 'on' : ''}">Ολόκληρο έντυπο</button><button data-pages="examiner" class="${S.pages === 'examiner' ? 'on' : ''}">Μόνο σελίδες εξεταστή</button></div>`; }
 function datalists() {
   const types = new Set(), regs = new Set(), places = new Set();
-  S.cands.forEach(c => ['cpl', 'ir'].forEach(k => { (c[k].flights || []).forEach(f => { f.type && types.add(f.type); f.reg && regs.add(f.reg); }); c[k].place && places.add(c[k].place); }));
+  S.cands.forEach(c => ['cpl', 'ir', 'ppl'].forEach(k => { if (!c[k]) return; (c[k].flights || []).forEach(f => { f.type && types.add(f.type); f.reg && regs.add(f.reg); }); c[k].place && places.add(c[k].place); }));
   const dl = (id, s) => `<datalist id="${id}">${[...s].map(v => `<option value="${esc(v)}">`).join('')}</datalist>`;
   return dl('dl_type', types) + dl('dl_reg', regs) + dl('dl_place', places);
 }
@@ -302,7 +307,7 @@ document.addEventListener('click', async e => {
   if (t.dataset.open) { S.cur = t.dataset.open; openSecs = {}; view = 'edit'; setTitle(); render(); window.scrollTo(0, 0); return; }
   if (t.id === 'exp') { const b = new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' }); deliver([{ name: 'pelfcl-backup-' + today() + '.json', blob: b }]); return; }
   if (t.id === 'del') { if (confirm('Διαγραφή του υποψηφίου;')) { S.cands = S.cands.filter(x => x.id !== c.id); save(); view = 'list'; render(); } return; }
-  if (t.id === 'dup') { const n = JSON.parse(JSON.stringify(c)); n.id = uid(); n.created = Date.now(); n.cpl = blankTest(2); n.ir = blankTest(3); S.cands.unshift(n); S.cur = n.id; save(); toast('Αντιγράφηκαν υποψήφιος & ATO'); render(); return; }
+  if (t.id === 'dup') { const n = JSON.parse(JSON.stringify(c)); n.id = uid(); n.created = Date.now(); n.cpl = blankTest(2); n.ir = blankTest(3); n.ppl = Object.assign(blankTest(2), { engine: 'SE', lic: 'PPL' }); S.cands.unshift(n); S.cur = n.id; save(); toast('Αντιγράφηκαν υποψήφιος & ATO'); render(); return; }
   if (t.dataset.seg) { const p = t.dataset.seg; const obj = view === 'settings' ? S : c; setP(obj, p, getP(obj, p) === t.dataset.v ? '' : t.dataset.v); if (p === 'course' && !getP(obj, p)) setP(obj, p, t.dataset.v); save(); render(); return; }
   if (t.dataset.scandel) { if (confirm('Αφαίρεση σκαναρισμένου ' + t.dataset.scandel + ';')) { await PELDOCS.del('scan:forms:' + c.id + ':' + t.dataset.scandel); render(); } return; }
   if (t.dataset.cfdel) { if (confirm('Αφαίρεση συνημμένου;')) { await PELDOCS.removeCandFile('cand:forms:' + c.id, +t.dataset.cfdel); renderCF(); } return; }
@@ -312,19 +317,22 @@ document.addEventListener('click', async e => {
     save(); render(); toast('Η πτήση του CPL προστέθηκε στο IR'); return; }
   if (t.dataset.pages) { S.pages = t.dataset.pages; save(); render(); return; }
   if (t.dataset.mark) {
-    const [kind, k, att, v] = t.dataset.mark.split('|'); const tt = c[kind === 'CPL' ? 'cpl' : 'ir'];
+    const [kind, k, att, v] = t.dataset.mark.split('|'); const tt = c[TK[kind]];
     const m = tt.marks[k] || []; m[+att] = m[+att] === v ? '' : v; tt.marks[k] = m;
     if (v === 'F' && m[+att] === 'F' && tt.comments[k] == null) tt.comments[k] = '';
     save(); render(); return;
   }
-  if (t.dataset.cm) { const [kind, k] = t.dataset.cm.split('|'); const tt = c[kind === 'CPL' ? 'cpl' : 'ir']; if (tt.comments[k] == null) tt.comments[k] = ''; else if (!tt.comments[k]) delete tt.comments[k]; save(); render(); return; }
+  if (t.dataset.cm) { const [kind, k] = t.dataset.cm.split('|'); const tt = c[TK[kind]]; if (tt.comments[k] == null) tt.comments[k] = ''; else if (!tt.comments[k]) delete tt.comments[k]; save(); render(); return; }
   if (t.dataset.allpass || t.dataset.secpass) {
-    const [kind, only] = (t.dataset.allpass || t.dataset.secpass).split('|'); const tt = c[kind === 'CPL' ? 'cpl' : 'ir'];
+    const [kind, only] = (t.dataset.allpass || t.dataset.secpass).split('|'); const tt = c[TK[kind]];
     F.ITEMS[kind].forEach(s => { if (only && s.s !== only) return; s.it.forEach(([id]) => {
       const k = s.s + id; let v = 'P';
       if (kind === 'CPL' && k === '4f' && tt.engine === 'ME') v = 'NA';
       if (kind === 'CPL' && tt.engine === 'SE' && ['6a', '6b', '6c'].includes(k)) v = 'NA';
       if (kind === 'IR' && s.s === '6' && tt.engine === 'SE') v = 'NA';
+      if (kind === 'PPL' && tt.engine === 'ME' && ['4d', '5a', '5b', '5c'].includes(k)) v = 'NA';
+      if (kind === 'PPL' && tt.engine !== 'ME' && ['6a', '6b', '6c'].includes(k)) v = 'NA';
+      if (kind === 'PPL' && tt.lic === 'LAPL' && ['3e', '3f'].includes(k)) v = 'NA';
       const m = tt.marks[k] || []; m[0] = v; tt.marks[k] = m; }); });
     save(); render(); toast('Σημειώθηκαν Pass'); return;
   }
@@ -348,7 +356,7 @@ document.addEventListener('change', e => {
   if (el.dataset.chk) { setP(cur(), el.dataset.chk, el.checked); save(); render(); return; }
   if (el.dataset.p && (el.type === 'date' || el.type === 'time')) { setP(view === 'settings' ? S : cur(), el.dataset.p, el.value); save(); if (view === 'edit') { const y = window.scrollY; render(); window.scrollTo(0, y); } }
 });
-function setTitle() { const c = cur(); $('#ttl').innerHTML = esc(((c && c.applicant.surname) || 'Υποψήφιος').toUpperCase()) + '<small>' + (c && c.course === 'modular' ? 'Modular' : 'Integrated') + '</small>'; }
+function setTitle() { const c = cur(); $('#ttl').innerHTML = esc(((c && c.applicant.surname) || 'Υποψήφιος').toUpperCase()) + '<small>' + (c && c.tests.ppl && !c.tests.cpl && !c.tests.ir ? (c.ppl.lic === 'LAPL' ? 'LAPL(A)' : 'PPL(A)') : c && c.course === 'modular' ? 'Modular' : 'Integrated') + '</small>'; }
 
 /* ---------- PDF ---------- */
 const pdfCache = {};
@@ -371,7 +379,7 @@ async function generate(which, btn) {
       const base = { PDFLib, layout: LAYOUT, pdfBytes: await pdfBytes(f), ex: S.ex, c, form: f, pagesMode: S.pages, sigBytes: sigBytes() };
       const sk = 'scan:forms:' + c.id + ':' + f, n = window.PELDOCS ? await PELDOCS.scanCount(PDFLib, sk) : 0;
       if (n) { /* σκαναρισμένο ολόκληρο έντυπο → όλες οι σελίδες, ώστε να αντιστοιχούν 1-1 */
-        const tplN = (await PDFLib.PDFDocument.load(base.pdfBytes)).getPageCount(); if (n >= tplN) { base.pagesMode = 'full'; base.keepAll = true; }
+        const tplN = (await PDFLib.PDFDocument.load(base.pdfBytes)).getPageCount(); base.pagesMode = 'full'; if (n >= tplN) base.keepAll = true; /* με σκανάρισμα: πάντα ολόκληρο, ώστε οι σελίδες να αντιστοιχούν 1-1 */
         const full = await F.build(base), ov = await F.build(Object.assign({}, base, { overlay: true }));
         outs.push({ f, bytes: await PELDOCS.compose(PDFLib, full, ov, sk, (LAYOUT[f] || {}).bbox) });
       } else outs.push({ f, bytes: await F.build(base) });
@@ -391,7 +399,7 @@ async function generate(which, btn) {
       for (const fl of files) { const r = await PELDOCS.append(PDFLib, new Uint8Array(await fl.blob.arrayBuffer()), keys); r.missing.forEach(m => miss.add(m)); fl.blob = new Blob([r.bytes], { type: 'application/pdf' }); }
       if (miss.size) info = (info ? info + ' ' : '') + 'Λείπουν: ' + [...miss].map(PELDOCS.label).join(', ') + ' (Γραφείο → Ρυθμίσεις).'; }
     if (info) toast(info);
-    if (window.PELDOCS) { const A = c.applicant || {}; const tl = [...((c.cpl && c.cpl.flights) || []), ...((c.ir && c.ir.flights) || [])].map(x => x && x.date).filter(Boolean).sort();
+    if (window.PELDOCS) { const A = c.applicant || {}; const tl = [...((c.cpl && c.cpl.flights) || []), ...((c.ir && c.ir.flights) || []), ...((c.tests.ppl && c.ppl && c.ppl.flights) || [])].map(x => x && x.date).filter(Boolean).sort();
       const sd = c.signDate || tl.pop() || new Date().toISOString().slice(0, 10);
       for (const fl of files) { try { await PELDOCS.saveOut('forms|' + c.id, fl.name, new Uint8Array(await fl.blob.arrayBuffer()), { date: (c.fdate && fs.length === 1 && c.fdate[fs[0]]) || sd, cand: ((A.surname || '') + ' ' + (A.first || '')).toUpperCase().trim(), forms: fs.join(' + ') }); } catch (e) { } } }
     deliver(files);
@@ -400,7 +408,7 @@ async function generate(which, btn) {
 }
 function logForms(c) {
   const A = c.applicant || {}; const name = ((A.surname || '') + ' ' + (A.first || '')).toUpperCase().trim();
-  const tests = []; if (c.tests.cpl) tests.push(c.cpl); if (c.tests.ir) tests.push(c.ir); if (!tests.length) return;
+  const tests = []; if (c.tests.cpl) tests.push(c.cpl); if (c.tests.ir) tests.push(c.ir); if (c.tests.ppl && c.ppl) tests.push(c.ppl); if (!tests.length) return;
   const fl = tests.flatMap(t => [...(t.flights || []), ...((t.retest && t.retest.on && t.retest.flights) || [])]).filter(f => f && (f.date || f.type));
   const dates = fl.map(f => f.date).filter(Boolean).sort(); if (!dates.length) return;
   let mins = 0; fl.forEach(f => { const d = F.dur(f.dep, f.arr); if (d) { const [h, m] = d.split(':'); mins += (+h) * 60 + (+m); } });
@@ -408,8 +416,8 @@ function logForms(c) {
   const res = rs.includes('fail') ? 'F' : rs.includes('partial') ? 'PP' : rs.every(r => r === 'pass') ? 'P' : '';
   const join = a => [...new Set(a.filter(Boolean).map(s => String(s).toUpperCase().trim()))].join('/');
   const eng = tests[0].engine === 'SE' ? 'SEP' : 'MEP';
-  const label = 'LST ' + [c.tests.cpl && 'CPL', c.tests.ir && 'IR(A)'].filter(Boolean).join(' ') + '/' + eng + (c.tests.ir && c.ir.pbn === 'yes' ? '/PBN' : '');
-  const place = (c.cpl && c.cpl.place) || '';
+  const label = 'LST ' + [c.tests.ppl && c.ppl && (c.ppl.lic === 'LAPL' ? 'LAPL(A)' : 'PPL(A)'), c.tests.cpl && 'CPL', c.tests.ir && 'IR(A)'].filter(Boolean).join(' ') + '/' + eng + (c.tests.ir && c.ir.pbn === 'yes' ? '/PBN' : '');
+  const place = (c.tests.cpl && c.cpl && c.cpl.place) || (c.tests.ppl && c.ppl && c.ppl.place) || (c.cpl && c.cpl.place) || '';
   const id = 'forms|' + c.id;
   const rec = { id, src: 'forms', cat: 'exam', date: dates[dates.length - 1], name, lic: A.licNo || '', dep: place ? (place + '/' + place).toUpperCase() : '', reg: join(fl.map(f => f.reg)), type: join(fl.map(f => f.type)), test: label, time: mins ? Math.floor(mins / 60) + ':' + String(mins % 60).padStart(2, '0') : '', result: res, email: A.email || '', phone: A.mobile || '', exp: [], in801: true };
   let L = []; try { L = JSON.parse(localStorage.getItem('pel_log_v1')) || []; } catch (e) { }

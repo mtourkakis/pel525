@@ -151,7 +151,7 @@ function vArchive() {
   return `<div class="card"><div class="body" style="padding-top:14px"><input id="arcQ" placeholder="🔍 Αναζήτηση ονόματος / εντύπου…" value="${esc(arcQ)}" style="width:100%;font-size:16px;padding:10px;border:1px solid #d5dbe4;border-radius:10px">
   <div class="row" style="margin-top:12px"><label class="btn amber" style="cursor:pointer">+ Προσθήκη αρχείου / φωτογραφίας / σκαναρίσματος<input type="file" data-upload="free" accept="application/pdf,image/*" multiple style="display:none"></label></div>
   <p class="hint">Π.χ. techlog, logbook, βεβαίωση. Αν διαλέξεις πολλές φωτογραφίες, γίνονται <b>ένα PDF</b> με τη σειρά.</p>
-  <p class="hint">Κάθε έντυπο που βγάζεις (525, 320A/B, 420A, 1000) και κάθε τιμολόγιο κρατιέται εδώ αυτόματα. Αν το ξαναβγάλεις, μένει η τελευταία έκδοση.</p></div></div><div id="arcBox"><p class="hint">Φόρτωση…</p></div>`;
+  <p class="hint">Κάθε έντυπο που βγάζεις (525, 220A, 320A/B, 420A, 1000) και κάθε τιμολόγιο κρατιέται εδώ αυτόματα. Αν το ξαναβγάλεις, μένει η τελευταία έκδοση.</p></div></div><div id="arcBox"><p class="hint">Φόρτωση…</p></div>`;
 }
 async function arcItems() {
   if (!window.PELDOCS) return [];

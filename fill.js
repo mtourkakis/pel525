@@ -17,6 +17,14 @@
       { s: '4', t: '3D operations (°)', it: [['a', 'Navaids, vertical path, RNP APCH checks'], ['b', 'Approach & landing briefing, checks'], ['c', '(+) Holding procedure'], ['d', 'Compliance with published procedure'], ['e', 'Approach timing'], ['f', 'Alt, speed, heading (stabilised)'], ['g', '(+) Go-around action'], ['h', '(+) Missed approach / landing'], ['i', 'ATC liaison – R/T']] },
       { s: '5', t: '2D operations (°)', it: [['a', 'Navaids, RNP APCH checks'], ['b', 'Approach & landing briefing, checks'], ['c', '(+) Holding procedure'], ['d', 'Compliance with published procedure'], ['e', 'Approach timing'], ['f', 'Alt/dist to MAPt, speed, hdg, SDFs'], ['g', '(+) Go-around action'], ['h', '(+) Missed approach / landing'], ['i', '(+) ATC liaison – R/T']] },
       { s: '6', t: 'One engine inoperative (ME only) (°)', it: [['a', 'Simulated EF after T/O or on go-around'], ['b', 'OEI approach, go-around, missed approach'], ['c', 'OEI approach and landing'], ['d', 'ATC liaison – R/T']] }
+    ],
+    PPL: [
+      { s: '1', t: 'Pre-flight operations and departure', it: [['a', 'Pre-flight documentation, NOTAM & weather brief'], ['b', 'Mass & balance and performance calculation'], ['c', 'Aeroplane inspection & servicing'], ['d', 'Engine starting & after starting procedures'], ['e', 'Taxiing, aerodrome & pre-take-off procedures'], ['f', 'Take-off and after take-off checks'], ['g', 'Aerodrome departure procedures'], ['h', 'ATC compliance and R/T procedures']] },
+      { s: '2', t: 'General airwork', it: [['a', 'ATC compliance and R/T procedures'], ['b', 'Straight and level, with speed changes'], ['c', 'Climbing: best rate, climbing turns, levelling off'], ['d', 'Medium (30° bank) turns'], ['e', 'Steep (45°) turns · PPL: spiral dive recovery'], ['f', 'Critically low airspeed with/without flaps'], ['g', 'Stalling: clean, 20° descending turn, landing config'], ['h', 'Descending: power on/off, steep gliding turns, levelling off']] },
+      { s: '3', t: 'En-route procedures', it: [['a', 'Flight plan, dead reckoning and map reading'], ['b', 'Maintenance of altitude, heading and speed'], ['c', 'Orientation, timing, ETAs, log keeping'], ['d', 'Diversion to alternate aerodrome'], ['e', 'PPL: Use of radio navigation aids'], ['f', 'PPL: Basic instrument flying (180° turn sim. IMC)'], ['g', 'Flight management (checks, fuel, carb icing)'], ['h', 'ATC compliance and R/T procedures']] },
+      { s: '4', t: 'Approach and landing procedures', it: [['a', 'Aerodrome arrival, collision avoidance'], ['b', '* Precision (short field) landing, crosswind'], ['c', '* Flapless landing'], ['d', '* Idle power approach & landing (SE only)'], ['e', 'Touch and go'], ['f', 'Go-around from low height'], ['g', 'ATC compliance and R/T procedures'], ['h', 'Actions after flight']] },
+      { s: '5', t: 'Abnormal and emergency procedures', it: [['a', 'Simulated EFATO (SE only)'], ['b', '* Simulated forced landing (SE only)'], ['c', 'Simulated precautionary landing (SE only)'], ['d', 'Simulated emergencies'], ['e', 'Oral questions']] },
+      { s: '6', t: 'Simulated asymmetric flight & class/type items', it: [['a', 'Simulated engine failure during take-off'], ['b', 'Asymmetric approach and go-around'], ['c', 'Asymmetric approach and full stop landing'], ['d', 'Engine shutdown and re-start'], ['e', 'ATC compliance, R/T or airmanship'], ['f', 'Class/type items: systems, autopilot, pressurisation, de-icing'], ['g', 'Oral questions']] }
     ]
   };
 
@@ -186,7 +194,7 @@
 
     const A = c.applicant || {}; const name = fullName(A); const dob = dmy(A.dob);
     const exName = clean(ex.displayName || '').toUpperCase();
-    const cpl = c.cpl || {}, ir = c.ir || {};
+    const cpl = c.cpl || {}, ir = c.ir || {}, ppl = c.ppl || {};
     let keep = null;
     /* στοιχεία υποψηφίου στη σελίδα 1 (320B / 420A) */
     const U = v => (v || '').toUpperCase();
@@ -261,6 +269,24 @@
       /* integrated CPL/IR: στο 320B επισυνάπτεται ΜΟΝΟ το Part 2 του 420A */
       if (c.course === 'integrated' && c.tests.cpl && !opts.keepAll) pagesMode = 'examiner';
     }
+    if (form === '220A') {
+      const s = testSummary(ppl);
+      text('s9_passdate', dmy(s.passDate)); text('s9_exname', exName); text('s9_exnum', ex.number); text('s9_auth', ex.authority);
+      text('p2_name', name); text('p2_dob', dob); text('p2_attempt', ppl.attempt || '1'); text('p2_date', dmy(ppl.flights && ppl.flights[0] && ppl.flights[0].date));
+      text('p2_place', ppl.place); text('p2_logname', name); text('p2_exname', exName); text('p2_exnum', ex.number); text('p2_auth', ex.authority);
+      text('p2_notif', dmy(ppl.notif || c.notif)); sig('p2_sig'); text('p2_tbl_attempt', ppl.attempt || '1');
+      flights(ppl.flights, null, L.flights.rows, L.flights.cols, L.flights.p);
+      boxTick('res_pass', ppl.result === 'pass'); boxTick('res_partial', ppl.result === 'partial'); boxTick('res_fail', ppl.result === 'fail');
+      if (ppl.result === 'partial' || ppl.result === 'fail') { text('p2_ft_ac', ppl.ft && ppl.ft.ac); text('p2_ft_sim', ppl.ft && ppl.ft.sim); text('p2_ft_gnd', ppl.ft && ppl.ft.gnd); }
+      if (ppl.retest && ppl.retest.on) {
+        flights(ppl.retest.flights, null, L.flights.rrows, L.flights.rcols, L.flights.p);
+        boxTick('rres_pass', ppl.retest.result === 'pass'); boxTick('rres_fail', ppl.retest.result === 'fail');
+        if (ppl.retest.result === 'fail') { text('p2r_ft_ac', ppl.retest.ft && ppl.retest.ft.ac); text('p2r_ft_sim', ppl.retest.ft && ppl.retest.ft.sim); text('p2r_ft_gnd', ppl.retest.ft && ppl.retest.ft.gnd); }
+      }
+      [7, 8, 9].forEach(p => { text('h' + p + '_name', name); text('h' + p + '_dob', dob); });
+      marksTables('PPL', ppl);
+      keep = [5, 6, 7, 8, 9];
+    }
     if (form === '1000') {
       const T = c.ato || {};
       cells('lic', A.licNo || '');
@@ -295,6 +321,7 @@
     const tests = [];
     if (c.tests.cpl) tests.push(['CPL', c.cpl, ITEMS.CPL]);
     if (c.tests.ir) tests.push(['IR', c.ir, ITEMS.IR]);
+    if (c.tests.ppl && c.ppl) tests.push([(c.ppl.lic === 'LAPL' ? 'LAPL' : 'PPL'), c.ppl, ITEMS.PPL]);
     for (const [k, t, secs] of tests) {
       const fl = (t.flights || []).filter(f => f.date || f.type || f.dep);
       if (!fl.length) W.push(k + ': δεν υπάρχει καμία πτήση στα Details of Flight(s).');
@@ -324,6 +351,12 @@
     }
     if (c.tests.cpl && c.cpl.engine === 'ME') {
       const v = (c.cpl.marks['4f'] || [])[0]; if (v && v !== 'NA') W.push('CPL: ME αεροσκάφος – το 4f (idle power, single-engine only) συνήθως N/A.');
+    }
+    if (c.tests.ppl && c.ppl) {
+      const P = c.ppl, mk = k => (P.marks[k] || [])[0];
+      if (P.engine === 'ME' && ['4d', '5a', '5b', '5c'].some(k => mk(k) && mk(k) !== 'NA')) W.push('PPL: ME αεροσκάφος – τα 4d, 5a, 5b, 5c είναι μόνο για SE (συνήθως N/A).');
+      if (P.lic === 'LAPL' && ['3e', '3f'].some(k => mk(k) && mk(k) !== 'NA')) W.push('LAPL: τα 3e, 3f είναι μόνο για PPL (συνήθως N/A).');
+      if (P.engine === 'SE' && ['6a', '6b', '6c'].some(k => mk(k) && mk(k) !== 'NA')) W.push('PPL: SE αεροσκάφος – τα 6a–6c (asymmetric) συνήθως N/A.');
     }
     if (c.course === 'integrated' && c.tests.ir && !c.tests.cpl) W.push('Integrated: επιλέχθηκε μόνο IR – συνήθως το 320B συνοδεύεται από CPL test.');
     if (c.tests.pbn) {
