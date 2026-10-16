@@ -445,10 +445,10 @@ function logRev(c, name, A) {
   const only = !c.tests.cpl && !c.tests.ir && !c.tests.ppl; const id = 'forms|' + c.id + (only ? '' : '|rev');
   const cls = R.cls || {}; const what = [cls.land !== false && 'SEP(LAND)', cls.sea && 'SEP(SEA)', cls.tmg && 'TMG'].filter(Boolean).join(' / ') || 'SEP(LAND)';
   const ne = F.revNewExpiry(R);
-  const rec = { id, src: 'forms', cat: 'exam', date, name, lic: A.licNo || '', dep: '', reg: '', type: what, test: 'REV ' + what + ' (experience)', time: '', result: 'P', email: A.email || '', phone: A.mobile || '', exp: ne ? [{ what, date: ne }] : [], in801: true };
+  const rec = { id, src: 'forms', cat: 'exam', date, name, lic: A.licNo || '', dep: '', reg: '', type: what, test: 'REV ' + what + ' (experience)', time: '', result: 'P', email: A.email || '', phone: A.mobile || '', exp: ne ? [{ what, date: ne }] : [], in801: false /* με εμπειρία δεν μπαίνει στην 801 */ };
   let L = []; try { L = JSON.parse(localStorage.getItem('pel_log_v1')) || []; } catch (e) { }
   const i = L.findIndex(x => x.id === id);
-  if (i >= 0) { const o = L[i]; if (!o.manualEdit) L[i] = Object.assign({}, rec, { client: o.client, price: o.price, invoice: o.invoice, note: o.note, qty: o.qty, in801: o.in801 }); else o.exp = rec.exp; } else L.push(rec);
+  if (i >= 0) { const o = L[i]; if (!o.manualEdit) L[i] = Object.assign({}, rec, { client: o.client, price: o.price, invoice: o.invoice, note: o.note, qty: o.qty }); else o.exp = rec.exp; } else L.push(rec);
   localStorage.setItem('pel_log_v1', JSON.stringify(L));
 }
 function deliver(files) {
