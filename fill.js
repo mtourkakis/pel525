@@ -65,6 +65,13 @@
     }
     return fail ? 'F' : any ? 'P' : '';
   }
+  /* αναθεώρηση SEP με εμπειρία: νέα λήξη = τρέχουσα λήξη + 24 μήνες (εκτός αν γραφτεί με το χέρι) */
+  function revNewExpiry(R) {
+    if (!R) return ''; if (R.expNew) return R.expNew; if (!R.expCur) return '';
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(R.expCur); if (!m) return '';
+    let y = +m[1] + 2, mo = +m[2], d = +m[3]; const last = new Date(y, mo, 0).getDate(); if (d > last) d = last;
+    return y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+  }
   function fullName(a) { return [a.first, a.surname].filter(Boolean).join(' ').toUpperCase(); }
   function latestDate(fl) { return (fl || []).map(f => f.date).filter(Boolean).sort().pop() || ''; }
   function joinU(arr) { return [...new Set(arr.filter(Boolean))].join(' / '); }
@@ -156,7 +163,7 @@
     function cells(key, str) {
       const d = L.cells[key]; if (!d) return; if (opts.overlay && SKIP.test(key)) return;
       const chars = clean(str).replace(/\s/g, '').split('');
-      d.xs.forEach((x, i) => { if (chars[i]) { const w = (d.xs[i + 1] ? Math.min(d.xs[i + 1] - x, 20) : 16); at(d.p, x + w / 2, d.top + d.h - 4.5, chars[i], 10, { center: true }); } });
+      d.xs.forEach((x, i) => { if (chars[i]) { const w = d.w || (d.xs[i + 1] ? Math.min(d.xs[i + 1] - x, 20) : 16); at(d.p, x + w / 2, d.top + d.h - 4.5, chars[i], 10, { center: true }); } });
     }
     function flights(fl, def, rows, cols, p) {
       (fl || []).filter(f => f && (f.type || f.reg || f.dep || f.arr)).slice(0, rows.length).forEach((f, i) => {
@@ -287,6 +294,27 @@
       marksTables('PPL', ppl);
       keep = [5, 6, 7, 8, 9];
     }
+    if (form === '521') {
+      const R = c.rev || {}, cls = R.cls || {};
+      const lic = (A.licNo || '').replace(/^EL\s*[\/.-]?\s*FCL\s*[\/.-]?\s*/i, '');
+      cells('a_lic', lic);
+      text('a_surname', U(A.surname)); text('a_first', U(A.first)); text('a_title', A.title);
+      if (A.dob) { const [y, m, d] = A.dob.split('-'); cells('a_dobd', d); text('a_dobm', m); text('a_doby', y); }
+      text('a_addr1', U(A.address)); text('a_addr2', U(A.city)); text('a_postcode', A.postcode);
+      text('a_tel', A.tel); text('a_mobile', A.mobile); text('a_email', A.email);
+      boxTick('a_land', cls.land !== false); boxTick('a_sea', !!cls.sea); boxTick('a_tmg', !!cls.tmg);
+      if (!(opts.overlay)) at(L.para.p, L.para.x, L.para.top + L.para.h - 5, R.para || '1', 11, { center: true });
+      boxTick('a_exempt', !!R.exempt);
+      text('ex_surname', U(ex.surname)); text('ex_first', U(ex.first));
+      cells('ex_no', ex.licNo || ''); cells('ex_dob', dmy(ex.dob, ''));
+      boxTick('rv_pass', R.idType === 'passport'); boxTick('rv_dl', R.idType === 'dl'); boxTick('rv_nic', (R.idType || 'id') === 'id');
+      text('rv_idno', U(R.idNo));
+      text('rv_hrs', R.hrs); text('rv_pic', R.pic); text('rv_ldg', R.ldg); text('rv_fi', R.exempt ? '' : U(R.fiNo));
+      const d6 = iso => dmy(iso, '').replace(/^(\d{2})(\d{2})\d{2}(\d{2})$/, '$1$2$3');
+      cells('rv_expcur', d6(R.expCur)); cells('rv_expnew', d6(revNewExpiry(R)));
+      sig('rv_sig'); text('rv_date', dmy(SD(form)));
+      keep = [1];
+    }
     if (form === '1000') {
       const T = c.ato || {};
       cells('lic', A.licNo || '');
@@ -358,6 +386,19 @@
       if (P.lic === 'LAPL' && ['3e', '3f'].some(k => mk(k) && mk(k) !== 'NA')) W.push('LAPL: τα 3e, 3f είναι μόνο για PPL (συνήθως N/A).');
       if (P.engine === 'SE' && ['6a', '6b', '6c'].some(k => mk(k) && mk(k) !== 'NA')) W.push('PPL: SE αεροσκάφος – τα 6a–6c (asymmetric) συνήθως N/A.');
     }
+    if (c.tests.rev) {
+      const R = c.rev || {}, n = v => parseFloat(String(v || '').replace(',', '.'));
+      if (!(c.applicant || {}).licNo) W.push('521: λείπει ο αριθμός άδειας του υποψηφίου.');
+      if (!R.expCur) W.push('521: λείπει η τρέχουσα λήξη του SEP.');
+      if (!(n(R.hrs) >= 12)) W.push('521: χρειάζονται τουλάχιστον 12 ώρες στους 12 μήνες πριν τη λήξη.');
+      if (!(n(R.pic) >= 6)) W.push('521: χρειάζονται τουλάχιστον 6 ώρες PIC.');
+      if (!(n(R.ldg) >= 12)) W.push('521: χρειάζονται τουλάχιστον 12 take-offs & landings.');
+      if (!R.exempt && !R.fiNo) W.push('521: λείπει ο αριθμός FI/CRI της εκπαιδευτικής πτήσης 1 ώρας (ή τσέκαρε την εξαίρεση).');
+      if (!R.idNo) W.push('521: λείπει ο αριθμός ταυτότητας/διαβατηρίου.');
+      const sd = (c.fdate && c.fdate['521']) || c.signDate;
+      if (R.expCur && sd && sd > R.expCur) W.push('521: η ημερομηνία είναι μετά τη λήξη — με λήξη δεν γίνεται revalidation με εμπειρία (θέλει proficiency check).');
+      if (R.expCur) W.push('ℹ️ 521: νέα λήξη ' + dmy(revNewExpiry(R)) + '.');
+    }
     if (c.course === 'integrated' && c.tests.ir && !c.tests.cpl) W.push('Integrated: επιλέχθηκε μόνο IR – συνήθως το 320B συνοδεύεται από CPL test.');
     if (c.tests.pbn) {
       const cl = c.pbnChecklist || {};
@@ -368,5 +409,5 @@
     return W;
   }
 
-  root.PELFILL = { ITEMS, build, checks, dur, dmy, sectionResult, testSummary };
+  root.PELFILL = { ITEMS, build, checks, dur, dmy, sectionResult, testSummary, revNewExpiry };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -137,9 +137,10 @@ function formsFor(c) {
   else { if (c.tests.cpl) f.push('320A'); if (c.tests.ir) f.push('420A'); }
   if (c.tests.pbn) f.push('1000');
   if (c.tests.ppl) f.push('220A');
+  if (c.tests.rev) f.push('521');
   return f;
 }
-const FORMNAME = { '320A': 'PEL-FCL 320A · CPL Modular', '320B': 'PEL-FCL 320B · CPL Integrated', '420A': 'PEL-FCL 420A · IR Part 2', '1000': 'PEL-FCL 1000 · PBN', '220A': 'PEL-FCL 220A · LAPL/PPL(A)' };
+const FORMNAME = { '320A': 'PEL-FCL 320A · CPL Modular', '320B': 'PEL-FCL 320B · CPL Integrated', '420A': 'PEL-FCL 420A · IR Part 2', '1000': 'PEL-FCL 1000 · PBN', '220A': 'PEL-FCL 220A · LAPL/PPL(A)', '521': 'PEL-FCL 521 · SEP revalidation (experience)' };
 
 /* ---------- views ---------- */
 /* συνημμένα ανά υποψήφιο (Notification of Test email, FSTD cert κ.λπ.) */
@@ -163,7 +164,7 @@ function render() {
 function listView() {
   const items = S.cands.map(c => {
     const a = c.applicant; const fl = [...(c.cpl.flights || []), ...(c.ir.flights || []), ...((c.tests.ppl && c.ppl && c.ppl.flights) || [])].map(f => f.date).filter(Boolean).sort();
-    return `<div class="item" data-open="${c.id}"><div><b>${esc(((a.surname || '').toUpperCase() + ' ' + (a.first || '')).trim() || 'Νέος υποψήφιος')}</b><span>${c.tests.ppl && !c.tests.cpl && !c.tests.ir ? (c.ppl.lic === 'LAPL' ? 'LAPL(A)' : 'PPL(A)') : c.course === 'integrated' ? 'Integrated' : 'Modular'} · ${formsFor(c).join(' + ')}${fl.length ? ' · ' + F.dmy(fl[fl.length - 1]) : ''}</span></div><span class="go">›</span></div>`;
+    return `<div class="item" data-open="${c.id}"><div><b>${esc(((a.surname || '').toUpperCase() + ' ' + (a.first || '')).trim() || 'Νέος υποψήφιος')}</b><span>${c.tests.rev && !c.tests.ppl && !c.tests.cpl && !c.tests.ir ? 'SEP reval.' : c.tests.ppl && !c.tests.cpl && !c.tests.ir ? (c.ppl.lic === 'LAPL' ? 'LAPL(A)' : 'PPL(A)') : c.course === 'integrated' ? 'Integrated' : 'Modular'} · ${formsFor(c).join(' + ')}${fl.length ? ' · ' + F.dmy(fl[fl.length - 1]) : ''}</span></div><span class="go">›</span></div>`;
   }).join('');
   return `<div class="card list">${items || '<div class="item"><span>Δεν υπάρχουν υποψήφιοι ακόμα. Πάτησε «+ Νέος».</span></div>'}</div>
   <div class="row"><button class="btn alt" id="exp">Εξαγωγή backup</button><label class="btn alt" style="display:inline-block">Εισαγωγή backup<input type="file" id="imp" accept=".json,application/json" hidden></label></div>
@@ -253,6 +254,7 @@ function editView() {
     <label class="chk"><input type="checkbox" data-chk="tests.ir" ${c.tests.ir ? 'checked' : ''}> IR(A) skill test</label>
     <label class="chk"><input type="checkbox" data-chk="tests.pbn" ${c.tests.pbn ? 'checked' : ''}> PBN endorsement (PEL-FCL 1000)</label>
     <label class="chk"><input type="checkbox" data-chk="tests.ppl" ${c.tests.ppl ? 'checked' : ''}> LAPL(A) / PPL(A) skill test (PEL-FCL 220A)</label>
+    <label class="chk"><input type="checkbox" data-chk="tests.rev" ${c.tests.rev ? 'checked' : ''}> SEP revalidation με εμπειρία (PEL-FCL 521)</label>
     <p class="forms">→ ${fs.map(f => FORMNAME[f]).join('<br>→ ') || '—'}</p>
     ${fs.includes('320B') ? (() => { const ct = c.courseType || (c.tests.ir ? 'cplir' : 'cpl'); const se = c.classSE != null ? c.classSE : c.cpl.engine === 'SE', me = c.classME != null ? c.classME : c.cpl.engine !== 'SE';
       return `<h3>320B · Ενότ. 3</h3><div class="row"><div class="seg">${[['atp', 'ATP Integrated'], ['cplir', 'CPL/IR Integrated'], ['cpl', 'CPL Integrated']].map(([v, l]) => `<button data-ctype="${v}" class="${ct === v ? 'on' : ''}">${l}</button>`).join('')}</div></div>
@@ -272,6 +274,17 @@ function editView() {
     ${[['pc', 'Proficiency Check / Skill Test'], ['lic', 'Examiner’s EU Part-FCL licence'], ['pbn', 'Examiner’s PBN endorsement'], ['ato', 'PBN letter/certificate για ATO/AOC από την αρχή']].map(([k, l]) => `<label class="chk"><input type="checkbox" data-chk="pbnChecklist.${k}" ${c.pbnChecklist[k] ? 'checked' : ''}> ${l}</label>`).join('')}`);
   if (c.tests.cpl) h += sec('cpl', 'CPL(A) skill test', testHTML('CPL'), overall(c.cpl, 'CPL'));
   if (c.tests.ir) h += sec('ir', 'IR(A) skill test', testHTML('IR'), overall(c.ir, 'IR'));
+  if (c.tests.rev) { const R = c.rev = c.rev || { cls: { land: true }, para: '1', idType: 'id' }; R.cls = R.cls || { land: true };
+    const ne = F.revNewExpiry(Object.assign({}, R, { expNew: '' }));
+    h += sec('rev', 'SEP revalidation (521)', `
+    <div class="row"><label class="chk" style="margin:0"><input type="checkbox" data-chk="rev.cls.land" ${R.cls.land !== false ? 'checked' : ''}> SEP Land</label><label class="chk" style="margin:0"><input type="checkbox" data-chk="rev.cls.sea" ${R.cls.sea ? 'checked' : ''}> Sea</label><label class="chk" style="margin:0"><input type="checkbox" data-chk="rev.cls.tmg" ${R.cls.tmg ? 'checked' : ''}> TMG</label></div>
+    <h3>Από το logbook (12 μήνες πριν τη λήξη)</h3>
+    <div class="grid">${inp('rev.hrs', 'Συνολικές ώρες (≥12)', 'text', 'inputmode="decimal"')}${inp('rev.pic', 'Ώρες PIC (≥6)', 'text', 'inputmode="decimal"')}${inp('rev.ldg', 'Take-offs & landings (≥12)', 'text', 'inputmode="numeric"')}${inp('rev.fiNo', 'Εκπ. πτήση 1 ώρας: αρ. FI/CRI', 'text', 'autocapitalize="characters"')}</div>
+    <label class="chk"><input type="checkbox" data-chk="rev.exempt" ${R.exempt ? 'checked' : ''}> Εξαίρεση από την πτήση 1 ώρας — FCL.740.A(b)(1)(ii) (επισύναψε την απόδειξη)</label>
+    <h3>Ταυτοποίηση</h3><div class="row">${seg('rev.idType', [['id', 'Ταυτότητα'], ['passport', 'Διαβατήριο'], ['dl', 'Δίπλωμα']])}</div>
+    <div class="grid">${inp('rev.idNo', 'Αριθμός εγγράφου', 'text', 'autocapitalize="characters"')}</div>
+    <h3>Λήξεις</h3><div class="grid">${inp('rev.expCur', 'Τρέχουσα λήξη SEP', 'date')}${inp('rev.expNew', 'Νέα λήξη (κενό = αυτόματα +2 χρόνια' + (ne ? ': ' + F.dmy(ne) : '') + ')', 'date')}</div>
+    <p class="hint">Ημερομηνία υπογραφής: η «Ημερομηνία υπογραφής εξεταστή» (ή «Ημερομηνία 521») στο Πρόγραμμα. Τα στοιχεία της ενότητας 1 έρχονται από τον «Υποψήφιο».</p>`, R.expCur ? `<span class="tag">→ ${F.dmy(R.expNew || ne)}</span>` : ''); }
   if (c.tests.ppl) h += sec('ppl', (c.ppl.lic === 'LAPL' ? 'LAPL(A)' : 'PPL(A)') + ' skill test', testHTML('PPL'), overall(c.ppl, 'PPL'));
   const W = F.checks(c, S.ex);
   const warnN = W.filter(w => !w.startsWith('ℹ️')).length;
@@ -356,7 +369,7 @@ document.addEventListener('change', e => {
   if (el.dataset.chk) { setP(cur(), el.dataset.chk, el.checked); save(); render(); return; }
   if (el.dataset.p && (el.type === 'date' || el.type === 'time')) { setP(view === 'settings' ? S : cur(), el.dataset.p, el.value); save(); if (view === 'edit') { const y = window.scrollY; render(); window.scrollTo(0, y); } }
 });
-function setTitle() { const c = cur(); $('#ttl').innerHTML = esc(((c && c.applicant.surname) || 'Υποψήφιος').toUpperCase()) + '<small>' + (c && c.tests.ppl && !c.tests.cpl && !c.tests.ir ? (c.ppl.lic === 'LAPL' ? 'LAPL(A)' : 'PPL(A)') : c && c.course === 'modular' ? 'Modular' : 'Integrated') + '</small>'; }
+function setTitle() { const c = cur(); $('#ttl').innerHTML = esc(((c && c.applicant.surname) || 'Υποψήφιος').toUpperCase()) + '<small>' + (c && c.tests.rev && !c.tests.ppl && !c.tests.cpl && !c.tests.ir ? 'SEP reval.' : c && c.tests.ppl && !c.tests.cpl && !c.tests.ir ? (c.ppl.lic === 'LAPL' ? 'LAPL(A)' : 'PPL(A)') : c && c.course === 'modular' ? 'Modular' : 'Integrated') + '</small>'; }
 
 /* ---------- PDF ---------- */
 const pdfCache = {};
@@ -364,7 +377,7 @@ async function pdfBytes(f) { if (!pdfCache[f]) { const r = await fetch(f + '.pdf
 function sigBytes() { if (!S.ex.sig) return null; const b = atob(S.ex.sig.split(',')[1]); const u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
 async function generate(which, btn) {
   const c = cur(); const fs = which === 'ALL' ? formsFor(c) : [which];
-  if (fs.includes('1000')) { /* στοιχεία εξεταστή για το 1000: ζητούνται μία φορά και αποθηκεύονται */
+  if (fs.includes('1000') || fs.includes('521')) { /* στοιχεία εξεταστή για 1000/521: ζητούνται μία φορά και αποθηκεύονται */
     let ch = false;
     [['mobile', 'Το κινητό σου (για το PEL-FCL 1000):'], ['email', 'Το email σου (για το PEL-FCL 1000):'], ['dob', 'Ημερομηνία γέννησής σου (ηη/μμ/εεεε):']].forEach(([k, q]) => {
       if ((S.ex[k] || '').trim()) return; let v = (prompt(q) || '').trim(); if (!v) return;
@@ -408,6 +421,7 @@ async function generate(which, btn) {
 }
 function logForms(c) {
   const A = c.applicant || {}; const name = ((A.surname || '') + ' ' + (A.first || '')).toUpperCase().trim();
+  if (c.tests.rev) logRev(c, name, A);
   const tests = []; if (c.tests.cpl) tests.push(c.cpl); if (c.tests.ir) tests.push(c.ir); if (c.tests.ppl && c.ppl) tests.push(c.ppl); if (!tests.length) return;
   const fl = tests.flatMap(t => [...(t.flights || []), ...((t.retest && t.retest.on && t.retest.flights) || [])]).filter(f => f && (f.date || f.type));
   const dates = fl.map(f => f.date).filter(Boolean).sort(); if (!dates.length) return;
@@ -423,6 +437,18 @@ function logForms(c) {
   let L = []; try { L = JSON.parse(localStorage.getItem('pel_log_v1')) || []; } catch (e) { }
   const i = L.findIndex(x => x.id === id);
   if (i >= 0) { const o = L[i]; if (!o.manualEdit) L[i] = Object.assign({}, rec, { client: o.client, price: o.price, invoice: o.invoice, note: o.note, qty: o.qty, in801: o.in801, exp: o.exp || [] }); } else L.push(rec);
+  localStorage.setItem('pel_log_v1', JSON.stringify(L));
+}
+/* 521: εγγραφή στις Εξετάσεις (revalidation με εμπειρία, χωρίς πτήση) */
+function logRev(c, name, A) {
+  const R = c.rev || {}; const date = (c.fdate && c.fdate['521']) || c.signDate; if (!date) return;
+  const only = !c.tests.cpl && !c.tests.ir && !c.tests.ppl; const id = 'forms|' + c.id + (only ? '' : '|rev');
+  const cls = R.cls || {}; const what = [cls.land !== false && 'SEP(LAND)', cls.sea && 'SEP(SEA)', cls.tmg && 'TMG'].filter(Boolean).join(' / ') || 'SEP(LAND)';
+  const ne = F.revNewExpiry(R);
+  const rec = { id, src: 'forms', cat: 'exam', date, name, lic: A.licNo || '', dep: '', reg: '', type: what, test: 'REV ' + what + ' (experience)', time: '', result: 'P', email: A.email || '', phone: A.mobile || '', exp: ne ? [{ what, date: ne }] : [], in801: true };
+  let L = []; try { L = JSON.parse(localStorage.getItem('pel_log_v1')) || []; } catch (e) { }
+  const i = L.findIndex(x => x.id === id);
+  if (i >= 0) { const o = L[i]; if (!o.manualEdit) L[i] = Object.assign({}, rec, { client: o.client, price: o.price, invoice: o.invoice, note: o.note, qty: o.qty, in801: o.in801 }); else o.exp = rec.exp; } else L.push(rec);
   localStorage.setItem('pel_log_v1', JSON.stringify(L));
 }
 function deliver(files) {
