@@ -219,6 +219,17 @@
   async function listOut() { return (await get('outindex')) || []; }
   async function dropOut(key) { await del(key); await put('outindex', ((await get('outindex')) || []).filter(x => x.key !== key)); }
   async function invList() { return (await get('invindex')) || []; }
+  /* λίστα τιμολογίων για επιλογή επισύναψης: αριθμός · πελάτης · ποσό · ημερομηνία (νεότερα πρώτα) */
+  async function invOptions() {
+    let O = {}; try { O = JSON.parse(localStorage.getItem('pel_office_v1')) || {}; } catch (e) { }
+    const inv = O.invoices || [], cl = O.clients || [];
+    const num = v => { const n = parseFloat(String(v == null ? '' : v).replace(',', '.')); return isNaN(n) ? null : n; };
+    return ((await get('invindex')) || []).map(x => { const i = inv.find(v => v.no === x.no) || {};
+      const who = i.client === '__self' ? (i.clientLines || '').split('\n')[0] : (i.clientName || (cl.find(c => c.id === i.client) || {}).name || '');
+      const tot = (i.lines || []).reduce((a, l) => { const f = num(l.fee), q = num(l.qty); return a + (f == null ? 0 : q != null ? q * f : f); }, 0);
+      return { no: x.no, date: x.date || i.date || '', label: x.no + (who ? ' · ' + who : '') + (tot ? ' · €' + tot.toFixed(2).replace('.', ',') : '') + (x.date ? ' · ' + x.date.split('-').reverse().join('/') : '') }; })
+      .sort((a, b) => (b.date || '').localeCompare(a.date || '') || (parseInt(b.no) - parseInt(a.no)));
+  }
 
-  root.PELDOCS = { MY, saveFile, get, del, put, status, append, saveInvoice, dropInvoice, findInvoice, label, candFiles, addCandFiles, removeCandFile, compose, scanCount, saveOut, listOut, dropOut, invList, addUpload, replaceOut };
+  root.PELDOCS = { MY, saveFile, get, del, put, status, append, saveInvoice, dropInvoice, findInvoice, label, candFiles, addCandFiles, removeCandFile, compose, scanCount, saveOut, listOut, dropOut, invList, addUpload, replaceOut, invOptions };
 })(typeof window !== 'undefined' ? window : globalThis);

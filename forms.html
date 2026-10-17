@@ -150,6 +150,7 @@ async function renderCF() {
     if (n) { lb.outerHTML = `<span class="tag ok">${f} · σκαναρισμένο ${n} σελ.</span><button class="cmb" data-scandel="${f}">✕</button>`; } }
   const fs = await PELDOCS.candFiles('cand:forms:' + c.id);
   box.innerHTML = fs.length ? fs.map((f, i) => `📎 ${esc(f.name)} <button class="cmb" data-cfdel="${i}">✕</button>`).join(' &nbsp; ') : 'κανένα';
+  const ip = $('#invPick'); if (ip) { const opts = await PELDOCS.invOptions(); ip.innerHTML = '<option value="">Αυτόματα (το τιμολόγιο του υποψηφίου)</option>' + opts.map(o => `<option value="${esc(o.no)}" ${c.invNo === o.no ? 'selected' : ''}>${esc(o.label)}</option>`).join(''); }
   const sv = $('#savedPdfs'); if (sv) { const L = (await PELDOCS.listOut()).filter(x => (x.logId || '').startsWith('forms|' + c.id)).sort((a, b) => (b.saved || 0) - (a.saved || 0));
     sv.innerHTML = L.length ? '<span class="hint" style="margin:0">Αποθηκευμένα:</span>' + L.map(x => `<button class="btn alt" data-savedopen="${esc(x.key)}">📄 ${esc(x.forms || x.label || x.name)} · ${F.dmy(new Date(x.saved || Date.now()).toISOString().slice(0, 10))}${x.signed ? ' ✍️' : ''}</button>`).join('') : ''; }
 }
@@ -298,6 +299,7 @@ function editView() {
     <div class="row"><span class="hint" style="margin:0">Συνημμένα υποψηφίου:</span><span id="cfList" class="hint" style="margin:0">…</span><label class="btn alt" style="cursor:pointer">+ Notification email / άλλο<input type="file" id="cfAdd" accept="application/pdf,image/*" multiple style="display:none"></label></div>
     <div class="row"><span class="hint" style="margin:0">Επισύναψη στο τέλος:</span>${[['doc:lic', 'Πτυχίο'], ['doc:med', 'Medical'], ['doc:exm', 'Examiner'], ['inv', 'Τιμολόγιο']].map(([k, l]) => `<label class="chk" style="margin:0"><input type="checkbox" data-att="${k}" ${S.att[k] ? 'checked' : ''}> ${l}</label>`).join('')}</div>
     <div class="row">${fs.map(f => `<button class="btn" data-gen="${f}">${f}</button>`).join('')}${fs.length > 1 ? '<button class="btn amber" data-gen="ALL">Όλα σε ένα PDF</button>' : ''}</div>
+    <div class="row"><span class="hint" style="margin:0">Τιμολόγιο:</span><select id="invPick" style="font-size:15px;padding:8px;border-radius:8px;max-width:100%"><option value="">Αυτόματα (το τιμολόγιο του υποψηφίου)</option></select></div>
     <div class="out" id="out"></div><div class="row" id="savedPdfs"></div>`);
   h += `<div class="row"><button class="btn alt" id="dup">Αντιγραφή σε νέο υποψήφιο</button><button class="btn danger" id="del">Διαγραφή</button></div>`;
   h += datalists();
@@ -370,6 +372,7 @@ document.addEventListener('change', e => {
   if (el.id === 'imp') { const f = el.files[0]; if (!f) return; f.text().then(t => { try { const d = JSON.parse(t); if (!d.cands) throw new Error('μη έγκυρο'); if (confirm('Αντικατάσταση όλων των δεδομένων με το backup;')) { S = d; save(); render(); toast('Έγινε εισαγωγή'); } } catch (err) { alert('Σφάλμα: ' + err.message); } }); return; }
   if (el.dataset.scan) { const c = cur(); const f = el.files; if (!c || !f || !f.length) return; const k = 'scan:forms:' + c.id + ':' + el.dataset.scan; PELDOCS.del(k).then(() => PELDOCS.addCandFiles(k, f)).then(() => { render(); toast('Σκαναρισμένο ' + el.dataset.scan + ' αποθηκεύτηκε'); }).catch(err => alert('Σφάλμα: ' + err.message)); return; }
   if (el.id === 'cfAdd') { const c = cur(); const f = el.files; if (!c || !f || !f.length) return; PELDOCS.addCandFiles('cand:forms:' + c.id, f).then(() => { el.value = ''; renderCF(); toast('Προστέθηκε'); }).catch(err => alert('Σφάλμα: ' + err.message)); return; }
+  if (el.id === 'invPick') { const c = cur(); c.invNo = el.value; S.att = S.att || {}; if (el.value) { S.att.inv = true; const cb = document.querySelector('[data-att="inv"]'); if (cb) cb.checked = true; } save(); toast(el.value ? 'Θα επισυναφθεί το τιμολόγιο ' + el.value : 'Τιμολόγιο: αυτόματα'); return; }
   if (el.dataset.att) { S.att = S.att || {}; S.att[el.dataset.att] = el.checked; save(); return; }
   if (el.dataset.chk) { setP(cur(), el.dataset.chk, el.checked); save(); render(); return; }
   if (el.dataset.p && (el.type === 'date' || el.type === 'time')) { setP(view === 'settings' ? S : cur(), el.dataset.p, el.value); save(); if (view === 'edit') { const y = window.scrollY; render(); window.scrollTo(0, y); } }
@@ -412,7 +415,7 @@ async function generate(which, btn) {
     try { logForms(c); } catch (e) { }
     /* επισύναψη: πτυχίο / medical / examiner / τιμολόγιο στο τέλος κάθε PDF */
     const att = S.att || {}; const keys = ['doc:lic', 'doc:exm', 'doc:med'].filter(k => att[k]).concat(['cand:forms:' + c.id]); let info = '';
-    if (att.inv && window.PELDOCS) { const inv = await PELDOCS.findInvoice('forms|' + c.id); if (inv) keys.push(inv.key); else info = 'Τιμολόγιο: δεν έχει βγει ακόμα για αυτόν τον υποψήφιο.'; }
+    if (att.inv && window.PELDOCS) { const inv = c.invNo ? { key: 'inv:' + c.invNo } : await PELDOCS.findInvoice('forms|' + c.id); if (inv) keys.push(inv.key); else info = 'Τιμολόγιο: δεν έχει βγει ακόμα για αυτόν τον υποψήφιο.'; }
     if (keys.length && window.PELDOCS) { const miss = new Set();
       for (const fl of files) { const r = await PELDOCS.append(PDFLib, new Uint8Array(await fl.blob.arrayBuffer()), keys); r.missing.forEach(m => miss.add(m)); fl.blob = new Blob([r.bytes], { type: 'application/pdf' }); }
       if (miss.size) info = (info ? info + ' ' : '') + 'Λείπουν: ' + [...miss].map(PELDOCS.label).join(', ') + ' (Γραφείο → Ρυθμίσεις).'; }
