@@ -606,7 +606,8 @@ document.addEventListener('change', ev => {
           if (d.nextNo && (!O.invoices.length) && (O.nextNo || 1) < d.nextNo) O.nextNo = d.nextNo;
           if (d.exName801 && !O.exName801) O.exName801 = d.exName801;
           const ck = c => (c.name + '|' + (c.lines || '').split('\n')[0]).toUpperCase(); (d.clients || []).forEach(c => { if (!O.clients.some(x => ck(x) === ck(c))) O.clients.push(Object.assign({ id: uid() }, c)); });
-          (d.mydocs || []).forEach(m => O.mydocs.push(m));
+          O.mydocs = O.mydocs || []; (d.mydocs || []).forEach(m => { const x = O.mydocs.find(y => (y.what || '').toUpperCase() === (m.what || '').toUpperCase()); if (x) x.date = m.date; else O.mydocs.push({ what: m.what, date: m.date }); });
+          if ((d.mydocs || []).length && !d.clients) tab = 'exp';
         }
         saveO(); saveLog(); render(); toast('Έγινε εισαγωγή');
       } catch (e) { alert('Σφάλμα: ' + e.message); }
