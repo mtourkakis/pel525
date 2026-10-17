@@ -181,7 +181,9 @@
 
   /* αρχείο: κάθε PDF που βγαίνει (525 / φόρμες) κρατιέται εδώ. Ίδιο αρχείο ξανά = αντικαθίσταται η παλιά έκδοση */
   async function saveOut(logId, name, bytes, meta) {
-    const key = (meta && meta.key) || ('out:' + logId + '|' + name);
+    let key = (meta && meta.key) || ('out:' + logId + '|' + name);
+    /* το υπογεγραμμένο δεν σβήνεται ποτέ από νέα έκδοση: η νέα μπαίνει δίπλα */
+    if (((await get('outindex')) || []).some(x => x.key === key && x.signed)) key += '|' + Date.now();
     const ab = bytes.buffer ? bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) : bytes;
     await put(key, { name, type: 'application/pdf', kind: 'pdf', bytes: ab, added: Date.now() });
     const idx = ((await get('outindex')) || []).filter(x => x.key !== key);
@@ -206,9 +208,17 @@
     const name = ((o.title || 'Document') + (o.cand ? '_' + o.cand : '')).replace(/[^A-Za-z0-9Α-Ωα-ωΆ-ώ]+/g, '_').replace(/^_|_$/g, '') + '.pdf';
     await saveOut(o.logId || ('up|' + id), name, bytes, { key: 'out:up|' + id, up: true, label: o.title || '', cand: o.cand || '', date: o.date || '' });
   }
+  /* αντικατάσταση αποθηκευμένου PDF (π.χ. με το υπογεγραμμένο από τον υποψήφιο) — ίδιο κλειδί, ίδιο όνομα */
+  async function replaceOut(PDFLib, key, fileList) {
+    const bytes = await filesToPdf(PDFLib, fileList); const old = (await get(key)) || {};
+    const ab = bytes.buffer ? bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) : bytes;
+    await put(key, { name: old.name || 'document.pdf', type: 'application/pdf', kind: 'pdf', bytes: ab, added: Date.now() });
+    const idx = (await get('outindex')) || []; const x = idx.find(y => y.key === key); if (x) { x.size = ab.byteLength; x.saved = Date.now(); x.signed = true; }
+    await put('outindex', idx);
+  }
   async function listOut() { return (await get('outindex')) || []; }
   async function dropOut(key) { await del(key); await put('outindex', ((await get('outindex')) || []).filter(x => x.key !== key)); }
   async function invList() { return (await get('invindex')) || []; }
 
-  root.PELDOCS = { MY, saveFile, get, del, put, status, append, saveInvoice, dropInvoice, findInvoice, label, candFiles, addCandFiles, removeCandFile, compose, scanCount, saveOut, listOut, dropOut, invList, addUpload };
+  root.PELDOCS = { MY, saveFile, get, del, put, status, append, saveInvoice, dropInvoice, findInvoice, label, candFiles, addCandFiles, removeCandFile, compose, scanCount, saveOut, listOut, dropOut, invList, addUpload, replaceOut };
 })(typeof window !== 'undefined' ? window : globalThis);

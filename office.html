@@ -155,14 +155,14 @@ function vArchive() {
 }
 async function arcItems() {
   if (!window.PELDOCS) return [];
-  const out = (await PELDOCS.listOut()).map(x => ({ key: x.key, kind: 'form', title: x.cand || x.label || '—', sub: x.up ? '📎 ' + (x.cand && x.label ? x.label : 'Αρχείο') : x.forms ? 'PEL-FCL ' + x.forms : x.name, name: x.name, date: x.date || '', size: x.size, logId: x.logId }));
+  const out = (await PELDOCS.listOut()).map(x => ({ key: x.key, kind: 'form', signed: !!x.signed, title: x.cand || x.label || '—', sub: x.up ? '📎 ' + (x.cand && x.label ? x.label : 'Αρχείο') : x.forms ? 'PEL-FCL ' + x.forms : x.name, name: x.name, date: x.date || '', size: x.size, logId: x.logId }));
   const inv = (await PELDOCS.invList()).map(x => { const i = O.invoices.find(v => v.no === x.no) || {};
     return { key: 'inv:' + x.no, kind: 'inv', title: 'Τιμολόγιο ' + x.no, sub: i.client ? (i.client === '__self' ? (i.clientLines || '').split('\n')[0] : (i.clientName || cname(i.client))) : '', name: 'Invoice ' + x.no + '.pdf', date: x.date || i.date || '' }; });
   return out.concat(inv).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 }
 function arcRow(x, del) {
-  return `<div class="item"><div style="flex:1;min-width:0"><b>${esc(x.title)}</b><span>${dmy(x.date)}${x.sub ? ' · ' + esc(x.sub) : ''}${x.size ? ' · ' + Math.round(x.size / 1024) + ' KB' : ''}</span></div>
-  <div class="row" style="margin:0;flex-wrap:nowrap"><button class="btn alt" data-arcopen="${esc(x.key)}">Άνοιγμα</button>${navigator.canShare ? `<button class="btn" data-arcshare="${esc(x.key)}">Κοινοποίηση</button>` : ''}${del && x.kind === 'form' ? `<button class="btn danger" data-arcdel="${esc(x.key)}">✕</button>` : ''}</div></div>`;
+  return `<div class="item"><div style="flex:1;min-width:0"><b>${esc(x.title)}</b>${x.signed ? ' <span class="tag ok">✍️ υπογεγραμμένο</span>' : ''}<span>${dmy(x.date)}${x.sub ? ' · ' + esc(x.sub) : ''}${x.size ? ' · ' + Math.round(x.size / 1024) + ' KB' : ''}</span></div>
+  <div class="row" style="margin:0;flex-wrap:nowrap"><button class="btn alt" data-arcopen="${esc(x.key)}">Άνοιγμα</button>${x.kind === 'form' ? `<label class="btn alt" style="cursor:pointer" title="Αντικατάσταση με το υπογεγραμμένο / σκαναρισμένο">↻<input type="file" data-arcrep="${esc(x.key)}" accept="application/pdf,image/*" multiple style="display:none"></label>` : ''}${navigator.canShare ? `<button class="btn" data-arcshare="${esc(x.key)}">Κοινοποίηση</button>` : ''}${del && x.kind === 'form' ? `<button class="btn danger" data-arcdel="${esc(x.key)}">✕</button>` : ''}</div></div>`;
 }
 async function fillArchive() {
   const box = $('#arcBox'); if (!box) return;
@@ -583,6 +583,9 @@ document.addEventListener('input', ev => {
 });
 document.addEventListener('change', ev => {
   const el = ev.target;
+  if (el.dataset.arcrep) { const fl = el.files; if (!fl || !fl.length) return;
+    if (!confirm('Αντικατάσταση αυτού του PDF με το αρχείο που διάλεξες (π.χ. το υπογεγραμμένο); Το παλιό σβήνεται.')) { el.value = ''; return; }
+    PELDOCS.replaceOut(PDFLib, el.dataset.arcrep, fl).then(() => { toast('Αντικαταστάθηκε'); fillArchive(); fillEntryPdfs(); }).catch(e => alert('Σφάλμα: ' + e.message)); return; }
   if (el.dataset.upload) { const fl = el.files; if (!fl || !fl.length) return; const ent = el.dataset.upload === 'entry' && edit;
     const title = prompt(ent ? 'Τι είναι; (π.χ. Techlog)' : 'Τίτλος (π.χ. Techlog SX-ABC, Logbook ΠΑΠΑΣ)', ent ? 'Techlog' : ''); if (title === null) { el.value = ''; return; }
     toast('Αποθήκευση…');
