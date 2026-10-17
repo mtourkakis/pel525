@@ -150,6 +150,8 @@ async function renderCF() {
     if (n) { lb.outerHTML = `<span class="tag ok">${f} · σκαναρισμένο ${n} σελ.</span><button class="cmb" data-scandel="${f}">✕</button>`; } }
   const fs = await PELDOCS.candFiles('cand:forms:' + c.id);
   box.innerHTML = fs.length ? fs.map((f, i) => `📎 ${esc(f.name)} <button class="cmb" data-cfdel="${i}">✕</button>`).join(' &nbsp; ') : 'κανένα';
+  const sv = $('#savedPdfs'); if (sv) { const L = (await PELDOCS.listOut()).filter(x => (x.logId || '').startsWith('forms|' + c.id)).sort((a, b) => (b.saved || 0) - (a.saved || 0));
+    sv.innerHTML = L.length ? '<span class="hint" style="margin:0">Αποθηκευμένα:</span>' + L.map(x => `<button class="btn alt" data-savedopen="${esc(x.key)}">📄 ${esc(x.forms || x.label || x.name)} · ${F.dmy(new Date(x.saved || Date.now()).toISOString().slice(0, 10))}${x.signed ? ' ✍️' : ''}</button>`).join('') : ''; }
 }
 function render() {
   $('#hb').hidden = view === 'list';
@@ -296,7 +298,7 @@ function editView() {
     <div class="row"><span class="hint" style="margin:0">Συνημμένα υποψηφίου:</span><span id="cfList" class="hint" style="margin:0">…</span><label class="btn alt" style="cursor:pointer">+ Notification email / άλλο<input type="file" id="cfAdd" accept="application/pdf,image/*" multiple style="display:none"></label></div>
     <div class="row"><span class="hint" style="margin:0">Επισύναψη στο τέλος:</span>${[['doc:lic', 'Πτυχίο'], ['doc:med', 'Medical'], ['doc:exm', 'Examiner'], ['inv', 'Τιμολόγιο']].map(([k, l]) => `<label class="chk" style="margin:0"><input type="checkbox" data-att="${k}" ${S.att[k] ? 'checked' : ''}> ${l}</label>`).join('')}</div>
     <div class="row">${fs.map(f => `<button class="btn" data-gen="${f}">${f}</button>`).join('')}${fs.length > 1 ? '<button class="btn amber" data-gen="ALL">Όλα σε ένα PDF</button>' : ''}</div>
-    <div class="out" id="out"></div>`);
+    <div class="out" id="out"></div><div class="row" id="savedPdfs"></div>`);
   h += `<div class="row"><button class="btn alt" id="dup">Αντιγραφή σε νέο υποψήφιο</button><button class="btn danger" id="del">Διαγραφή</button></div>`;
   h += datalists();
   return h;
@@ -350,6 +352,9 @@ document.addEventListener('click', async e => {
     save(); render(); toast('Σημειώθηκαν Pass'); return;
   }
   if (t.dataset.gen) { generate(t.dataset.gen, t); return; }
+  if (t.dataset.savedopen) { const r = await PELDOCS.get(t.dataset.savedopen); if (!r) return; const f = new File([r.bytes], r.name || 'form.pdf', { type: 'application/pdf' });
+    try { if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f] }); return; } } catch (e) { return; }
+    const u = URL.createObjectURL(f), a = document.createElement('a'); a.href = u; a.target = '_blank'; a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); return; }
   if (t.id === 'sigclr') { sigClear(); return; }
   if (t.id === 'sigsave') { S.ex.sig = sigData(); save(); toast(S.ex.sig ? 'Η υπογραφή αποθηκεύτηκε' : 'Άδεια υπογραφή'); render(); return; }
   if (t.id === 'sigdel') { S.ex.sig = ''; save(); render(); return; }
@@ -415,7 +420,7 @@ async function generate(which, btn) {
     if (window.PELDOCS) { const A = c.applicant || {}; const tl = [...((c.cpl && c.cpl.flights) || []), ...((c.ir && c.ir.flights) || []), ...((c.tests.ppl && c.ppl && c.ppl.flights) || [])].map(x => x && x.date).filter(Boolean).sort();
       const sd = c.signDate || tl.pop() || new Date().toISOString().slice(0, 10);
       for (const fl of files) { try { await PELDOCS.saveOut('forms|' + c.id, fl.name, new Uint8Array(await fl.blob.arrayBuffer()), { date: (c.fdate && fs.length === 1 && c.fdate[fs[0]]) || sd, cand: ((A.surname || '') + ' ' + (A.first || '')).toUpperCase().trim(), forms: fs.join(' + ') }); } catch (e) { } } }
-    deliver(files);
+    deliver(files); renderCF();
   } catch (err) { alert('Σφάλμα στη δημιουργία PDF: ' + err.message); console.error(err); }
   btn.disabled = false; btn.textContent = old;
 }
