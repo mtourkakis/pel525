@@ -545,7 +545,7 @@ document.addEventListener('click', async ev => {
     else { if (!confirm('Διαγραφή αυτού του PDF από το αρχείο;')) return; await PELDOCS.dropOut(k); }
     fillArchive(); fillEntryPdfs(); return; }
   if (t.dataset.mydocdel) { if (confirm('Αφαίρεση εγγράφου;')) { await PELDOCS.del('doc:' + t.dataset.mydocdel); fillMyDocs(); } return; }
-  if (t.id === 'delInv') { if (confirm('Διαγραφή τιμολογίου ' + invEdit.no + ';')) { try { PELDOCS.dropInvoice(invEdit.no); } catch (e) { } LOG.forEach(e => { if (e.invoice === invEdit.no) delete e.invoice; }); O.invoices = O.invoices.filter(x => x.id !== invEdit.id); saveO(); saveLog(); invEdit = null; render(); } return; }
+  if (t.id === 'delInv') { if (confirm('Διαγραφή τιμολογίου ' + invEdit.no + ';')) { try { PELDOCS.dropInvoice(invEdit.no); } catch (e) { } LOG.forEach(e => { if (e.invoice === invEdit.no) delete e.invoice; }); O.invoices = O.invoices.filter(x => x.id !== invEdit.id); { const n = parseInt(invEdit.no); if (n && n === (O.nextNo || 1) - 1) O.nextNo = n; } /* σβήστηκε το τελευταίο → ο αριθμός του ξαναχρησιμοποιείται */ saveO(); saveLog(); invEdit = null; render(); } return; }
   if (t.id === 'addMy') { const w = $('#my_w').value.trim(), d = $('#my_d').value; if (!w || !d) { toast('Συμπλήρωσε τι και πότε'); return; } O.mydocs.push({ what: w, date: d }); saveO(); render(); return; }
   if (t.dataset.delmy) { O.mydocs.splice(+t.dataset.delmy, 1); saveO(); render(); return; }
   if (t.dataset.ics || t.id === 'icsAll') {
