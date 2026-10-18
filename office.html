@@ -178,7 +178,9 @@ async function fillEntryPdfs() {
   const nk = nkey(edit.name); let L = (await arcItems()).filter(x => x.logId === edit.id || (edit.invoice && x.key === 'inv:' + edit.invoice) || (nk && (nkey(x.title) === nk || nkey(x.sub) === nk)));
   const rank = x => x.kind === 'inv' ? 3 : x.merged ? 4 : x.up ? 2 : 1; L = L.sort((a, b) => rank(a) - rank(b) || (a.date || '').localeCompare(b.date || ''));
   const pick = L.filter(x => !x.merged);
+  const noPdf = edit.invoice && !L.some(x => x.key === 'inv:' + edit.invoice) && O.invoices.some(i => i.no === edit.invoice);
   box.innerHTML = `<h3>Αποθηκευμένα PDF${nk ? ' · ' + esc(nk) : ''}</h3>${L.length ? `<div class="card list" style="margin:0">${L.map(x => (x.merged ? '' : `<label class="chk" style="margin:0 0 -6px 14px;font-size:13px"><input type="checkbox" data-mk="${esc(x.key)}" ${x.kind !== 'inv' ? 'checked' : ''}> στο ενιαίο PDF</label>`) + arcRow(x, x.sub.startsWith('📎') || x.merged)).join('')}</div>` : ''}
+  ${noPdf ? `<div class="row"><span class="hint" style="margin:0">Τιμολόγιο ${esc(edit.invoice)}: δεν έχει αποθηκευμένο PDF.</span><button class="btn alt" data-mkinv="${esc(edit.invoice)}">Δημιουργία PDF τιμολογίου</button></div>` : ''}
   <div class="row">${pick.length > 1 ? '<button class="btn amber" id="mergeE">📑 Ένωση σε ένα PDF</button>' : ''}<label class="btn alt" style="cursor:pointer">+ Συνημμένο (techlog, φωτογραφία…)<input type="file" data-upload="entry" accept="application/pdf,image/*" multiple style="display:none"></label></div>`;
 }
 /* ένωση επιλεγμένων PDF της εξέτασης σε ένα (φόρμα → συνημμένα → τιμολόγιο) */
@@ -548,6 +550,9 @@ document.addEventListener('click', async ev => {
     if (t.id === 'pdfInv') { const b = await pdfInvoice(invEdit); try { await PELDOCS.saveInvoice(invEdit.no, invEdit.entries, b, invEdit.date); } catch (e) { } const cn = ((invEdit.client === '__self' ? (invEdit.clientLines || '').split('\n')[0] : (invEdit.clientName || cname(invEdit.client))) || 'client').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'client'; const ym = (invEdit.date || new Date().toISOString()).slice(0, 7); deliver([{ name: `${ym}_${invEdit.no}_${cn}.pdf`, blob: new Blob([b], { type: 'application/pdf' }) }]); }
     else toast('Αποθηκεύτηκε'); return;
   }
+  if (t.dataset.mkinv) { const inv = O.invoices.find(i => i.no === t.dataset.mkinv); if (!inv) return; t.disabled = true;
+    try { const b = await pdfInvoice(inv); await PELDOCS.saveInvoice(inv.no, inv.entries, b, inv.date); toast('Το PDF του τιμολογίου ' + inv.no + ' αποθηκεύτηκε'); } catch (e) { alert('Σφάλμα: ' + e.message); }
+    fillEntryPdfs(); return; }
   if (t.id === 'mergeE') { t.disabled = true; try { await mergeEntry(); } catch (e) { alert('Σφάλμα: ' + e.message); } t.disabled = false; return; }
   if (t.dataset.arcfix) { const x = ((await PELDOCS.listOut()) || []).find(y => y.key === t.dataset.arcfix); if (!x) return; const lid = x.logId || '';
     if (lid.startsWith('forms|')) { location.href = 'forms.html?open=' + encodeURIComponent(lid.split('|')[1]); return; }
