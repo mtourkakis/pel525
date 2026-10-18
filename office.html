@@ -155,14 +155,14 @@ function vArchive() {
 }
 async function arcItems() {
   if (!window.PELDOCS) return [];
-  const out = (await PELDOCS.listOut()).map(x => ({ key: x.key, kind: 'form', signed: !!x.signed, logId: x.logId, state: x.state, up: !!x.up, title: x.cand || x.label || '—', sub: x.up ? '📎 ' + (x.cand && x.label ? x.label : 'Αρχείο') : x.forms ? 'PEL-FCL ' + x.forms : x.name, name: x.name, date: x.date || '', size: x.size, logId: x.logId }));
+  const out = (await PELDOCS.listOut()).map(x => ({ key: x.key, kind: 'form', signed: !!x.signed, logId: x.logId, state: x.state, up: !!x.up, merged: !!x.merged, title: x.cand || x.label || '—', sub: x.merged ? '📑 Όλα μαζί σε ένα PDF' : x.up ? '📎 ' + (x.cand && x.label ? x.label : 'Αρχείο') : x.forms ? 'PEL-FCL ' + x.forms : x.name, name: x.name, date: x.date || '', size: x.size, logId: x.logId }));
   const inv = (await PELDOCS.invList()).map(x => { const i = O.invoices.find(v => v.no === x.no) || {};
     return { key: 'inv:' + x.no, kind: 'inv', title: 'Τιμολόγιο ' + x.no, sub: i.client ? (i.client === '__self' ? (i.clientLines || '').split('\n')[0] : (i.clientName || cname(i.client))) : '', name: 'Invoice ' + x.no + '.pdf', date: x.date || i.date || '' }; });
   return out.concat(inv).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 }
 function arcRow(x, del) {
   return `<div class="item"><div style="flex:1;min-width:0"><b>${esc(x.title)}</b>${x.signed ? ' <span class="tag ok">✍️ υπογεγραμμένο</span>' : ''}<span>${dmy(x.date)}${x.sub ? ' · ' + esc(x.sub) : ''}${x.size ? ' · ' + Math.round(x.size / 1024) + ' KB' : ''}</span></div>
-  <div class="row" style="margin:0;flex-wrap:nowrap"><button class="btn alt" data-arcopen="${esc(x.key)}">Άνοιγμα</button>${x.kind === 'form' && !x.up && /^(525|forms)\|/.test(x.logId || '') ? `<button class="btn alt" data-arcfix="${esc(x.key)}" title="Άνοιγμα της φόρμας για διόρθωση">✎</button>` : ''}${x.kind === 'form' ? `<label class="btn alt" style="cursor:pointer" title="Αντικατάσταση με το υπογεγραμμένο / σκαναρισμένο">↻<input type="file" data-arcrep="${esc(x.key)}" accept="application/pdf,image/*" multiple style="display:none"></label>` : ''}${navigator.canShare ? `<button class="btn" data-arcshare="${esc(x.key)}">Κοινοποίηση</button>` : ''}${del ? `<button class="btn danger" data-arcdel="${esc(x.key)}">✕</button>` : ''}</div></div>`;
+  <div class="row" style="margin:0;flex-wrap:nowrap"><button class="btn alt" data-arcopen="${esc(x.key)}">Άνοιγμα</button>${x.kind === 'form' && !x.up && !x.merged && /^(525|forms)\|/.test(x.logId || '') ? `<button class="btn alt" data-arcfix="${esc(x.key)}" title="Άνοιγμα της φόρμας για διόρθωση">✎</button>` : ''}${x.kind === 'form' ? `<label class="btn alt" style="cursor:pointer" title="Αντικατάσταση με το υπογεγραμμένο / σκαναρισμένο">↻<input type="file" data-arcrep="${esc(x.key)}" accept="application/pdf,image/*" multiple style="display:none"></label>` : ''}${navigator.canShare ? `<button class="btn" data-arcshare="${esc(x.key)}">Κοινοποίηση</button>` : ''}${del ? `<button class="btn danger" data-arcdel="${esc(x.key)}">✕</button>` : ''}</div></div>`;
 }
 async function fillArchive() {
   const box = $('#arcBox'); if (!box) return;
@@ -175,9 +175,21 @@ async function fillArchive() {
 }
 async function fillEntryPdfs() {
   const box = $('#entryPdfs'); if (!box || !edit || !window.PELDOCS) return;
-  const nk = nkey(edit.name); const L = (await arcItems()).filter(x => x.logId === edit.id || (edit.invoice && x.key === 'inv:' + edit.invoice) || (nk && (nkey(x.title) === nk || nkey(x.sub) === nk)));
-  box.innerHTML = `<h3>Αποθηκευμένα PDF${nk ? ' · ' + esc(nk) : ''}</h3>${L.length ? `<div class="card list" style="margin:0">${L.map(x => arcRow(x, x.sub.startsWith('📎'))).join('')}</div>` : ''}
-  <div class="row"><label class="btn alt" style="cursor:pointer">+ Συνημμένο (techlog, φωτογραφία…)<input type="file" data-upload="entry" accept="application/pdf,image/*" multiple style="display:none"></label></div>`;
+  const nk = nkey(edit.name); let L = (await arcItems()).filter(x => x.logId === edit.id || (edit.invoice && x.key === 'inv:' + edit.invoice) || (nk && (nkey(x.title) === nk || nkey(x.sub) === nk)));
+  const rank = x => x.kind === 'inv' ? 3 : x.merged ? 4 : x.up ? 2 : 1; L = L.sort((a, b) => rank(a) - rank(b) || (a.date || '').localeCompare(b.date || ''));
+  const pick = L.filter(x => !x.merged);
+  box.innerHTML = `<h3>Αποθηκευμένα PDF${nk ? ' · ' + esc(nk) : ''}</h3>${L.length ? `<div class="card list" style="margin:0">${L.map(x => (x.merged ? '' : `<label class="chk" style="margin:0 0 -6px 14px;font-size:13px"><input type="checkbox" data-mk="${esc(x.key)}" ${x.kind !== 'inv' ? 'checked' : ''}> στο ενιαίο PDF</label>`) + arcRow(x, x.sub.startsWith('📎') || x.merged)).join('')}</div>` : ''}
+  <div class="row">${pick.length > 1 ? '<button class="btn amber" id="mergeE">📑 Ένωση σε ένα PDF</button>' : ''}<label class="btn alt" style="cursor:pointer">+ Συνημμένο (techlog, φωτογραφία…)<input type="file" data-upload="entry" accept="application/pdf,image/*" multiple style="display:none"></label></div>`;
+}
+/* ένωση επιλεγμένων PDF της εξέτασης σε ένα (φόρμα → συνημμένα → τιμολόγιο) */
+async function mergeEntry() {
+  const keys = [...document.querySelectorAll('[data-mk]')].filter(c => c.checked).map(c => c.dataset.mk); if (keys.length < 2) { toast('Διάλεξε τουλάχιστον 2'); return; }
+  const doc = await PDFLib.PDFDocument.create();
+  for (const k of keys) { const r = await PELDOCS.get(k); if (!r || !r.bytes) continue; const d = await PDFLib.PDFDocument.load(r.bytes, { ignoreEncryption: true }); (await doc.copyPages(d, d.getPageIndices())).forEach(pg => doc.addPage(pg)); }
+  const bytes = await doc.save(); const nm = (nkey(edit.name) || 'EXAM').replace(/[^A-Z0-9]+/g, '_') + '_' + (edit.date || '') + '_ALL.pdf';
+  try { await PELDOCS.saveOut(edit.id, nm, bytes, { key: 'out:merged|' + edit.id, cand: edit.name || '', date: edit.date || '', forms: 'Όλα μαζί', merged: true }); } catch (e) { }
+  const f = new File([bytes], nm, { type: 'application/pdf' }); fillEntryPdfs();
+  try { if (navigator.canShare && navigator.canShare({ files: [f] })) await navigator.share({ files: [f] }); else deliver([{ name: nm, blob: f }]); } catch (e) { } toast('Έτοιμο: ' + keys.length + ' αρχεία σε ένα PDF');
 }
 async function arcFile(key) { const r = await PELDOCS.get(key); if (!r) { alert('Το αρχείο δεν βρέθηκε.'); return null; } return new File([r.bytes], r.name || 'document.pdf', { type: 'application/pdf' }); }
 
@@ -536,6 +548,7 @@ document.addEventListener('click', async ev => {
     if (t.id === 'pdfInv') { const b = await pdfInvoice(invEdit); try { await PELDOCS.saveInvoice(invEdit.no, invEdit.entries, b, invEdit.date); } catch (e) { } const cn = ((invEdit.client === '__self' ? (invEdit.clientLines || '').split('\n')[0] : (invEdit.clientName || cname(invEdit.client))) || 'client').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'client'; const ym = (invEdit.date || new Date().toISOString()).slice(0, 7); deliver([{ name: `${ym}_${invEdit.no}_${cn}.pdf`, blob: new Blob([b], { type: 'application/pdf' }) }]); }
     else toast('Αποθηκεύτηκε'); return;
   }
+  if (t.id === 'mergeE') { t.disabled = true; try { await mergeEntry(); } catch (e) { alert('Σφάλμα: ' + e.message); } t.disabled = false; return; }
   if (t.dataset.arcfix) { const x = ((await PELDOCS.listOut()) || []).find(y => y.key === t.dataset.arcfix); if (!x) return; const lid = x.logId || '';
     if (lid.startsWith('forms|')) { location.href = 'forms.html?open=' + encodeURIComponent(lid.split('|')[1]); return; }
     localStorage.setItem('pel525_restore', JSON.stringify({ name: x.cand || lid.split('|')[1] || '', state: x.state || null })); location.href = 'index.html?restore=1'; return; }
