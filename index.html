@@ -75,7 +75,7 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
 </head>
 <body>
 <div class="wrap">
-<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v50</span><a class="swl" href="forms.html">CPL · IR · PBN ›</a><a class="swl" style="margin-left:6px" href="office.html">Γραφείο ›</a></header>
+<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v51</span><a class="swl" href="forms.html">CPL · IR · PBN ›</a><a class="swl" style="margin-left:6px" href="office.html">Γραφείο ›</a></header>
 
 <details id="exBox">
 <summary>Εγώ · Examiner <em id="exSum">ρύθμιση</em></summary>
@@ -167,13 +167,13 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
 </div>
 <label for="actype6">A/C ή FSTD class/type (incl. variant)</label><input id="actype6" autocapitalize="characters" placeholder="κενό = ίδιο με αεροσκάφος">
 <div class="row3">
- <div><label for="off">Off blocks</label><input id="off" type="time"></div>
- <div><label for="on">On blocks</label><input id="on" type="time"></div>
+ <div><label for="off">Off blocks</label><input id="off" type="text" inputmode="numeric" maxlength="5" placeholder="ΗΗ:ΜΜ" autocomplete="off"></div>
+ <div><label for="on">On blocks</label><input id="on" type="text" inputmode="numeric" maxlength="5" placeholder="ΗΗ:ΜΜ" autocomplete="off"></div>
  <div><label for="total">Total</label><input id="total" placeholder="αυτόματα"></div>
 </div>
 <div class="row3">
- <div><label for="off2">Off blocks 2</label><input id="off2" type="time"></div>
- <div><label for="on2">On blocks 2</label><input id="on2" type="time"></div>
+ <div><label for="off2">Off blocks 2</label><input id="off2" type="text" inputmode="numeric" maxlength="5" placeholder="ΗΗ:ΜΜ" autocomplete="off"></div>
+ <div><label for="on2">On blocks 2</label><input id="on2" type="text" inputmode="numeric" maxlength="5" placeholder="ΗΗ:ΜΜ" autocomplete="off"></div>
  <div></div>
 </div>
 <div class="note" style="margin-top:0">2η γραμμή προαιρετική (π.χ. SIM + αεροσκάφος): τυπώνονται πάνω-κάτω στο ίδιο κουτί και το Total είναι το άθροισμα.</div>
@@ -282,8 +282,12 @@ $("candNew").addEventListener("click",()=>{S.cands.push({});S.cur=S.cands.length
 $("candDel").addEventListener("click",()=>{if(S.cur<0)return;if(!confirm("Διαγραφή του "+candLabel(S.cands[S.cur])+";"))return;
  S.cands.splice(S.cur,1);S.cur=S.cands.length?0:-1;persist();renderCands();fillCand();});
 /* check fields */
+// ώρες πάντα σε 24ωρο ΗΗ:ΜΜ — δέχεται 1330, 13.30, 5:45, 545
+function normTm(x){const t=String(x||"").trim();if(!t)return"";const m=t.match(/^(\d{1,2})[:.\s]?(\d{2})$/);if(!m)return t;const h=+m[1],mi=+m[2];return h<24&&mi<60?String(h).padStart(2,"0")+":"+m[2]:t}
+const isTm=t=>/^\d{2}:\d{2}$/.test(t);
+["off","on","off2","on2"].forEach(i=>$(i)&&$(i).addEventListener("blur",()=>{const n=normTm($(i).value);if(n!==$(i).value){$(i).value=n;$(i).dispatchEvent(new Event("input",{bubbles:true}));}}));
 function calcTotal(){const mins=t=>{const[h,m]=t.split(":").map(Number);return h*60+m;};let d=0,any=false;
- for(const[x,y]of[["off","on"],["off2","on2"]]){const a=$(x).value,b=$(y).value;if(!a||!b)continue;let k=mins(b)-mins(a);if(k<0)k+=1440;d+=k;any=true;}
+ for(const[x,y]of[["off","on"],["off2","on2"]]){const a=normTm($(x).value),b=normTm($(y).value);if(!isTm(a)||!isTm(b))continue;let k=mins(b)-mins(a);if(k<0)k+=1440;d+=k;any=true;}
  if(!any)return;$("total").value=Math.floor(d/60)+":"+String(d%60).padStart(2,"0");}
 function checkInput(e){if(e&&["off","on","off2","on2"].includes(e.target.id))calcTotal();CK.forEach(i=>S.check[i]=$(i).value);persist();refresh();if(e&&e.target.id==="date"&&e.type==="change")renderItems();}
 /* chips */
