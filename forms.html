@@ -381,6 +381,8 @@ document.addEventListener('change', e => {
   if (el.dataset.chk) { setP(cur(), el.dataset.chk, el.checked); save(); render(); return; }
   if (el.dataset.p && (el.type === 'date' || el.type === 'time')) { setP(view === 'settings' ? S : cur(), el.dataset.p, el.value); save(); if (view === 'edit') { const y = window.scrollY; render(); window.scrollTo(0, y); } }
 });
+/* «Διόρθωση» από το Αρχείο: άνοιγμα του υποψηφίου */
+setTimeout(() => { const q = new URLSearchParams(location.search), id = q.get('open'); if (!id) return; history.replaceState(null, '', location.pathname); if (S.cands.some(c => c.id === id)) { S.cur = id; openSecs = { prog: true, app: true }; view = 'edit'; setTitle(); render(); window.scrollTo(0, 0); } else alert('Ο υποψήφιος δεν υπάρχει πια στις φόρμες.'); }, 0);
 function setTitle() { const c = cur(); $('#ttl').innerHTML = esc(((c && c.applicant.surname) || 'Υποψήφιος').toUpperCase()) + '<small>' + (c && c.tests.rev && !c.tests.ppl && !c.tests.cpl && !c.tests.ir ? 'SEP reval.' : c && c.tests.ppl && !c.tests.cpl && !c.tests.ir ? (c.ppl.lic === 'LAPL' ? 'LAPL(A)' : 'PPL(A)') : c && c.course === 'modular' ? 'Modular' : 'Integrated') + '</small>'; }
 
 /* ---------- PDF ---------- */

@@ -75,7 +75,7 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
 </head>
 <body>
 <div class="wrap">
-<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v48</span><a class="swl" href="forms.html">CPL · IR · PBN ›</a><a class="swl" style="margin-left:6px" href="office.html">Γραφείο ›</a></header>
+<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v49</span><a class="swl" href="forms.html">CPL · IR · PBN ›</a><a class="swl" style="margin-left:6px" href="office.html">Γραφείο ›</a></header>
 
 <details id="exBox">
 <summary>Εγώ · Examiner <em id="exSum">ρύθμιση</em></summary>
@@ -334,6 +334,15 @@ $("a5today").addEventListener("click",()=>{$("a5date").value=$("date").value;che
 $("a5expCk").addEventListener("click",()=>{$("a5exp").value=$("ctVal").value;checkInput();});
 /* init */
 loadS();
+/* «Διόρθωση» από το Αρχείο: φόρτωση της 525 όπως ήταν όταν βγήκε */
+(function(){const q=new URLSearchParams(location.search);if(!q.has("restore"))return;history.replaceState(null,"",location.pathname);let R=null;try{R=JSON.parse(localStorage.getItem("pel525_restore")||"null");}catch(e){}localStorage.removeItem("pel525_restore");if(!R)return;
+ const st=R.state;const nm=R.name||"";
+ if(st&&!confirm("Φόρτωση της 525 του "+nm+" για διόρθωση;\n\nΗ φόρμα που είναι τώρα ανοιχτή θα αντικατασταθεί (οι υποψήφιοι μένουν)."))return;
+ let i=-1;const c=st&&st.cand;if(c&&c.id)i=S.cands.findIndex(x=>x.id===c.id);if(i<0)i=S.cands.findIndex(x=>(upper(x.surname)+" "+upper(x.first)).trim()===nm);
+ if(c){if(i>=0)S.cands[i]=Object.assign({},S.cands[i],c);else{S.cands.push(c);i=S.cands.length-1;}}
+ if(i>=0)S.cur=i;
+ if(st){S.check=st.check||{};S.chips=st.chips||{};S.items=st.items||{};S.idates=st.idates||{};}
+ persist();if(!st)setTimeout(()=>alert("Βρέθηκε ο υποψήφιος "+nm+". Αυτή η 525 βγήκε πριν την ενημέρωση, οπότε έλεγξε ημερομηνία, items κ.λπ. πριν την ξαναβγάλεις."),300);})();
 for(const k in DEF_EX)if(!(S.ex[k]||"").trim())S.ex[k]=DEF_EX[k];
 if(S.chips.stamp===undefined)S.chips.stamp=true;
 if(!S.mig7){S.ex.exCert=DEF_EX.exCert;S.ex.st2=DEF_EX.st2;S.mig7=true;}
@@ -477,7 +486,7 @@ $("go").addEventListener("click",async()=>{const btn=$("go");btn.disabled=true;s
    if(bad.length&&confirm("Τα items "+bad.join(", ")+" δεν εφαρμόζονται σε "+acClass()+" (Part-FCL App.9 B) και είναι τσεκαρισμένα.\n\nΟΚ = να γίνουν N/A και να συνεχίσει\nΆκυρο = να μείνουν όπως είναι")){fixClassItems();persist();renderItems();}}
   let bytes=await build();const cc=S.cands[S.cur];if(cc&&cc.id&&window.PELDOCS){const sk="scan:525:"+cc.id;if(await PELDOCS.scanCount(PDFLib,sk))bytes=await PELDOCS.compose(PDFLib,bytes,await build(true),sk,BB525);}try{logExam525();}catch(e){}let ainfo="";try{const a=await attachDocs(bytes);bytes=a.bytes;ainfo=a.info;}catch(e){ainfo=" · η επισύναψη απέτυχε";}const sn=upper($("c_surname").value).replace(/[^A-Z0-9]+/g,"-")||"APPLICANT";
   const fn="PEL-FCL-525_"+sn+"_"+dmy($("date").value).replace(/\//g,"-")+".pdf";
-  try{if(window.PELDOCS&&$("date").value){const nm=(upper($("c_surname").value)+" "+upper($("c_first").value)).trim();await PELDOCS.saveOut("525|"+nm+"|"+$("date").value,fn,bytes,{date:$("date").value,cand:nm,forms:"525"});}}catch(e){}
+  try{if(window.PELDOCS&&$("date").value){const nm=(upper($("c_surname").value)+" "+upper($("c_first").value)).trim();await PELDOCS.saveOut("525|"+nm+"|"+$("date").value,fn,bytes,{date:$("date").value,cand:nm,forms:"525",state:JSON.parse(JSON.stringify({check:S.check,chips:S.chips,items:S.items,idates:S.idates,cand:S.cands[S.cur]||null}))});}}catch(e){}
   if(!dl){const blob=new Blob([bytes],{type:"application/pdf"}),file=new File([blob],fn,{type:"application/pdf"});
    try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:fn});setStatus("Έτοιμο: "+fn+ainfo,"ok");return;}}
    catch(e){if(e&&e.name==="AbortError"){setStatus("Ακυρώθηκε.","err");return;}}
