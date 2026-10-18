@@ -75,7 +75,7 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
 </head>
 <body>
 <div class="wrap">
-<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v45</span><a class="swl" href="forms.html">CPL · IR · PBN ›</a><a class="swl" style="margin-left:6px" href="office.html">Γραφείο ›</a></header>
+<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v46</span><a class="swl" href="forms.html">CPL · IR · PBN ›</a><a class="swl" style="margin-left:6px" href="office.html">Γραφείο ›</a></header>
 
 <details id="exBox">
 <summary>Εγώ · Examiner <em id="exSum">ρύθμιση</em></summary>
@@ -290,6 +290,12 @@ function checkInput(e){if(e&&["off","on","off2","on2"].includes(e.target.id))cal
 function renderChips(){document.querySelectorAll(".chip").forEach(b=>b.setAttribute("aria-pressed",S.chips[b.dataset.k]?"true":"false"));}
 document.querySelectorAll(".chip").forEach(b=>b.addEventListener("click",()=>{const g=b.parentElement,on=b.getAttribute("aria-pressed")!=="true";
  if(g.dataset.single)g.querySelectorAll(".chip").forEach(o=>S.chips[o.dataset.k]=false);S.chips[b.dataset.k]=on;persist();renderChips();}));
+/* κλάση αεροσκάφους για τα items: SE-only (4.5, 5.2, 5.3) και ME-only (Section 6) — Part-FCL App.9 B */
+const SE_ONLY=["4.5","5.2","5.3"];const isMEitem=id=>/^6\./.test(id);
+function acClass(){const c=S.chips||{},se=c.r6sep||c.ir6se,me=c.r6mep||c.ir6me;if(me&&!se)return"ME";if(se&&!me)return"SE";
+ const t=((($("actype")||{}).value||"")+" "+(($("a5ir")||{}).value||"")).toUpperCase();const m=/MEP|\/ME\b/.test(t),e=/SEP|\/SE\b|TMG/.test(t);return m&&!e?"ME":e&&!m?"SE":null}
+const wrongCls=id=>{const k=acClass();return k==="ME"?SE_ONLY.includes(id):k==="SE"?isMEitem(id):false};
+function fixClassItems(){C.items.forEach(i=>{if(wrongCls(i.id))S.items[i.id]="na";});}
 /* items */
 function renderItems(){const box=$("items");box.innerHTML="";let last=null;
  C.items.forEach(it=>{const s=secOf(it.id);
@@ -297,7 +303,7 @@ function renderItems(){const box=$("items");box.innerHTML="";let last=null;
    const b=document.createElement("button");b.className="mini";b.textContent="εναλλαγή";b.addEventListener("click",()=>{const its=C.items.filter(x=>secOf(x.id)===s);const all=its.every(x=>S.items[x.id]===true);its.forEach(x=>S.items[x.id]=!all);persist();renderItems();});
    h.appendChild(b);box.appendChild(h);}
   const st=S.items[it.id],r=document.createElement("div");r.className="item"+(st===true?" on":st==="na"?" na":"");
-  r.innerHTML='<div class="box"></div><div class="num">'+it.id+'</div><div class="lbl">'+it.t+'</div>'+(st==="na"?'<span class="na-tag">N/A</span>':"")+(it.m?'<span class="m">M</span>':"");
+  r.innerHTML='<div class="box"></div><div class="num">'+it.id+'</div><div class="lbl">'+it.t+'</div>'+(st==="na"?'<span class="na-tag">N/A</span>':"")+(st===true&&wrongCls(it.id)?'<span class="na-tag" style="background:#c62828;color:#fff">'+(acClass()==="ME"?"μόνο SE → N/A":"μόνο ME → N/A")+'</span>':"")+(it.m?'<span class="m">M</span>':"");
   if(st===true){const cd=$("date").value,od=S.idates[it.id],w=document.createElement("label");w.className="idw"+(od&&od!==cd?" diff":"");
    const sp=document.createElement("span");sp.textContent=dmy(od||cd,true).slice(0,5)||"ημ.";const di=document.createElement("input");di.type="date";di.value=od||cd;
    w.addEventListener("click",ev=>ev.stopPropagation());
@@ -309,12 +315,12 @@ function countItems(){const on=C.items.filter(i=>S.items[i.id]===true).length,na
  $("itemCount").textContent=on+" ✓"+(na?" · "+na+" N/A":"");}
 $("idReset").addEventListener("click",()=>{S.idates={};persist();renderItems();});
 $("selNA").addEventListener("click",()=>{C.items.forEach(i=>{if(S.items[i.id]!==true)S.items[i.id]="na";});persist();renderItems();});
-$("selM").addEventListener("click",()=>{C.items.forEach(i=>S.items[i.id]=!!i.m);persist();renderItems();});
-$("selAll").addEventListener("click",()=>{C.items.forEach(i=>S.items[i.id]=true);persist();renderItems();});
+$("selM").addEventListener("click",()=>{C.items.forEach(i=>S.items[i.id]=!!i.m);fixClassItems();persist();renderItems();});
+$("selAll").addEventListener("click",()=>{C.items.forEach(i=>S.items[i.id]=true);fixClassItems();persist();renderItems();});
 $("selNone").addEventListener("click",()=>{S.items={};S.idates={};persist();renderItems();});
 function renderTpls(){const s=$("tpl");s.innerHTML='<option value="">—</option>';Object.keys(S.tpls).forEach(n=>{const o=document.createElement("option");o.value=n;o.textContent=n;s.appendChild(o);});}
 $("tpl").addEventListener("change",e=>{const t=S.tpls[e.target.value];if(!t)return;S.items={};
- if(Array.isArray(t))t.forEach(id=>S.items[id]=true);else{(t.on||[]).forEach(id=>S.items[id]=true);(t.na||[]).forEach(id=>S.items[id]="na");}persist();renderItems();});
+ if(Array.isArray(t))t.forEach(id=>S.items[id]=true);else{(t.on||[]).forEach(id=>S.items[id]=true);(t.na||[]).forEach(id=>S.items[id]="na");}fixClassItems();persist();renderItems();});
 $("tplSave").addEventListener("click",()=>{const n=(prompt("Όνομα προτύπου (π.χ. MEP LPC + IR):")||"").trim();if(!n)return;
  S.tpls[n]={on:C.items.filter(i=>S.items[i.id]===true).map(i=>i.id),na:C.items.filter(i=>S.items[i.id]==="na").map(i=>i.id)};persist();renderTpls();$("tpl").value=n;});
 $("tplDel").addEventListener("click",()=>{const n=$("tpl").value;if(!n||!confirm("Διαγραφή προτύπου «"+n+"»;"))return;delete S.tpls[n];persist();renderTpls();});
@@ -462,6 +468,8 @@ let dl=null;(async()=>{try{dl=await window.claude?.use?.("downloads")??null;}cat
 $("go").addEventListener("click",async()=>{const btn=$("go");btn.disabled=true;setStatus("Δημιουργία…");
  try{if(!window.PDFLib)throw 0;
   if(nonLatin($("c_surname").value)||nonLatin($("c_first").value)){setStatus("Το όνομα του υποψηφίου πρέπει να είναι με λατινικούς.","err");return;}
+  {const bad=C.items.filter(i=>S.items[i.id]===true&&wrongCls(i.id)).map(i=>i.id);
+   if(bad.length&&confirm("Τα items "+bad.join(", ")+" δεν εφαρμόζονται σε "+acClass()+" (Part-FCL App.9 B) και είναι τσεκαρισμένα.\n\nΟΚ = να γίνουν N/A και να συνεχίσει\nΆκυρο = να μείνουν όπως είναι")){fixClassItems();persist();renderItems();}}
   let bytes=await build();const cc=S.cands[S.cur];if(cc&&cc.id&&window.PELDOCS){const sk="scan:525:"+cc.id;if(await PELDOCS.scanCount(PDFLib,sk))bytes=await PELDOCS.compose(PDFLib,bytes,await build(true),sk,BB525);}try{logExam525();}catch(e){}let ainfo="";try{const a=await attachDocs(bytes);bytes=a.bytes;ainfo=a.info;}catch(e){ainfo=" · η επισύναψη απέτυχε";}const sn=upper($("c_surname").value).replace(/[^A-Z0-9]+/g,"-")||"APPLICANT";
   const fn="PEL-FCL-525_"+sn+"_"+dmy($("date").value).replace(/\//g,"-")+".pdf";
   try{if(window.PELDOCS&&$("date").value){const nm=(upper($("c_surname").value)+" "+upper($("c_first").value)).trim();await PELDOCS.saveOut("525|"+nm+"|"+$("date").value,fn,bytes,{date:$("date").value,cand:nm,forms:"525"});}}catch(e){}
