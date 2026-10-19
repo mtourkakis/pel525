@@ -208,9 +208,13 @@ function vLog() {
   h += `<div class="card list">${list.map(e => `<div class="item" data-edit="${e.id}"><div style="flex:1;min-width:0"><b>${dmy(e.date)} · ${esc(e.name || '—')}</b><span>${esc([CATS[e.cat] !== 'Εξέταση' ? CATS[e.cat] : '', e.test, e.type].filter(Boolean).join(' · '))}</span><span>${e.client ? esc(cname(e.client)) : (e.noInv ? '' : '<i style="color:#c62f2f">χωρίς πελάτη</i>')}${e.invoice ? ' · τιμ. ' + esc(e.invoice) : ''}${e.noInv ? (e.client ? ' · ' : '') + 'χωρίς τιμολόγιο' : ''}</span></div><div style="text-align:right">${e.result ? `<span class="tag ${e.result === 'P' ? 'ok' : 'bad'}">${e.result}</span><br>` : ''}<b>${e.price != null ? eur(e.price) : ''}</b></div></div>`).join('') || '<div class="item"><span>Καμία εγγραφή αυτόν τον μήνα.</span></div>'}</div>`;
   const tot = list.reduce((s, e) => s + (e.price || 0), 0);
   h += `<p class="hint">${list.length} εγγραφές · σύνολο ${eur(tot)}. Οι εξετάσεις από 525 και CPL/IR/PBN μπαίνουν αυτόματα όταν βγάζεις PDF.</p>`;
+  const TR = trashGet(); if (TR.length) h += `<details class="card" style="margin-top:12px"><summary>🗑 Διαγραμμένα (${TR.length})</summary><div class="body">${TR.map((x, i) => `<div class="row" style="justify-content:space-between"><span>${dmy(x.e.date)} · ${esc(x.e.name || '—')} · ${esc(x.e.test || CATS[x.e.cat] || '')}${x.e.price != null ? ' · ' + eur(x.e.price) : ''}<br><span class="hint" style="margin:0">διαγράφηκε ${new Date(x.t).toLocaleDateString('el-GR')}</span></span><button class="btn alt" data-untrash="${i}">↺ Επαναφορά</button></div>`).join('')}</div></details>`;
   h += `<button class="btn amber fab" id="addE">+ Νέα εξέταση</button>`;
   return h;
 }
+/* κάδος: οι διαγραμμένες εγγραφές κρατιούνται 60 μέρες */
+function trashGet() { try { return (JSON.parse(localStorage.getItem('pel_trash_v1')) || []).filter(x => Date.now() - x.t < 60 * 864e5); } catch (e) { return []; } }
+function trashPut(e) { const T = trashGet(); T.unshift({ t: Date.now(), e }); try { localStorage.setItem('pel_trash_v1', JSON.stringify(T.slice(0, 200))); } catch (er) { } }
 function editorHTML() {
   const e = edit;
   const exps = (e.exp || []).map((x, i) => `<div class="grid" style="margin-top:6px">${fld('exp.' + i + '.what', 'Τι λήγει', 'text', x.what)}${fld('exp.' + i + '.date', 'Ημερομηνία λήξης', 'date', x.date)}<button class="btn danger" data-delexp="${i}" style="align-self:end">✕</button></div>`).join('');
@@ -517,7 +521,7 @@ document.addEventListener('click', async ev => {
   if (t.id === 'addExp') { edit.exp = edit.exp || []; edit.exp.push({ what: '', date: '' }); render(); return; }
   if (t.dataset.delexp) { edit.exp.splice(+t.dataset.delexp, 1); render(); return; }
   if (t.id === 'saveE') { const i = LOG.findIndex(x => x.id === edit.id); edit.manualEdit = true; if (i >= 0) LOG[i] = edit; else LOG.push(edit); curMonth = (edit.date || curMonth).slice(0, 7); saveLog(); syncPerson(edit); edit = null; if (backTab) { tab = backTab; backTab = null; } render(); toast('Αποθηκεύτηκε'); return; }
-  if (t.id === 'delE') { if (confirm('Διαγραφή εγγραφής;')) { LOG = LOG.filter(x => x.id !== edit.id); saveLog(); edit = null; if (backTab) { tab = backTab; backTab = null; } render(); } return; }
+  if (t.id === 'delE') { if (confirm('Διαγραφή εγγραφής;\n\n(Πηγαίνει στα «Διαγραμμένα» κάτω στις Εξετάσεις — μπορείς να την επαναφέρεις.)')) { const old = LOG.find(x => x.id === edit.id); if (old) trashPut(old); LOG = LOG.filter(x => x.id !== edit.id); saveLog(); edit = null; if (backTab) { tab = backTab; backTab = null; } render(); } return; }
   if (t.id === 'gen801') { O.exName801 = $('#ex801').value; saveO(); const b = await pdf801(curMonth, $('#ex801').value, $('#d801').value); deliver([{ name: `PEL-FCL-801_${curMonth}.pdf`, blob: new Blob([b], { type: 'application/pdf' }) }]); return; }
   if (t.id === 'mail801') { location.href = `mailto:info@hcaa.gov.gr?subject=${encodeURIComponent('PEL-FCL 801 - Examiner Activity Report - ' + curMonth + ' - ' + ($('#ex801').value || ''))}&body=${encodeURIComponent('Please find attached the Examiner Activity Report (PEL-FCL 801) for ' + monthLabel(curMonth) + '.\n\n' + ($('#ex801').value || ''))}`; return; }
   if (t.dataset.x801 || t.dataset.in801) { const e = LOG.find(x => x.id === (t.dataset.x801 || t.dataset.in801)); if (e) { e.in801 = !!t.dataset.in801; e.manualEdit = true; saveLog(); render(); toast(e.in801 ? 'Μπήκε ξανά στο 801' : 'Βγήκε από το 801'); } return; }
@@ -553,6 +557,7 @@ document.addEventListener('click', async ev => {
   if (t.dataset.mkinv) { const inv = O.invoices.find(i => i.no === t.dataset.mkinv); if (!inv) return; t.disabled = true;
     try { const b = await pdfInvoice(inv); await PELDOCS.saveInvoice(inv.no, inv.entries, b, inv.date); toast('Το PDF του τιμολογίου ' + inv.no + ' αποθηκεύτηκε'); } catch (e) { alert('Σφάλμα: ' + e.message); }
     fillEntryPdfs(); return; }
+  if (t.dataset.untrash) { const T = trashGet(); const x = T[+t.dataset.untrash]; if (!x) return; if (!LOG.some(y => y.id === x.e.id)) LOG.push(x.e); T.splice(+t.dataset.untrash, 1); localStorage.setItem('pel_trash_v1', JSON.stringify(T)); saveLog(); curMonth = (x.e.date || curMonth).slice(0, 7); render(); toast('Επαναφέρθηκε: ' + (x.e.name || '')); return; }
   if (t.id === 'mergeE') { t.disabled = true; try { await mergeEntry(); } catch (e) { alert('Σφάλμα: ' + e.message); } t.disabled = false; return; }
   if (t.dataset.arcfix) { const x = ((await PELDOCS.listOut()) || []).find(y => y.key === t.dataset.arcfix); if (!x) return; const lid = x.logId || '';
     if (lid.startsWith('forms|')) { location.href = 'forms.html?open=' + encodeURIComponent(lid.split('|')[1]); return; }
@@ -631,6 +636,7 @@ document.addEventListener('change', ev => {
     f.text().then(txt => {
       try {
         const d = JSON.parse(txt);
+        if (d.addLog) { let n = 0; d.addLog.forEach(e => { if (e && e.id && !LOG.some(x => x.id === e.id)) { LOG.push(e); n++; } }); saveLog(); render(); toast('Προστέθηκαν ' + n + ' εγγραφές'); return; }
         if (d.log && d.office) { if (!confirm('Αντικατάσταση όλων των δεδομένων του Γραφείου με το backup;')) return; O = Object.assign(O, d.office); LOG = d.log; }
         else { // setup file: merge
           ['company', 'companyNo', 'bank'].forEach(k => { if (d[k] && !O[k]) O[k] = d[k]; });
