@@ -641,6 +641,11 @@ document.addEventListener('change', ev => {
     f.text().then(txt => {
       try {
         const d = JSON.parse(txt);
+        if (d.cand525) { let st = {}; try { st = JSON.parse(localStorage.getItem('pel525-ex-v1')) || {}; } catch (e) { } st.cands = st.cands || []; let n = 0;
+          d.cand525.forEach(c => { const k = x => ((x.surname || '') + ' ' + (x.first || '')).toUpperCase().trim(); const i = st.cands.findIndex(x => k(x) === k(c));
+            if (i >= 0) st.cands[i] = Object.assign({}, st.cands[i], c, { id: st.cands[i].id || c.id }); else { st.cands.push(Object.assign({ id: uid() }, c)); } n++; });
+          localStorage.setItem('pel525-ex-v1', JSON.stringify(st)); toast('Προστέθηκε στους υποψηφίους της 525: ' + d.cand525.map(c => c.surname).join(', '));
+          if (!d.addLog) return; }
         if (d.addLog) { let n = 0; d.addLog.forEach(e => { if (e && e.id && !LOG.some(x => x.id === e.id)) { LOG.push(e); n++; } }); saveLog(); render(); toast('Προστέθηκαν ' + n + ' εγγραφές'); return; }
         if (d.log && d.office) { if (!confirm('Αντικατάσταση όλων των δεδομένων του Γραφείου με το backup;')) return; O = Object.assign(O, d.office); LOG = d.log; }
         else { // setup file: merge
