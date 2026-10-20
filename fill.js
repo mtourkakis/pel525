@@ -297,7 +297,7 @@
     if (form === '521') {
       const R = c.rev || {}, cls = R.cls || {};
       const lic = (A.licNo || '').replace(/^EL\s*[\/.-]?\s*FCL\s*[\/.-]?\s*/i, '');
-      cells('a_lic', lic);
+      cells('a_lic', lic ? 'ELFCL' + lic : '');
       text('a_surname', U(A.surname)); text('a_first', U(A.first)); text('a_title', A.title);
       if (A.dob) { const [y, m, d] = A.dob.split('-'); cells('a_dobd', d); text('a_dobm', m); text('a_doby', y); }
       text('a_addr1', U(A.address)); text('a_addr2', U(A.city)); text('a_postcode', A.postcode);
@@ -306,7 +306,7 @@
       if (!(opts.overlay)) at(L.para.p, L.para.x, L.para.top + L.para.h - 5, R.para || '1', 11, { center: true });
       boxTick('a_exempt', !!R.exempt);
       text('ex_surname', U(ex.surname)); text('ex_first', U(ex.first));
-      cells('ex_no', ex.licNo || ''); cells('ex_dob', dmy(ex.dob, ''));
+      if (ex.licNo) { if (!opts.overlay) pg(1).drawRectangle({ x: 174.5, y: H(1) - 551.6, width: 113, height: 15, color: rgb(1, 1, 1), borderColor: rgb(0.2, 0.2, 0.2), borderWidth: 0.6 }); text('ex_no_t', 'EL.FCL.' + ex.licNo); } /* ολόκληρος ο αριθμός δεν χωράει στα 7 κουτάκια */ cells('ex_dob', dmy(ex.dob, ''));
       boxTick('rv_pass', R.idType === 'passport'); boxTick('rv_dl', R.idType === 'dl'); boxTick('rv_nic', (R.idType || 'id') === 'id');
       text('rv_idno', U(R.idNo));
       text('rv_hrs', R.hrs); text('rv_pic', R.pic); text('rv_ldg', R.ldg); text('rv_fi', R.exempt ? '' : U(R.fiNo));
