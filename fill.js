@@ -313,6 +313,7 @@
       const d6 = iso => dmy(iso, '').replace(/^(\d{2})(\d{2})\d{2}(\d{2})$/, '$1$2$3');
       cells('rv_expcur', d6(R.expCur)); cells('rv_expnew', d6(revNewExpiry(R)));
       sig('rv_sig'); text('rv_date', dmy(SD(form)));
+      cells('a_date', d6(SD(form))); /* ημερομηνία δίπλα στην υπογραφή του αιτούντα (Ενότ. 3) */
       keep = [1];
     }
     if (form === '1000') {
