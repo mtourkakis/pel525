@@ -93,7 +93,7 @@ header{padding-left:calc(env(safe-area-inset-left) + 78px)}
 
 </head>
 <body>
-<header><a href="index.html" class="nav">‹ 525</a><h1>Γραφείο<small>801 · Έσοδα · Τιμολόγια · Λήξεις</small></h1><a href="forms.html" class="nav">CPL·IR·PBN</a></header>
+<header><a href="index.html" class="nav">‹ 525</a><h1>Γραφείο<small>801 · Έσοδα · Τιμολόγια · Λήξεις</small></h1><a href="forms.html" class="nav">CPL·IR·PBN</a><a href="instr.html" class="nav">FI·IRI·TRI</a></header>
 <nav class="tabs"><button data-tab="log">Εξετάσεις</button><button data-tab="stud">Μαθητές</button><button data-tab="r801">801</button><button data-tab="inc">Έσοδα</button><button data-tab="inv">Τιμολόγια</button><button data-tab="arc">Αρχείο</button><button data-tab="exp">Λήξεις</button><button data-tab="set">Ρυθμίσεις</button></nav>
 <main id="app"></main>
 <div class="toast" id="toast"></div>
@@ -162,7 +162,7 @@ async function arcItems() {
 }
 function arcRow(x, del) {
   return `<div class="item"><div style="flex:1;min-width:0"><b>${esc(x.title)}</b>${x.signed ? ' <span class="tag ok">✍️ υπογεγραμμένο</span>' : ''}<span>${dmy(x.date)}${x.sub ? ' · ' + esc(x.sub) : ''}${x.size ? ' · ' + Math.round(x.size / 1024) + ' KB' : ''}</span></div>
-  <div class="row" style="margin:0;flex-wrap:nowrap"><button class="btn alt" data-arcopen="${esc(x.key)}">Άνοιγμα</button>${x.kind === 'form' && !x.up && !x.merged && /^(525|forms)\|/.test(x.logId || '') ? `<button class="btn alt" data-arcfix="${esc(x.key)}" title="Άνοιγμα της φόρμας για διόρθωση">✎</button>` : ''}${x.kind === 'form' ? `<label class="btn alt" style="cursor:pointer" title="Αντικατάσταση με το υπογεγραμμένο / σκαναρισμένο">↻<input type="file" data-arcrep="${esc(x.key)}" accept="application/pdf,image/*" multiple style="display:none"></label>` : ''}${navigator.canShare ? `<button class="btn" data-arcshare="${esc(x.key)}">Κοινοποίηση</button>` : ''}${del ? `<button class="btn danger" data-arcdel="${esc(x.key)}">✕</button>` : ''}</div></div>`;
+  <div class="row" style="margin:0;flex-wrap:nowrap"><button class="btn alt" data-arcopen="${esc(x.key)}">Άνοιγμα</button>${x.kind === 'form' && !x.up && !x.merged && /^(525|forms|instr)\|/.test(x.logId || '') ? `<button class="btn alt" data-arcfix="${esc(x.key)}" title="Άνοιγμα της φόρμας για διόρθωση">✎</button>` : ''}${x.kind === 'form' ? `<label class="btn alt" style="cursor:pointer" title="Αντικατάσταση με το υπογεγραμμένο / σκαναρισμένο">↻<input type="file" data-arcrep="${esc(x.key)}" accept="application/pdf,image/*" multiple style="display:none"></label>` : ''}${navigator.canShare ? `<button class="btn" data-arcshare="${esc(x.key)}">Κοινοποίηση</button>` : ''}${del ? `<button class="btn danger" data-arcdel="${esc(x.key)}">✕</button>` : ''}</div></div>`;
 }
 async function fillArchive() {
   const box = $('#arcBox'); if (!box) return;
@@ -566,6 +566,7 @@ document.addEventListener('click', async ev => {
   if (t.id === 'mergeE') { t.disabled = true; try { await mergeEntry(); } catch (e) { alert('Σφάλμα: ' + e.message); } t.disabled = false; return; }
   if (t.dataset.arcfix) { const x = ((await PELDOCS.listOut()) || []).find(y => y.key === t.dataset.arcfix); if (!x) return; const lid = x.logId || '';
     if (lid.startsWith('forms|')) { location.href = 'forms.html?open=' + encodeURIComponent(lid.split('|')[1]); return; }
+    if (lid.startsWith('instr|')) { location.href = 'instr.html?open=' + encodeURIComponent(lid.split('|')[1]); return; }
     localStorage.setItem('pel525_restore', JSON.stringify({ name: x.cand || lid.split('|')[1] || '', state: x.state || null })); location.href = 'index.html?restore=1'; return; }
   if (t.dataset.arcopen) { const f = await arcFile(t.dataset.arcopen); if (f) { const u = URL.createObjectURL(f); const a = document.createElement('a'); a.href = u; a.target = '_blank'; a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); } return; }
   if (t.dataset.arcshare) { const f = await arcFile(t.dataset.arcshare); if (f) { try { await navigator.share({ files: [f] }); } catch (e) { } } return; }

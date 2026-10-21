@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PEL 525">
+<meta name="theme-color" content="#14202e">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Εκπαιδευτές · PEL-FCL 935</title>
+<style>
+:root{--navy:#14202e;--navy2:#2b3d52;--amber:#d98a00;--ink:#14213d;--mute:#5d6b82;--line:#d8dee9;--bg:#eef1f6;--card:#fff;--ok:#1d8a4e;--bad:#c62f2f;--na:#7a8597}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.35 "IBM Plex Sans",-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--navy);color:#fff;padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;padding-left:calc(env(safe-area-inset-left) + 78px);display:flex;align-items:center;gap:8px;border-bottom:3px solid var(--amber)}
+header h1{font-size:17px;margin:0;flex:1;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header h1 small{display:block;font-weight:400;font-size:11px;opacity:.75;letter-spacing:1.5px;text-transform:uppercase}
+header a.nav{color:#14202e;background:var(--amber);text-decoration:none;font-weight:700;font-size:14px;border-radius:9px;padding:7px 10px;white-space:nowrap}
+header button{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:9px;padding:7px 11px;font-size:15px}
+main{max-width:860px;margin:0 auto;padding:12px 12px calc(env(safe-area-inset-bottom) + 90px)}
+.card{background:var(--card);border-radius:14px;box-shadow:0 1px 2px rgba(14,42,92,.08);margin:0 0 12px;overflow:hidden}
+details.card>summary{list-style:none;padding:14px 16px;font-weight:650;display:flex;align-items:center;gap:8px;cursor:pointer}
+details.card>summary::-webkit-details-marker{display:none}
+details.card>summary::after{content:"›";margin-left:auto;font-size:22px;color:var(--mute);transition:transform .2s}
+details.card[open]>summary::after{transform:rotate(90deg)}
+.tag{font-size:11px;font-weight:700;padding:3px 7px;border-radius:6px;background:#e7ecf5;color:var(--navy2);letter-spacing:.4px}
+.tag.ok{background:#dcf2e5;color:var(--ok)}.tag.bad{background:#fbe2e2;color:var(--bad)}.tag.pp{background:#fff1d1;color:#8a5a00}
+.body{padding:0 16px 16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.grid.g3{grid-template-columns:2fr 1fr auto}
+label.f{display:flex;flex-direction:column;font-size:12px;color:var(--mute);gap:4px;font-weight:600;letter-spacing:.2px}
+input,select,textarea{font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:#fbfcfe;color:var(--ink);width:100%;min-width:0}
+input:focus,textarea:focus{outline:2px solid var(--navy2);border-color:transparent}
+.seg{display:inline-flex;background:#e7ecf5;border-radius:10px;padding:3px;gap:3px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;padding:8px 13px;border-radius:8px;font:inherit;font-size:14px;font-weight:600;color:var(--navy2)}
+.seg button.on{background:var(--navy);color:#fff}
+.kinds{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.kinds button{border:2px solid var(--line);background:#fff;border-radius:12px;padding:14px 10px;font:inherit;font-weight:700;font-size:15px;color:var(--navy2);text-align:left}
+.kinds button small{display:block;font-weight:500;font-size:12px;color:var(--mute);margin-top:3px}
+.kinds button.on{border-color:var(--navy);background:var(--navy);color:#fff}.kinds button.on small{color:#c9d3e3}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
+.btn{border:0;background:var(--navy);color:#fff;padding:11px 16px;border-radius:10px;font:inherit;font-weight:650;font-size:15px}
+.btn.alt{background:#e7ecf5;color:var(--navy)}.btn.amber{background:var(--amber);color:#1a1a1a}.btn.danger{background:#fbe2e2;color:var(--bad)}
+.btn.sm{padding:7px 11px;font-size:13px}
+.btn:disabled{opacity:.5}
+.list .item{display:flex;align-items:center;gap:12px;padding:14px 16px;border-top:1px solid var(--line);cursor:pointer}
+.list .item:first-child{border-top:0}
+.list .item b{display:block}.list .item span{color:var(--mute);font-size:13px}
+.list .item .go{margin-left:auto;color:var(--mute)}
+.flight{border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0;background:#fbfcfe}
+.flight .h{font-size:12px;font-weight:700;color:var(--mute);margin-bottom:6px}
+.sec{border:1px solid var(--line);border-radius:12px;margin:10px 0;overflow:hidden}
+.sec .sh{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#f4f6fa;font-weight:650;font-size:14px}
+.sec .sh .t{flex:1}
+.it{display:grid;grid-template-columns:30px 1fr auto;gap:6px 8px;align-items:center;padding:7px 10px;border-top:1px solid #eef1f6}
+.it .k{font-weight:700;color:var(--navy2);font-size:13px}
+.it .l{font-size:13.5px}
+.it .cm{grid-column:2/4;font-size:14px;padding:6px 8px}
+.mk{display:inline-flex;gap:3px;align-items:center}
+.mk button{width:36px;height:34px;border:1px solid var(--line);background:#fff;border-radius:8px;font-weight:700;font-size:12.5px;color:var(--mute)}
+.mk button.P.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.mk button.F.on{background:var(--bad);border-color:var(--bad);color:#fff}
+.mk button.N.on{background:var(--na);border-color:var(--na);color:#fff}
+.mk .sep{width:8px}.mk .lb{font-size:10px;color:var(--mute);font-weight:700;width:18px;text-align:center}
+.cmb{border:0;background:none;font-size:15px;padding:2px 4px;opacity:.6}
+.warn{margin:0;padding:0;list-style:none}
+.warn li{padding:9px 12px;border-radius:9px;background:#fff4d6;margin:6px 0;font-size:14px}
+.warn li.i{background:#e7ecf5}.warn li.good{background:#dcf2e5}
+.out a{display:block;padding:10px 0;color:var(--navy2);font-weight:650}
+.hint{font-size:12.5px;color:var(--mute);margin:6px 0}
+.fab{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom) + 16px);z-index:6}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 80px);transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9}
+.toast.on{opacity:1}
+.chk{display:flex;align-items:flex-start;gap:9px;font-size:14.5px;padding:6px 0}
+.chk input{width:22px;height:22px;flex:none;margin-top:1px}
+h3{font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--mute);margin:16px 0 6px}
+.pages{font-size:13px;color:var(--navy2);font-weight:600}
+</style>
+</head>
+<body>
+<header><a href="index.html" class="nav">‹ 525</a><a href="forms.html" class="nav">CPL·IR</a><a href="office.html" class="nav">Γραφείο</a><h1 id="ttl">Εκπαιδευτές<small>PEL-FCL 935 · FI · IRI · TRI</small></h1><button id="hb" hidden>‹ Λίστα</button></header>
+<main id="app"></main>
+<div class="toast" id="toast"></div>
+<script src="pdf-lib.min.js"></script>
+<script src="fill935.js"></script>
+<script src="docs.js"></script>
+<script>
+const P = window.PEL935, KEY = 'pel935_v1';
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+const uid = () => Math.random().toString(36).slice(2, 10);
+let S = load(), view = 'list', open = {};
+
+function load() { let s; try { s = JSON.parse(localStorage.getItem(KEY)); } catch (e) { } s = s || {}; s.cands = s.cands || []; return s; }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Αποθήκευση απέτυχε: ' + e.message); } }
+function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), 2600); }
+function exData() { let s = {}; try { s = JSON.parse(localStorage.getItem('pelfcl_forms_v1')) || {}; } catch (e) { }
+  return Object.assign({ title: 'CPT', surname: 'TOURKAKIS', first: 'MICHAIL', number: 'EL/FE/IRE/FIE/TRE/4015', stamp1: 'CPT TOURKAKIS MICHAIL', stamp2: 'EL/FE/IRE/FIE/TRE/4015', sig: '' }, s.ex || {}); }
+function blank(kind, app) {
+  const d = today();
+  return { id: uid(), created: Date.now(), kind, app,
+    a: { title: 'Mr', nat: 'HELLENIC', postalSame: true, appDate: d, licType: 'CPL', cat: 'AEROPLANE', cls: [{ t: 'SEP(LAND)', exp: '' }, {}, {}, {}, {}], oth: [{ t: kind === 'TRI' ? 'TRI(A)' : kind === 'IRI' ? 'IRI(A)' : 'FI(A)', exp: '' }, {}, {}, {}, {}] },
+    d: { aocAc: kind === 'TRI' ? '' : 'SEP(LAND)' }, pre: {}, pe: {}, crs: { by: 'HCAA', cat: 'AEROPLANE' }, s8: { t: { aoc: true } }, ext: {},
+    aoc: { fl: [{ date: d }, {}], m: {}, oth: [{}, {}, {}], pp: { fl: [{}, {}] } }, tri: { cand: [{ pf: 'PF' }, { pf: 'PM' }], trg: 'fstd' } };
+}
+const cur = () => S.cands.find(c => c.id === S.cur);
+const nameOf = c => ((c.a.surname || '') + ' ' + (c.a.first || '')).trim().toUpperCase();
+const CASES = [['FI', 'issue', 'FI(A) Initial', 'Αρχική έκδοση'], ['FI', 'reval', 'FI(A) Revalidation', 'Ανανέωση'], ['FI', 'renew', 'FI(A) Renewal', 'Επανέκδοση μετά από λήξη'], ['FI', 'ext', 'FI(A) Extension', 'Επέκταση προνομίων'], ['IRI', null, 'IRI(A)', 'Initial · Reval · Renewal'], ['TRI', null, 'TRI(A)', 'Initial · Reval · Renewal']];
+function caseLabel(c) { return P.KINDS[c.kind].label + ' ' + { issue: 'Initial', reval: 'Revalidation', renew: 'Renewal', ext: 'Extension' }[c.app]; }
+const resTag = r => r === 'pass' ? '<span class="tag ok">PASS</span>' : r === 'partial' ? '<span class="tag pp">PARTIAL</span>' : r === 'fail' ? '<span class="tag bad">FAIL</span>' : '';
+function resultOf(c) { return (c.aoc && c.aoc.result) || P.suggestResult(c); }
+
+/* ---------- path helpers ---------- */
+function getP(o, p) { return p.split('.').reduce((x, k) => x == null ? x : x[k], o); }
+function setP(o, p, v) { const ks = p.split('.'); let x = o; ks.slice(0, -1).forEach((k, i) => { if (x[k] == null) x[k] = /^\d+$/.test(ks[i + 1]) ? [] : {}; x = x[k]; }); x[ks[ks.length - 1]] = v; }
+function inp(p, label, type, extra) { const c = cur(); const v = getP(c, p); return `<label class="f">${esc(label)}<input data-p="${p}" type="${type || 'text'}" value="${esc(v == null ? '' : v)}" ${extra || ''}></label>`; }
+function chk(p, label) { const c = cur(); return `<label class="chk"><input type="checkbox" data-c="${p}" ${getP(c, p) ? 'checked' : ''}><span>${label}</span></label>`; }
+function seg(p, opts) { const c = cur(); const v = getP(c, p); return `<div class="seg">${opts.map(([k, l]) => `<button data-seg="${p}" data-v="${esc(k)}" class="${v === k ? 'on' : ''}">${esc(l)}</button>`).join('')}</div>`; }
+function card(id, title, tag, body) { return `<details class="card" data-sec="${id}" ${open[id] !== false ? 'open' : ''}><summary>${title}${tag ? ' ' + tag : ''}</summary><div class="body">${body}</div></details>`; }
+const UC = 'autocapitalize="characters"';
+
+/* ---------- list ---------- */
+function renderList() {
+  view = 'list'; $('#hb').hidden = true; $('#ttl').innerHTML = 'Εκπαιδευτές<small>PEL-FCL 935 · FI · IRI · TRI</small>';
+  const L = S.cands.slice().sort((a, b) => (b.created || 0) - (a.created || 0));
+  $('#app').innerHTML = `<div class="card list">${L.length ? L.map(c => `<div class="item" data-open="${c.id}"><div><b>${esc(nameOf(c) || 'Νέος εκπαιδευτής')}</b><span>${esc(caseLabel(c))}${c.aoc && c.aoc.fl && c.aoc.fl[0] && c.aoc.fl[0].date ? ' · ' + P.dmy(c.aoc.fl[0].date) : ''}</span></div>${resTag(P.aocOn(c) ? resultOf(c) : '')}<span class="go">›</span></div>`).join('') : '<div class="item"><span>Δεν υπάρχουν ακόμα εκπαιδευτές. Πάτα «+ Νέος».</span></div>'}</div>
+  <p class="hint">Τα δεδομένα μένουν μόνο σε αυτή τη συσκευή. Backup: Γραφείο → Ρυθμίσεις.</p>
+  <button class="btn amber fab" id="new">+ Νέος</button>`;
+}
+
+/* ---------- editor ---------- */
+function renderEd() {
+  const c = cur(); if (!c) return renderList(); view = 'ed'; $('#hb').hidden = false;
+  $('#ttl').innerHTML = esc(nameOf(c) || 'Νέος εκπαιδευτής') + '<small>' + esc(caseLabel(c)) + '</small>';
+  const k = c.kind, a = c.app, aoc = P.aocOn(c), fiAoc = P.KINDS[k].aoc === 'fi';
+  let h = '';
+  /* περίπτωση */
+  h += card('kind', 'Περίπτωση', `<span class="tag">${esc(caseLabel(c))}</span>`, `<div class="kinds">${CASES.map(([kk, aa, l, s]) => `<button data-case="${kk}|${aa || ''}" class="${c.kind === kk && (!aa || c.app === aa) ? 'on' : ''}">${l}<small>${s}</small></button>`).join('')}</div>
+    ${k !== 'FI' ? `<div class="row">${seg('app', [['issue', 'Initial'], ['reval', 'Revalidation'], ['renew', 'Renewal']])}</div>` : ''}
+    ${a === 'reval' || a === 'ext' ? `<label class="chk"><input type="checkbox" data-aocoff="1" ${aoc ? 'checked' : ''}><span>Με Assessment of Competence (σελ. ${fiAoc ? '92–95' : '96–98'})</span></label>` : ''}
+    <p class="pages">Σελίδες ΥΠΑ: ${P.pagesFor(c).join(', ')}</p>`);
+  /* σελ. 49 */
+  h += card('app', 'Υποψήφιος (σελ. 49)', '', `<div class="grid">${inp('a.surname', 'Επώνυμο', 'text', UC)}${inp('a.first', 'Όνομα', 'text', UC)}${inp('a.title', 'Title (Mr/Ms)')}${inp('a.dob', 'Ημ. γέννησης', 'date')}${inp('a.nat', 'Nationality', 'text', UC)}</div>
+    <div class="grid" style="margin-top:10px">${inp('a.addr1', 'Διεύθυνση (γραμμή 1)', 'text', UC)}${inp('a.addr2', 'Διεύθυνση (γραμμή 2)', 'text', UC)}</div>
+    ${chk('a.postalSame', 'Postal address όπως η μόνιμη')}${c.a.postalSame === false ? inp('a.postal', 'Postal address', 'text', UC) : ''}
+    <div class="grid" style="margin-top:6px">${inp('a.tel', 'Contact tel.', 'tel')}${inp('a.mobile', 'Mobile', 'tel')}${inp('a.email', 'E-mail', 'email')}${inp('a.appDate', 'Ημ. αίτησης', 'date')}</div>
+    ${chk('a.contactChanged', 'Contact details changed')}`);
+  /* άδεια */
+  const rr = (arr, base, n) => Array.from({ length: n }, (_, i) => `<div class="grid g3" style="margin:6px 0"><input data-p="${base}.${i}.t" placeholder="${i + 1}." value="${esc(((arr || [])[i] || {}).t || '')}" ${UC}><input type="date" data-p="${base}.${i}.exp" value="${esc(((arr || [])[i] || {}).exp || '')}"><label class="chk" style="padding:0"><input type="checkbox" data-c="${base}.${i}.nv" ${((arr || [])[i] || {}).nv ? '' : 'checked'} title="Examiner verification"></label></div>`).join('');
+  h += card('lic', 'Άδεια & ratings (σελ. 49)', '', `<div class="grid">${inp('a.licType', 'License type (CPL/ATPL/PPL)', 'text', UC)}${inp('a.cat', 'Aircraft category', 'text', UC)}${inp('a.licNo', 'Αριθμός άδειας (μετά το EL.FCL.)', 'text', 'inputmode="numeric"')}</div>
+    <h3>Class / Type ratings · λήξη · ✓ examiner</h3>${rr(c.a.cls, 'a.cls', 5)}
+    <h3>Other ratings (FI, IRI, night…)</h3>${rr(c.a.oth, 'a.oth', 5)}
+    <p class="hint">Όσα έχουν ✓ παίρνουν το τικ και τα αρχικά σου στη στήλη «Examiner Verification». Η υπογραφή/σφραγίδα μπαίνει μόνο όταν υπάρχει AoC.</p>`);
+  /* σελ. 50 */
+  h += card('decl', 'Δήλωση (σελ. 50)', '', `<div class="grid">${inp('d.aocAc', 'Aircraft class / type / FSTD για το AoC', 'text', UC)}${a === 'reval' ? inp('d.lastAoc', 'Ημ. τελευταίου AoC', 'date') : ''}</div>
+    <div class="grid" style="margin-top:10px">${inp('d.restr', 'Restriction of privileges', 'text', UC)}${inp('d.ext', 'Extension of privileges – specify', 'text', UC)}</div>
+    <h3>Επιπλέον πιστοποιητικά στην ίδια αίτηση</h3><div class="row">${['FI', 'IRI', 'TRI'].filter(x => x !== k).map(x => chk('d.also.' + x, x + ' (A)')).join('')}</div>`);
+  /* αρχική έκδοση */
+  if (a === 'issue') {
+    h += card('pre', 'Εμπειρία πριν το course (σελ. 51)', '', `<div class="grid">${inp('pre.tot', 'Total flying hours', 'text', 'inputmode="decimal"')}${inp('pre.pic', 'PIC total', 'text', 'inputmode="decimal"')}${inp('pre.m6', 'Τελευταίοι 6 μήνες', 'text', 'inputmode="decimal"')}${inp('pre.inst', 'Instrument instruction', 'text', 'inputmode="decimal"')}${inp('pre.xc', 'Cross-country', 'text', 'inputmode="decimal"')}</div>
+      <div class="grid" style="margin-top:10px">${inp('pre.sp', 'Single-pilot aeroplanes', 'text', 'inputmode="decimal"')}${inp('pre.mp', 'Multi-pilot aeroplanes', 'text', 'inputmode="decimal"')}${k === 'TRI' ? inp('pre.sect', 'Route sectors 12 μήνες (τύπος)', 'text', 'inputmode="numeric"') + inp('pre.ffs', 'Sectors σε FFS', 'text', 'inputmode="numeric"') : ''}${inp('pre.meIr', 'Λήξη ME IR', 'date')}</div>
+      ${k === 'FI' ? `<h3>Pre-entry assessment (FI)</h3><div class="grid">${inp('pe.ato', 'ATO', 'text', UC)}${inp('pe.date', 'Ημ. assessment', 'date')}${inp('pe.instr', 'Εκπαιδευτής της πτήσης', 'text', UC)}${inp('pe.lic', 'Άδεια εκπαιδευτή')}</div>` : ''}`);
+    const t = k === 'FI' ? ['i) ≥25 h teaching & learning', 'ii) ≥100 h theoretical knowledge', 'iii) ≥30 h flight instruction (25 dual)'] : k === 'IRI' ? ['i) ≥25 h teaching & learning', 'ii) ≥10 h technical + ≥10 h flight (5 με FI(A))'] : ['i) ≥25 h teaching & learning', 'ii) ≥10 h technical training', 'iii) ≥5 h (SP) / 10 h (MP) flight instruction'];
+    h += card('crs', 'Ολοκλήρωση εκπαίδευσης – Head of Training (σελ. ' + (k === 'FI' ? '52' : k === 'IRI' ? '71' : '58–59') + ')', '', `<div class="grid">${inp('crs.ato', 'ATO / DTO', 'text', UC)}${inp('crs.appr', 'Approval no.', 'text', UC)}${inp('crs.by', 'Approval issued by', 'text', UC)}${k === 'TRI' ? inp('crs.type', 'Aircraft type', 'text', UC) : inp('crs.cat', 'Aircraft category', 'text', UC)}</div>
+      <h3>A. Το course περιείχε</h3>${t.map((x, i) => `<label class="chk"><input type="checkbox" data-c="crs.An.${i}" ${((c.crs.An || [])[i]) ? '' : 'checked'}><span>${x}</span></label>`).join('')}
+      ${k === 'TRI' ? chk('crs.tri4.0', 'iv) LIFUS training') + chk('crs.tri4.1', 'iv) Landing training') : ''}${k === 'IRI' ? chk('crs.B', 'B. Κατέχει/είχε πιστοποιητικό εκπαιδευτή (credit A(i))') : ''}
+      <div class="grid" style="margin-top:8px">${inp('crs.sign', 'Approved signatory (HoT)', 'text', UC)}${inp('crs.date', 'Ημερομηνία', 'date')}</div>`);
+  }
+  /* section 8 */
+  if (a === 'reval' || a === 'renew') {
+    const pg = k === 'FI' ? (a === 'reval' ? 56 : 57) : k === 'IRI' ? 73 : 61;
+    let t = '';
+    if (k === 'FI' && a === 'reval') t = chk('s8.t.hrs', '1. ≥50 h flight instruction (12 μήνες)') + chk('s8.t.ir', '1. …εκ των οποίων ≥10 h για IR') + chk('s8.t.ref', '2. Instructor refresher (ATO/CA)') + chk('s8.t.aoc', '3. Assessment of competence (12 μήνες)');
+    if (k === 'IRI' && a === 'reval') t = chk('s8.t.hrs', '1a. ≥50 h flight instruction (≥10 h IR)') + chk('s8.t.ref', '2. Refresher (ATO/CA)') + chk('s8.t.aoc', '3. Assessment of competence');
+    if (k === 'TRI' && a === 'reval') t = chk('s8.t.sim', '1. Simulator session ≥3 h') + chk('s8.t.air', '1. Air exercise ≥1 h, 2 T/O & landings') + chk('s8.t.ref', '2. Refresher ως TRI σε ATO') + chk('s8.t.aoc', '3. Assessment of competence');
+    if (a === 'renew') t = (k === 'TRI' ? chk('s8.t.sect', '1. ≥30 route sectors (≤15 σε FFS)') : '') + chk('s8.t.ref', (k === 'TRI' ? '2' : '1') + '. Instructor refresher') + chk('s8.t.aoc', (k === 'TRI' ? '3' : '2') + '. Assessment of competence');
+    h += card('s8', (a === 'reval' ? 'Revalidation' : 'Renewal') + ' (σελ. ' + pg + ')', '', `<div class="grid">${inp('s8.exp', a === 'reval' ? 'Λήξη τρέχοντος πιστοποιητικού' : 'Λήξη τελευταίου πιστοποιητικού', 'date')}</div>${t}`);
+  }
+  if (a === 'ext') {
+    const E = [['c1', 'FCL.910.FI(c)1 – άρση περιορισμού: 100 h + 25 solo (PEL-FCL 910FI)'], ['ac1', 'FCL.905.FI(c)1 – TRI για MP'], ['ac2', 'FCL.905.FI(c)2 – 500 h MP + MCCI'], ['e', 'FCL.905.FI(e) – CPL: ≥200 h flight instruction'], ['f1', 'FCL.905.FI(f) – Night: qualified at night'], ['f2', 'FCL.905.FI(f) – Night: έδειξε ικανότητα σε FI(j) (92–95)'], ['f3', 'FCL.905.FI(f) – Night: FCL.060(b)(2)'], ['g', 'FCL.905.FI(g) – Towing / aerobatic'], ['h1', 'FCL.905.FI(h) – IR: ≥200 h IFR'], ['h2', 'FCL.905.FI(h) – IR: IRI course + AoC'], ['h3', 'FCL.905.FI(h) – IR: ME (CRI)'], ['i1', 'FCL.905.FI(i)1 – SP ME class'], ['j1', 'FCL.905.FI(j) – ≥500 h flight instruction'], ['j2', 'FCL.905.FI(j) – AoC σε FIE']];
+    h += card('ext', 'Extension of privileges (σελ. 53–55)', '', E.map(([kk, l]) => chk('ext.' + kk, l)).join(''));
+  }
+  /* AoC */
+  if (aoc) {
+    const AO = c.aoc; AO.fl = AO.fl || [{}, {}];
+    const fl = (base, i, t) => `<div class="flight"><div class="h">${t}</div><div class="grid">${inp(base + '.' + i + '.type', fiAoc ? 'Class / type' : 'Aircraft type', 'text', UC)}${inp(base + '.' + i + '.reg', fiAoc ? 'Registration / FSTD' : 'Reg. / FSTD ID', 'text', UC)}${inp(base + '.' + i + '.date', 'Ημερομηνία', 'date')}${inp(base + '.' + i + '.off', 'Off blocks', 'time')}${inp(base + '.' + i + '.on', 'On blocks', 'time')}</div></div>`;
+    const SEC = fiAoc ? P.FI_SEC : P.TRI_SEC;
+    const mk = (id, att, v) => ['P', 'F'].map(x => `<button class="${x} ${v === x ? 'on' : ''}" data-mk="${id}|${att}|${x}">${x}</button>`).join('');
+    const secs = SEC.map(s => `<div class="sec"><div class="sh"><span class="t">${s.s}. ${esc(s.t)}</span><button class="btn alt sm" data-allp="${s.s}">Όλα P</button>${fiAoc ? `<button class="btn alt sm" data-allna="${s.s}">N/A</button>` : ''}</div>
+      ${s.it.map((t, i) => { const id = s.s + '.' + (i + 1), x = AO.m[id] || {}; return `<div class="it"><span class="k">${id}</span><span class="l">${esc(t)}</span><span class="mk">${fiAoc ? `<button class="N ${x.na ? 'on' : ''}" data-na="${id}">N/A</button><span class="sep"></span>` : ''}<span class="lb">1η</span>${mk(id, 'a1', x.a1)}${x.a1 === 'F' || x.a2 ? `<span class="sep"></span><span class="lb">2η</span>${mk(id, 'a2', x.a2)}` : ''}</span>${x.a1 === 'F' || x.c ? `<input class="cm" data-cm="${id}" placeholder="Σχόλιο" value="${esc(x.c || '')}">` : ''}</div>`; }).join('')}</div>`).join('');
+    const othN = fiAoc ? 9 : 3; AO.oth = AO.oth || [];
+    const oth = `<div class="sec"><div class="sh"><span class="t">${fiAoc ? '6' : '5'}. Other exercises (κατά την κρίση σου)</span></div>${Array.from({ length: Math.min(othN, Math.max(3, AO.oth.filter(o => o && o.d).length + 1)) }, (_, i) => { const o = AO.oth[i] || {}; const id = 'o' + i; return `<div class="it"><span class="k">${i + 1}</span><input data-p="aoc.oth.${i}.d" value="${esc(o.d || '')}" placeholder="Άσκηση" style="font-size:14px;padding:6px 8px"><span class="mk"><span class="lb">1η</span>${['P', 'F'].map(x => `<button class="${x} ${o.a1 === x ? 'on' : ''}" data-ok="${i}|a1|${x}">${x}</button>`).join('')}${fiAoc ? `<span class="sep"></span><span class="lb">2η</span>${['P', 'F'].map(x => `<button class="${x} ${o.a2 === x ? 'on' : ''}" data-ok="${i}|a2|${x}">${x}</button>`).join('')}` : ''}</span>${o.d ? `<input class="cm" data-p="aoc.oth.${i}.c" placeholder="Σχόλιο" value="${esc(o.c || '')}">` : ''}</div>`; }).join('')}</div>`;
+    const sug = P.suggestResult(c), res = resultOf(c);
+    const resSeg = `<div class="seg">${[['', 'Αυτόματα' + (sug ? ' (' + sug.toUpperCase() + ')' : '')], ['pass', 'PASS']].concat(fiAoc ? [['partial', 'PARTIAL PASS']] : []).concat([['fail', 'FAIL']]).map(([kk, l]) => `<button data-res="${kk}" class="${(AO.result || '') === kk ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+    let pp = '';
+    if (fiAoc && res === 'partial') pp = `<h3>Partial pass – 2η προσπάθεια (σελ. 95)</h3>${chk('aoc.pp.on', 'Έγινε η επανεξέταση (συμπλήρωσε τη 2η στήλη στα items)')}${AO.pp && AO.pp.on ? fl('aoc.pp.fl', 0, 'Πτήση επανεξέτασης') + `<div class="row">${seg('aoc.pp.result', [['', 'Αυτόματα'], ['pass', 'PASS'], ['fail', 'FAIL']])}</div>` : '<p class="hint">Μέχρι να γίνει, η σελ. 95 βγαίνει διαγραμμένη.</p>'}`;
+    const tri = fiAoc ? '' : `<h3>Notification (σελ. 98)</h3><div class="grid">${inp('tri.fstd', 'FSTD ID / registration', 'text', UC)}${inp('tri.loc', 'Location', 'text', UC)}${inp('tri.type', 'Aircraft type', 'text', UC)}</div>
+      <h3>Υποψήφιοι υπό εκπαίδευση</h3>${[0, 1].map(i => `<div class="grid" style="margin:6px 0">${inp('tri.cand.' + i + '.n', 'Όνομα', 'text', UC)}${inp('tri.cand.' + i + '.l', 'Άδεια')}<div>${seg('tri.cand.' + i + '.pf', [['PF', 'PF'], ['PM', 'PM']])}</div></div>`).join('')}
+      <div class="row">Εκπαίδευση σε: ${seg('tri.trg', [['fstd', 'FSTD'], ['ac', 'Aircraft']])}</div>`;
+    h += card('aoc', 'Assessment of Competence (σελ. ' + (fiAoc ? '92–95' : '96–98') + ')', resTag(res), `${fl('aoc.fl', 0, 'Πτήση')}${fiAoc ? `<details ${AO.fl[1] && (AO.fl[1].type || AO.fl[1].date) ? 'open' : ''}><summary class="hint">+ 2η πτήση (αν χρειάστηκε)</summary>${fl('aoc.fl', 1, '2η πτήση')}</details>` : ''}
+      <div class="row"><button class="btn alt sm" data-allp="*">Όλα P</button>${fiAoc ? '<button class="btn alt sm" data-allna="4">Section 4 → N/A (SE)</button>' : ''}<button class="btn alt sm" data-clr="1">Καθαρισμός</button></div>
+      ${secs}${oth}<h3>Αποτέλεσμα</h3><div class="row">${resSeg}</div>${pp}${fiAoc ? inp('aoc.fiName', 'FI(j) όνομα & αριθμός (μόνο για night/aerobatic/towing από FI)', 'text', UC) : ''}${tri}`);
+  }
+  /* έλεγχοι & έκδοση */
+  const W = P.checks(c);
+  h += card('chk', 'Έλεγχοι', W.filter(w => !w.startsWith('ℹ️')).length ? `<span class="tag bad">${W.filter(w => !w.startsWith('ℹ️')).length}</span>` : '<span class="tag ok">OK</span>', `<ul class="warn">${W.map(w => `<li class="${w.startsWith('ℹ️') ? 'i' : ''}">${esc(w)}</li>`).join('')}${!W.filter(w => !w.startsWith('ℹ️')).length ? '<li class="good">✓ Κανένα πρόβλημα.</li>' : ''}</ul>`);
+  h += card('out', 'Έκδοση PDF', '', `<p class="pages">PEL-FCL 935 · σελίδες ${P.pagesFor(c).join(', ')}</p>
+    <div class="row"><span class="hint" style="margin:0">Επισύναψη:</span>${[['doc:lic', 'Το πτυχίο μου'], ['doc:med', 'Το medical μου'], ['doc:exm', 'Ο examiner μου']].map(([kk, l]) => `<label class="chk" style="padding:0 6px 0 0"><input type="checkbox" data-att="${kk}" ${(S.att || {})[kk] ? 'checked' : ''}><span>${l}</span></label>`).join('')}</div>
+    <div class="row"><button class="btn amber" id="gen">ΔΗΜΙΟΥΡΓΙΑ PDF</button><button class="btn danger" id="del">Διαγραφή</button></div><div class="out" id="out"></div>
+    <p class="hint">Μετά την υπογραφή: Γραφείο → Αρχείο → ↻ για να μπει το υπογεγραμμένο στη θέση του.</p>`);
+  const y = window.scrollY; $('#app').innerHTML = h; window.scrollTo(0, y);
+}
+function render() { view === 'ed' ? renderEd() : renderList(); }
+
+/* ---------- events ---------- */
+document.addEventListener('toggle', e => { const d = e.target; if (d.dataset && d.dataset.sec) open[d.dataset.sec] = d.open; }, true);
+document.addEventListener('input', e => { const t = e.target, c = cur(); if (!c) return;
+  if (t.dataset.cm) { const m = c.aoc.m[t.dataset.cm] = c.aoc.m[t.dataset.cm] || {}; m.c = t.value; save(); return; }
+  if (t.dataset.p) { let v = t.value; if (t.getAttribute('autocapitalize') === 'characters') { const s = t.selectionStart; v = v.toUpperCase(); if (t.value !== v) { t.value = v; try { t.setSelectionRange(s, s); } catch (er) { } } } setP(c, t.dataset.p, v); save();
+    if (/^a\.(surname|first)$/.test(t.dataset.p)) $('#ttl').innerHTML = esc(nameOf(c) || 'Νέος εκπαιδευτής') + '<small>' + esc(caseLabel(c)) + '</small>'; } });
+document.addEventListener('change', e => { const t = e.target, c = cur();
+  if (t.dataset.p && c && /^(date|time)$/.test(t.type)) { renderEd(); return; }
+  if (t.dataset.c && c) { const p = t.dataset.c; if (/\.nv$/.test(p) || /^crs\.An\./.test(p)) setP(c, p, !t.checked); else setP(c, p, t.checked); save(); renderEd(); }
+  if (t.dataset.aocoff && c) { c.aoc.off = !t.checked; save(); renderEd(); }
+  if (t.dataset.att) { S.att = S.att || {}; S.att[t.dataset.att] = t.checked; save(); } });
+document.addEventListener('click', async e => { const t = e.target.closest('button,[data-open]'); if (!t) return; const c = cur();
+  if (t.dataset.open) { S.cur = t.dataset.open; open = {}; save(); renderEd(); window.scrollTo(0, 0); return; }
+  if (t.id === 'new') { const n = blank('FI', 'reval'); S.cands.push(n); S.cur = n.id; open = {}; save(); renderEd(); window.scrollTo(0, 0); return; }
+  if (t.id === 'hb') { renderList(); window.scrollTo(0, 0); return; }
+  if (!c) return;
+  if (t.dataset.case) { const [kk, aa] = t.dataset.case.split('|'); c.app = aa || (c.kind === kk ? c.app : 'reval'); c.kind = kk; if (kk !== 'FI' && c.app === 'ext') c.app = 'reval';
+    const o = (c.a.oth || [])[0]; if (o && /^(FI|IRI|TRI)\(A\)$/.test(o.t || '')) o.t = kk + '(A)';
+    save(); renderEd(); return; }
+  if (t.dataset.seg) { setP(c, t.dataset.seg, t.dataset.v); save(); renderEd(); return; }
+  if (t.dataset.mk) { const [id, att, v] = t.dataset.mk.split('|'); const m = c.aoc.m[id] = c.aoc.m[id] || {}; m[att] = m[att] === v ? '' : v; m.na = false; if (att === 'a1' && m.a1 !== 'F') m.a2 = ''; save(); renderEd(); return; }
+  if (t.dataset.na) { const m = c.aoc.m[t.dataset.na] = c.aoc.m[t.dataset.na] || {}; m.na = !m.na; if (m.na) { m.a1 = ''; m.a2 = ''; } save(); renderEd(); return; }
+  if (t.dataset.ok) { const [i, att, v] = t.dataset.ok.split('|'); const o = c.aoc.oth[+i] = c.aoc.oth[+i] || {}; o[att] = o[att] === v ? '' : v; save(); renderEd(); return; }
+  if (t.dataset.allp) { const SEC = P.KINDS[c.kind].aoc === 'fi' ? P.FI_SEC : P.TRI_SEC; SEC.filter(s => t.dataset.allp === '*' || s.s === t.dataset.allp).forEach(s => s.it.forEach((_, i) => { const id = s.s + '.' + (i + 1), m = c.aoc.m[id] = c.aoc.m[id] || {}; if (!m.na && m.a1 !== 'F') m.a1 = 'P'; })); save(); renderEd(); return; }
+  if (t.dataset.allna) { const s = P.FI_SEC.find(x => x.s === t.dataset.allna); s.it.forEach((_, i) => { c.aoc.m[s.s + '.' + (i + 1)] = { na: true }; }); save(); renderEd(); return; }
+  if (t.dataset.clr) { if (confirm('Καθαρισμός όλων των βαθμών;')) { c.aoc.m = {}; c.aoc.result = ''; save(); renderEd(); } return; }
+  if (t.dataset.res != null) { c.aoc.result = t.dataset.res; save(); renderEd(); return; }
+  if (t.id === 'del') { if (!confirm('Διαγραφή του ' + (nameOf(c) || 'υποψηφίου') + ';')) return; S.cands = S.cands.filter(x => x.id !== c.id); S.cur = null; save(); renderList(); return; }
+  if (t.id === 'gen') return generate(t);
+});
+
+/* ---------- PDF ---------- */
+let tplCache = null;
+function sigBytes(ex) { if (!ex.sig) return null; const b = atob(ex.sig.split(',')[1]); const u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+async function generate(btn) {
+  const c = cur(); btn.disabled = true; const old = btn.textContent; btn.textContent = '…';
+  try {
+    if (!tplCache) { const r = await fetch('935.pdf'); if (!r.ok) throw new Error('Δεν βρέθηκε το 935.pdf'); tplCache = new Uint8Array(await r.arrayBuffer()); }
+    const ex = exData();
+    /* ενσωματωμένες υπογραφές (cell values) σε κεφαλαία */
+    c.aoc.m = c.aoc.m || {};
+    let bytes = await P.build({ PDFLib, pdfBytes: tplCache, c, ex, sigBytes: sigBytes(ex) });
+    const nm = ((c.a.surname || 'X') + '_' + (c.a.first || '')).replace(/[^A-Za-z0-9_]+/g, '_').replace(/_+$/, '');
+    const fname = `PEL-FCL_935_${P.KINDS[c.kind].label.replace(/[()]/g, '')}_${{ issue: 'Initial', reval: 'Reval', renew: 'Renewal', ext: 'Extension' }[c.app]}_${nm}.pdf`;
+    const keys = ['doc:lic', 'doc:exm', 'doc:med'].filter(k => (S.att || {})[k]);
+    if (keys.length && window.PELDOCS) { try { const r = await PELDOCS.append(PDFLib, bytes, keys); bytes = r.bytes; if (r.missing.length) toast('Λείπουν: ' + r.missing.map(PELDOCS.label).join(', ') + ' (Γραφείο → Ρυθμίσεις).'); } catch (er) { } }
+    const date = (c.aoc.fl && c.aoc.fl[0] && c.aoc.fl[0].date) || c.a.appDate || today();
+    try { logExam(c, date); } catch (er) { }
+    if (window.PELDOCS) { try { await PELDOCS.saveOut('instr|' + c.id, fname, bytes, { date, cand: nameOf(c), forms: '935 ' + caseLabel(c) }); } catch (er) { } }
+    deliver([{ name: fname, blob: new Blob([bytes], { type: 'application/pdf' }) }]);
+    toast('Καταχωρήθηκε στο Αρχείο και στις Εξετάσεις');
+  } catch (err) { alert('Σφάλμα στη δημιουργία PDF: ' + err.message); console.error(err); }
+  btn.disabled = false; btn.textContent = old;
+}
+function logExam(c, date) {
+  if (!P.aocOn(c)) return; /* χωρίς AoC δεν είναι εξέταση */
+  const f = (c.aoc.fl || []).filter(x => x && (x.type || x.date));
+  let m = 0; f.forEach(x => { const d = P.dur(x.off, x.on); if (d) { const [hh, mm] = d.split(':'); m += (+hh) * 60 + (+mm); } });
+  const r = resultOf(c), res = r === 'pass' ? 'P' : r === 'partial' ? 'PP' : r === 'fail' ? 'F' : '';
+  const join = a => [...new Set(a.filter(Boolean).map(s => String(s).toUpperCase().trim()))].join('/');
+  const id = 'instr|' + c.id, A = c.a;
+  const rec = { id, src: 'instr', cat: 'exam', date, name: nameOf(c), lic: A.licNo || '', dep: '', reg: join(f.map(x => x.reg)), type: join(f.map(x => x.type)), test: P.label(c), time: m ? Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0') : '', result: res, email: A.email || '', phone: A.mobile || '', exp: [], in801: true };
+  let L = []; try { L = JSON.parse(localStorage.getItem('pel_log_v1')) || []; } catch (e) { }
+  const i = L.findIndex(x => x.id === id);
+  if (i >= 0) { const o = L[i]; if (!o.manualEdit) L[i] = Object.assign({}, rec, { client: o.client, price: o.price, invoice: o.invoice, note: o.note, qty: o.qty, in801: o.in801, exp: o.exp || [] }); } else L.push(rec);
+  localStorage.setItem('pel_log_v1', JSON.stringify(L));
+}
+function deliver(files) {
+  const out = $('#out');
+  const openF = f => { const u = URL.createObjectURL(f.blob); const a = document.createElement('a'); a.href = u; a.download = f.name; a.target = '_blank'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); };
+  if (!out) return openF(files[0]);
+  out.innerHTML = files.map((f, i) => `<a href="#" data-dl="${i}">📄 ${esc(f.name)}</a>`).join('') + (navigator.canShare ? '<button class="btn" id="shr">Κοινοποίηση / Αποθήκευση</button>' : '');
+  out.querySelectorAll('[data-dl]').forEach(a => a.onclick = ev => { ev.preventDefault(); openF(files[+a.dataset.dl]); });
+  const sb = $('#shr'); if (sb) sb.onclick = async () => { const fl = files.map(f => new File([f.blob], f.name, { type: f.blob.type })); try { if (navigator.canShare({ files: fl })) await navigator.share({ files: fl }); else openF(files[0]); } catch (e) { } };
+}
+
+/* άνοιγμα από το Αρχείο (✎) */
+{ const q = new URLSearchParams(location.search).get('open'); if (q && S.cands.some(c => c.id === q)) { S.cur = q; open = {}; view = 'ed'; } }
+render();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });
+</script>
+</body>
+</html>
