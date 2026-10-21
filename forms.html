@@ -83,6 +83,7 @@ header{padding-left:calc(env(safe-area-inset-left) + 78px)}
 <header><a href="index.html" id="to525">‹ 525</a><a href="instr.html" id="toOff" style="margin-right:2px">FI·IRI·TRI</a><a href="office.html" id="toOff">Γραφείο</a><h1 id="ttl">PEL-FCL Forms<small>HCAA · Examiner</small></h1><button id="hb" hidden>‹ Λίστα</button><button id="setb">⚙︎</button></header>
 <main id="app"></main>
 <div class="toast" id="toast"></div>
+<script src="hm.js"></script>
 <script src="pdf-lib.min.js"></script>
 <script src="layout.js"></script>
 <script src="fill.js"></script>
@@ -367,7 +368,7 @@ document.addEventListener('input', e => {
   const el = e.target; if (!el.dataset.p) return;
   const obj = view === 'settings' ? S : cur();
   let v = el.value; setP(obj, el.dataset.p, v); save();
-  if (el.dataset.r !== undefined) { const fl = el.closest('.flight'); if (fl) { const ins = fl.querySelectorAll('input[type=time]'); const d = F.dur(ins[0].value, ins[1].value); fl.querySelector('.h span:last-child').textContent = d ? 'Διάρκεια ' + d : ''; } }
+  if (el.dataset.r !== undefined) { const fl = el.closest('.flight'); if (fl) { const ins = fl.querySelectorAll('input[type=time],input[data-hm]'); const d = F.dur(ins[0].value, ins[1].value); fl.querySelector('.h span:last-child').textContent = d ? 'Διάρκεια ' + d : ''; } }
 });
 document.addEventListener('change', e => {
   const el = e.target;
