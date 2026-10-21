@@ -93,7 +93,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
 const uid = () => Math.random().toString(36).slice(2, 10);
-let S = load(), view = 'list', open = {};
+let S = load(), view = 'list', open = {}, cmOpen = {};
 
 function load() { let s; try { s = JSON.parse(localStorage.getItem(KEY)); } catch (e) { } s = s || {}; s.cands = s.cands || []; return s; }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Αποθήκευση απέτυχε: ' + e.message); } }
@@ -191,7 +191,7 @@ function renderEd() {
     const SEC = fiAoc ? P.FI_SEC : P.TRI_SEC;
     const mk = (id, att, v) => ['P', 'F'].map(x => `<button class="${x} ${v === x ? 'on' : ''}" data-mk="${id}|${att}|${x}">${x}</button>`).join('');
     const secs = SEC.map(s => `<div class="sec"><div class="sh"><span class="t">${s.s}. ${esc(s.t)}</span><button class="btn alt sm" data-allp="${s.s}">Όλα P</button>${fiAoc ? `<button class="btn alt sm" data-allna="${s.s}">N/A</button>` : ''}</div>
-      ${s.it.map((t, i) => { const id = s.s + '.' + (i + 1), x = AO.m[id] || {}; return `<div class="it"><span class="k">${id}</span><span class="l">${esc(t)}</span><span class="mk">${fiAoc ? `<button class="N ${x.na ? 'on' : ''}" data-na="${id}">N/A</button><span class="sep"></span>` : ''}<span class="lb">1η</span>${mk(id, 'a1', x.a1)}${x.a1 === 'F' || x.a2 ? `<span class="sep"></span><span class="lb">2η</span>${mk(id, 'a2', x.a2)}` : ''}</span>${x.a1 === 'F' || x.c ? `<input class="cm" data-cm="${id}" placeholder="Σχόλιο" value="${esc(x.c || '')}">` : ''}</div>`; }).join('')}</div>`).join('');
+      ${s.it.map((t, i) => { const id = s.s + '.' + (i + 1), x = AO.m[id] || {}; return `<div class="it"><span class="k">${id}</span><span class="l">${esc(t)}</span><span class="mk">${fiAoc ? `<button class="N ${x.na ? 'on' : ''}" data-na="${id}">N/A</button><span class="sep"></span>` : ''}<span class="lb">1η</span>${mk(id, 'a1', x.a1)}${x.a1 === 'F' || x.a2 ? `<span class="sep"></span><span class="lb">2η</span>${mk(id, 'a2', x.a2)}` : ''}<button class="cmb" data-cmo="${id}" title="Σχόλιο">💬</button></span>${x.a1 === 'F' || x.c || cmOpen[id] ? `<input class="cm" data-cm="${id}" placeholder="Σχόλιο" value="${esc(x.c || '')}">` : ''}</div>`; }).join('')}</div>`).join('');
     const othN = fiAoc ? 9 : 3; AO.oth = AO.oth || [];
     const oth = `<div class="sec"><div class="sh"><span class="t">${fiAoc ? '6' : '5'}. Other exercises (κατά την κρίση σου)</span></div>${Array.from({ length: Math.min(othN, Math.max(3, AO.oth.filter(o => o && o.d).length + 1)) }, (_, i) => { const o = AO.oth[i] || {}; const id = 'o' + i; return `<div class="it"><span class="k">${i + 1}</span><input data-p="aoc.oth.${i}.d" value="${esc(o.d || '')}" placeholder="Άσκηση" style="font-size:14px;padding:6px 8px"><span class="mk"><span class="lb">1η</span>${['P', 'F'].map(x => `<button class="${x} ${o.a1 === x ? 'on' : ''}" data-ok="${i}|a1|${x}">${x}</button>`).join('')}${fiAoc ? `<span class="sep"></span><span class="lb">2η</span>${['P', 'F'].map(x => `<button class="${x} ${o.a2 === x ? 'on' : ''}" data-ok="${i}|a2|${x}">${x}</button>`).join('')}` : ''}</span>${o.d ? `<input class="cm" data-p="aoc.oth.${i}.c" placeholder="Σχόλιο" value="${esc(o.c || '')}">` : ''}</div>`; }).join('')}</div>`;
     const sug = P.suggestResult(c), res = resultOf(c);
@@ -236,6 +236,7 @@ document.addEventListener('click', async e => { const t = e.target.closest('butt
     const o = (c.a.oth || [])[0]; if (o && /^(FI|IRI|TRI)\(A\)$/.test(o.t || '')) o.t = kk + '(A)';
     save(); renderEd(); return; }
   if (t.dataset.seg) { setP(c, t.dataset.seg, t.dataset.v); save(); renderEd(); return; }
+  if (t.dataset.cmo) { cmOpen[t.dataset.cmo] = true; renderEd(); const el = document.querySelector('[data-cm="' + t.dataset.cmo + '"]'); if (el) el.focus(); return; }
   if (t.dataset.mk) { const [id, att, v] = t.dataset.mk.split('|'); const m = c.aoc.m[id] = c.aoc.m[id] || {}; m[att] = m[att] === v ? '' : v; m.na = false; if (att === 'a1' && m.a1 !== 'F') m.a2 = ''; save(); renderEd(); return; }
   if (t.dataset.na) { const m = c.aoc.m[t.dataset.na] = c.aoc.m[t.dataset.na] || {}; m.na = !m.na; if (m.na) { m.a1 = ''; m.a2 = ''; } save(); renderEd(); return; }
   if (t.dataset.ok) { const [i, att, v] = t.dataset.ok.split('|'); const o = c.aoc.oth[+i] = c.aoc.oth[+i] || {}; o[att] = o[att] === v ? '' : v; save(); renderEd(); return; }
