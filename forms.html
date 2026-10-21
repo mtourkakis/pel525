@@ -374,7 +374,7 @@ document.addEventListener('change', e => {
   if (el.id === 'imp') { const f = el.files[0]; if (!f) return; f.text().then(t => { try { const d = JSON.parse(t); if (!d.cands) throw new Error('μη έγκυρο'); if (confirm('Αντικατάσταση όλων των δεδομένων με το backup;')) { S = d; save(); render(); toast('Έγινε εισαγωγή'); } } catch (err) { alert('Σφάλμα: ' + err.message); } }); return; }
   if (el.dataset.scan) { const c = cur(); const f = el.files; if (!c || !f || !f.length) return;
     if (!confirm('Είναι αυτό το ίδιο το έντυπο ' + el.dataset.scan + ', σκαναρισμένο;\n\nOK = οι σελίδες του μπαίνουν στη θέση των σελίδων της φόρμας.\nΆκυρο = είναι άλλο έγγραφο (techlog, απόδειξη, email…) → μπαίνει ως συνημμένο στο τέλος.')) { PELDOCS.addCandFiles('cand:forms:' + c.id, f).then(() => { el.value = ''; renderCF(); toast('Προστέθηκε ως συνημμένο'); }); return; }
-    const k = 'scan:forms:' + c.id + ':' + el.dataset.scan; PELDOCS.del(k).then(() => PELDOCS.addCandFiles(k, f)).then(() => { render(); toast('Σκαναρισμένο ' + el.dataset.scan + ' αποθηκεύτηκε'); }).catch(err => alert('Σφάλμα: ' + err.message)); return; }
+    const k = 'scan:forms:' + c.id + ':' + el.dataset.scan; scanPick(f, el.dataset.scan).then(ff => { if (!ff) throw new Error('Ακυρώθηκε'); return PELDOCS.del(k).then(() => PELDOCS.addCandFiles(k, ff)); }).then(() => { render(); toast('Σκαναρισμένο ' + el.dataset.scan + ' αποθηκεύτηκε'); }).catch(err => alert('Σφάλμα: ' + err.message)); return; }
   if (el.id === 'cfAdd') { const c = cur(); const f = el.files; if (!c || !f || !f.length) return; PELDOCS.addCandFiles('cand:forms:' + c.id, f).then(() => { el.value = ''; renderCF(); toast('Προστέθηκε'); }).catch(err => alert('Σφάλμα: ' + err.message)); return; }
   if (el.id === 'invPick') { const c = cur(); c.invNo = el.value; S.att = S.att || {}; if (el.value) { S.att.inv = true; const cb = document.querySelector('[data-att="inv"]'); if (cb) cb.checked = true; } save(); toast(el.value ? 'Θα επισυναφθεί το τιμολόγιο ' + el.value : 'Τιμολόγιο: αυτόματα'); return; }
   if (el.dataset.att) { S.att = S.att || {}; S.att[el.dataset.att] = el.checked; save(); return; }
@@ -383,6 +383,18 @@ document.addEventListener('change', e => {
 });
 /* «Διόρθωση» από το Αρχείο: άνοιγμα του υποψηφίου */
 setTimeout(() => { const q = new URLSearchParams(location.search), id = q.get('open'); if (!id) return; history.replaceState(null, '', location.pathname); if (S.cands.some(c => c.id === id)) { S.cur = id; openSecs = { prog: true, app: true }; view = 'edit'; setTitle(); render(); window.scrollTo(0, 0); } else alert('Ο υποψήφιος δεν υπάρχει πια στις φόρμες.'); }, 0);
+/* σκανάρισμα με πολλά έντυπα μαζί: διαλέγεις ποιες σελίδες (και με ποια σειρά) ανήκουν σε αυτό το έντυπο */
+async function scanPick(fl, form) {
+  const files = Array.from(fl); if (files.length !== 1 || !/pdf/i.test(files[0].type + files[0].name)) return files;
+  const src = await PDFLib.PDFDocument.load(await files[0].arrayBuffer(), { ignoreEncryption: true }); const n = src.getPageCount();
+  const tplN = (await PDFLib.PDFDocument.load(await pdfBytes(form))).getPageCount(); if (n === tplN) return files;
+  const ans = prompt('Το αρχείο έχει ' + n + ' σελίδες, το ' + form + ' έχει ' + tplN + '.\nΠοιες σελίδες του αρχείου είναι το ' + form + ', με τη σειρά;\n(π.χ. 1-5,7,24,6,9,10)', '1-' + Math.min(n, tplN)); if (ans === null) return null;
+  const list = []; ans.split(/[,; ]+/).filter(Boolean).forEach(t => { const m = /^(\d+)(?:-(\d+))?$/.exec(t); if (!m) return; const a = +m[1], b = m[2] ? +m[2] : a; for (let i = a; a <= b ? i <= b : i >= b; i += a <= b ? 1 : -1) if (i >= 1 && i <= n) list.push(i - 1); });
+  if (!list.length) { alert('Δεν κατάλαβα τις σελίδες.'); return null; }
+  const out = await PDFLib.PDFDocument.create(); (await out.copyPages(src, list)).forEach(p => out.addPage(p));
+  if (list.length !== tplN) alert('Προσοχή: διάλεξες ' + list.length + ' σελίδες, το ' + form + ' έχει ' + tplN + '.');
+  return [new File([await out.save()], form + '_scan.pdf', { type: 'application/pdf' })];
+}
 function setTitle() { const c = cur(); $('#ttl').innerHTML = esc(((c && c.applicant.surname) || 'Υποψήφιος').toUpperCase()) + '<small>' + (c && c.tests.rev && !c.tests.ppl && !c.tests.cpl && !c.tests.ir ? 'SEP reval.' : c && c.tests.ppl && !c.tests.cpl && !c.tests.ir ? (c.ppl.lic === 'LAPL' ? 'LAPL(A)' : 'PPL(A)') : c && c.course === 'modular' ? 'Modular' : 'Integrated') + '</small>'; }
 
 /* ---------- PDF ---------- */
