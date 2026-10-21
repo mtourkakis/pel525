@@ -335,6 +335,14 @@
       boxTick('cl_pc', cl.pc); boxTick('cl_lic', cl.lic); boxTick('cl_pbn', cl.pbn); boxTick('cl_ato', cl.ato);
       keep = [1, 2];
     }
+    /* υπογραφή υποψηφίου στην οθόνη: [σελίδα, x, γραμμή βάσης (από πάνω), πλάτος] */
+    const APPSIG = { '320A': [[4, 122, 709, 240], [5, 116, 192, 300]], '320B': [[4, 123, 750, 245], [5, 115, 201, 300]],
+      '420A': [[1, 129, 344, 240], [1, 140, 579, 285], [3, 123, 819, 245], [4, 125, 154, 300]], '1000': [[1, 164, 468, 205]], '521': [[1, 140, 442, 260]],
+      '220A': [[5, 123, 364, 245], [6, 116, 194, 300]] };
+    if (opts.appSigBytes && APPSIG[form]) {
+      let im = null; try { im = await doc.embedPng(opts.appSigBytes); } catch (e) { im = null; }
+      if (im) APPSIG[form].forEach(([p, x, base, w]) => { if (p > pages.length) return; const h = 20, k = Math.min(w / im.width, h / im.height); pg(p).drawImage(im, { x, y: H(p) - base - 2, width: im.width * k, height: im.height * k }); });
+    }
     if (pagesMode === 'examiner' && keep) {
       const total = doc.getPageCount();
       for (let i = total; i >= 1; i--) if (!keep.includes(i)) doc.removePage(i - 1);

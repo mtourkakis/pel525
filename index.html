@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="docs.js"></script>
+<script src="sigpad.js"></script>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 --bg:#eef1f4;--panel:#fff;--ink:#14202e;--muted:#5c6b7a;--line:#d4dbe3;--accent:#d98a00;--accent-ink:#1a1200;--chip:#f4f6f8;--on:#14202e;--on-ink:#ffd27a;--warn:#b3261e;--ok:#1e7a46}
@@ -247,6 +248,11 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
 <div id="cfList" class="note" style="margin-top:0"></div>
 <div class="tools"><label class="mini" style="display:inline-flex;align-items:center;cursor:pointer">+ Πτυχίο υποψηφίου / email / άλλο<input type="file" id="cfAdd" accept="application/pdf,image/*" multiple style="display:none"></label></div>
 <div class="note">Π.χ. το email «Notification of Test» της ΥΠΑ (σε PDF ή φωτογραφία) ή το FSTD certificate. Μπαίνουν πάντα στο τέλος του PDF αυτού του υποψηφίου.</div>
+<div class="grp">Υπογραφή υποψηφίου (στην οθόνη)</div>
+<div class="tools" id="sigRow"></div>
+<div class="note" style="margin-top:0">Ο υποψήφιος υπογράφει στο iPad· μπαίνει στις θέσεις «Applicant Signature» και το PDF αποθηκεύεται αμέσως στο Αρχείο.</div>
+<div class="grp">Αποθηκευμένα PDF αυτού του υποψηφίου</div>
+<div id="arc525" class="note" style="margin-top:0"></div>
 </section>
 
 <section>
@@ -254,7 +260,7 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
 <div class="subj" id="subj">PEL-FCL-</div>
 <div class="note">Προς info@hcaa.gov.gr. Πάτα παρατεταμένα για αντιγραφή.</div>
 </section>
-<p class="note">Όλα μένουν μόνο σε αυτή τη συσκευή. Οι υπογραφές μπαίνουν με το χέρι.</p>
+<p class="note">Όλα μένουν μόνο σε αυτή τη συσκευή.</p>
 </div>
 
 <div class="bar"><div class="in"><button class="go" id="go">ΔΗΜΙΟΥΡΓΙΑ PDF</button><div class="status" id="status"></div></div></div>
@@ -376,7 +382,24 @@ renderCands();fillCand();renderChips();renderItems();renderTpls();refresh();
 const BB525={"1":[0.032,0.0099,0.966,0.983],"2":[0.034,0.0099,0.966,0.9717],"3":[0.036,0.0099,0.968,0.6516],"4":[0.036,0.0099,0.972,0.9178],"5":[0.036,0.0099,0.972,0.9901],"6":[0.036,0.0099,0.966,0.9334],"7":[0.036,0.0099,0.968,0.779],"8":[0.036,0.0099,0.966,0.8853],"9":[0.036,0.0099,0.966,0.8782],"10":[0.036,0.0099,0.966,0.983],"11":[0.036,0.0099,0.944,0.9603],"12":[0.036,0.0099,0.944,0.466],"13":[0.034,0.0099,0.966,0.9136],"14":[0.036,0.0099,0.932,0.6771]};
 /* επισύναψη εγγράφων */
 function candKey(){const c=S.cands[S.cur];if(!c)return null;if(!c.id){c.id=Math.random().toString(36).slice(2,10);persist();}return "cand:525:"+c.id;}
-async function renderScan(){const c=S.cands[S.cur];const info=$("scanInfo");if(!info)return;if(!c||!window.PELDOCS){info.textContent="—";return;}const k="scan:525:"+(c.id||"x");const n=c.id?await PELDOCS.scanCount(PDFLib,k):0;
+let SILENT525=false;
+const esc5=t=>String(t==null?"":t).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+async function renderSig525(){const c=S.cands[S.cur],row=$("sigRow"),arc=$("arc525");if(!row||!arc)return;
+ row.innerHTML=(c&&c.appSig?`<img src="${c.appSig}" alt="" style="height:40px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:2px 6px">`:"")+`<button class="mini" id="sgo5" type="button">✍️ ${c&&c.appSig?"Ξανά υπογραφή":"Υπογραφή στην οθόνη"}</button>`+(c&&c.appSig?`<button class="mini" id="sclr5" type="button">Σβήσιμο</button>`:"");
+ if(!window.PELDOCS){arc.textContent="—";return;}
+ const nm=(upper($("c_surname").value)+" "+upper($("c_first").value)).trim();if(!nm){arc.textContent="—";return;}
+ const L=((await PELDOCS.listOut())||[]).filter(x=>(x.logId||"").startsWith("525|"+nm+"|")).sort((a,b)=>(b.saved||0)-(a.saved||0));
+ arc.innerHTML=L.length?L.map(x=>`<div class="tools" style="align-items:center;border-top:1px solid var(--line);padding-top:6px"><span style="flex:1;min-width:170px">📄 ${esc5(x.name)}<br>${x.signed?"✍️ υπογεγραμμένο (σκανάρισμα)":x.appSigned?"✍️ υπογεγραμμένο στην οθόνη":"χωρίς υπογραφή"} · ${dmy(new Date(x.saved||Date.now()).toISOString().slice(0,10))}</span><button class="mini" type="button" data-a5open="${esc5(x.key)}">Άνοιγμα</button><label class="mini" style="display:inline-flex;align-items:center;cursor:pointer">↻ Υπογεγραμμένο<input type="file" data-a5rep="${esc5(x.key)}" accept="application/pdf,image/*" multiple style="display:none"></label><button class="mini" type="button" data-a5del="${esc5(x.key)}" style="color:#c62f2f">✕</button></div>`).join(""):"Δεν έχει βγει ακόμα PDF.";}
+document.addEventListener("click",async e=>{const t=e.target.closest("button");if(!t)return;const c=S.cands[S.cur];
+ if(t.id==="sgo5"){if(!c){setStatus("Συμπλήρωσε πρώτα υποψήφιο.","err");return;}const nm=(upper($("c_surname").value)+" "+upper($("c_first").value)).trim();const d=await PELSIG.open("Υπογραφή: "+nm);if(!d)return;c.appSig=d;persist();renderSig525();
+  if(!$("date").value){setStatus("Η υπογραφή κρατήθηκε· βάλε ημερομηνία check και πάτα ΔΗΜΙΟΥΡΓΙΑ PDF.","err");return;}SILENT525=true;$("go").click();return;}
+ if(t.id==="sclr5"){if(c&&confirm("Σβήσιμο της υπογραφής του υποψηφίου;")){delete c.appSig;persist();renderSig525();}return;}
+ if(t.dataset.a5open){const r=await PELDOCS.get(t.dataset.a5open);if(!r)return;const f=new File([r.bytes],r.name||"525.pdf",{type:"application/pdf"});
+  try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f]});return;}}catch(er){return;}
+  const u=URL.createObjectURL(f),a=document.createElement("a");a.href=u;a.target="_blank";a.download=f.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);return;}
+ if(t.dataset.a5del){if(!confirm("Διαγραφή αυτού του PDF από το Αρχείο;\n\nΗ εξέταση μένει στις Εξετάσεις / 801."))return;await PELDOCS.dropOut(t.dataset.a5del);renderSig525();return;}});
+document.addEventListener("change",e=>{const el=e.target;if(el.id==="c_surname"||el.id==="c_first")renderSig525();if(el.dataset&&el.dataset.a5rep&&el.files&&el.files.length){PELDOCS.replaceOut(PDFLib,el.dataset.a5rep,el.files).then(()=>{setStatus("Μπήκε το υπογεγραμμένο.","ok");renderSig525();}).catch(er=>alert("Σφάλμα: "+er.message));}});
+async function renderScan(){renderSig525();const c=S.cands[S.cur];const info=$("scanInfo");if(!info)return;if(!c||!window.PELDOCS){info.textContent="—";return;}const k="scan:525:"+(c.id||"x");const n=c.id?await PELDOCS.scanCount(PDFLib,k):0;
  info.textContent=n?"✓ "+n+(n===1?" σελίδα":" σελίδες")+" από την εταιρεία (μπαίνουν στη θέση των σελίδων 1"+(n>1?"–"+n:"")+")":"Κανένα.";$("scanDel").hidden=!n;}
 $("scanAdd").addEventListener("change",async e=>{const ck=candKey();if(!ck){alert("Συμπλήρωσε πρώτα υποψήφιο.");return;}const k="scan:525:"+S.cands[S.cur].id;const f=e.target.files;if(!f||!f.length)return;
  if(!confirm("Είναι αυτό το ίδιο το έντυπο PEL-FCL 525, σκαναρισμένο;\n\nOK = οι σελίδες του μπαίνουν στη θέση των σελίδων της φόρμας.\nΆκυρο = είναι άλλο έγγραφο (techlog, απόδειξη, email…) → μπαίνει ως συνημμένο στο τέλος.")){try{await PELDOCS.addCandFiles(ck,f);}catch(err){alert("Σφάλμα: "+err.message);}e.target.value="";renderCF();return;}
@@ -483,6 +506,8 @@ async function build(ov){
  if(d)stamp(2,244,354.5);
  if(v("a5ir")||v("a5cls")||v("a5date"))stamp(2,172,526.5);
  stamp(3,168,495.5);
+ {const cs=S.cands[S.cur];if(cs&&cs.appSig){let im=null;try{im=await doc.embedPng(b64ToBytes(cs.appSig.split(",")[1]));}catch(e){im=null;}
+  if(im)[[0,122,319,240],[0,124,645,295],[3,115,545,220]].forEach(([pg,x,base,w])=>{if(ov&&pg===0)return;const h=20,k=Math.min(w/im.width,h/im.height);P[pg].drawImage(im,{x,y:H-base-2,width:im.width*k,height:im.height*k});});}}
  return await doc.save();
 }
 function logExam525(){const g=id=>($(id)?$(id).value:"");const ch=S.chips||{};const date=g("date");if(!date)return;
@@ -497,14 +522,15 @@ const i=L.findIndex(x=>x.id===id);
 if(i>=0){const o=L[i];L[i]=o.manualEdit?Object.assign(o,{exp}):Object.assign({},rec,{client:o.client,price:o.price,invoice:o.invoice,note:o.note,qty:o.qty,in801:o.in801});}else L.push(rec);
 localStorage.setItem("pel_log_v1",JSON.stringify(L));}
 let dl=null;(async()=>{try{dl=await window.claude?.use?.("downloads")??null;}catch(e){dl=null;}})();
-$("go").addEventListener("click",async()=>{const btn=$("go");btn.disabled=true;setStatus("Δημιουργία…");
+$("go").addEventListener("click",async()=>{const silent=SILENT525;SILENT525=false;const btn=$("go");btn.disabled=true;setStatus("Δημιουργία…");
  try{if(!window.PDFLib)throw 0;
   if(nonLatin($("c_surname").value)||nonLatin($("c_first").value)){setStatus("Το όνομα του υποψηφίου πρέπει να είναι με λατινικούς.","err");return;}
   {const bad=C.items.filter(i=>S.items[i.id]===true&&wrongCls(i.id)).map(i=>i.id);
    if(bad.length&&confirm("Τα items "+bad.join(", ")+" δεν εφαρμόζονται σε "+acClass()+" (Part-FCL App.9 B) και είναι τσεκαρισμένα.\n\nΟΚ = να γίνουν N/A και να συνεχίσει\nΆκυρο = να μείνουν όπως είναι")){fixClassItems();persist();renderItems();}}
   let bytes=await build();const cc=S.cands[S.cur];if(cc&&cc.id&&window.PELDOCS){const sk="scan:525:"+cc.id;if(await PELDOCS.scanCount(PDFLib,sk))bytes=await PELDOCS.compose(PDFLib,bytes,await build(true),sk,BB525);}try{logExam525();}catch(e){}let ainfo="";try{const a=await attachDocs(bytes);bytes=a.bytes;ainfo=a.info;}catch(e){ainfo=" · η επισύναψη απέτυχε";}const sn=upper($("c_surname").value).replace(/[^A-Z0-9]+/g,"-")||"APPLICANT";
   const fn="PEL-FCL-525_"+sn+"_"+dmy($("date").value).replace(/\//g,"-")+".pdf";
-  try{if(window.PELDOCS&&$("date").value){const nm=(upper($("c_surname").value)+" "+upper($("c_first").value)).trim();await PELDOCS.saveOut("525|"+nm+"|"+$("date").value,fn,bytes,{date:$("date").value,cand:nm,forms:"525",state:JSON.parse(JSON.stringify({check:S.check,chips:S.chips,items:S.items,idates:S.idates,cand:S.cands[S.cur]||null}))});}}catch(e){}
+  try{if(window.PELDOCS&&$("date").value){const nm=(upper($("c_surname").value)+" "+upper($("c_first").value)).trim();await PELDOCS.saveOut("525|"+nm+"|"+$("date").value,fn,bytes,{date:$("date").value,cand:nm,forms:"525",appSigned:!!((S.cands[S.cur]||{}).appSig),state:JSON.parse(JSON.stringify({check:S.check,chips:S.chips,items:S.items,idates:S.idates,cand:S.cands[S.cur]||null}))});}}catch(e){}
+  if(silent){renderSig525();setStatus(window.PELDOCS&&$("date").value?"✍️ Υπογράφηκε και αποθηκεύτηκε στο Αρχείο: "+fn:"Υπογράφηκε· δεν αποθηκεύτηκε (λείπει ημερομηνία).","ok");return;}
   if(!dl){const blob=new Blob([bytes],{type:"application/pdf"}),file=new File([blob],fn,{type:"application/pdf"});
    try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:fn});setStatus("Έτοιμο: "+fn+ainfo,"ok");return;}}
    catch(e){if(e&&e.name==="AbortError"){setStatus("Ακυρώθηκε.","err");return;}}

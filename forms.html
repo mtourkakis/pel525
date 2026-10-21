@@ -88,6 +88,7 @@ header{padding-left:calc(env(safe-area-inset-left) + 78px)}
 <script src="layout.js"></script>
 <script src="fill.js"></script>
 <script src="docs.js"></script>
+<script src="sigpad.js"></script>
 <script>
 const F = window.PELFILL, LAYOUT = window.PEL_LAYOUT, KEY = 'pelfcl_forms_v1';
 const TK = { CPL: 'cpl', IR: 'ir', PPL: 'ppl' };
@@ -153,7 +154,7 @@ async function renderCF() {
   box.innerHTML = fs.length ? fs.map((f, i) => `📎 ${esc(f.name)} <button class="cmb" data-cfdel="${i}">✕</button>`).join(' &nbsp; ') : 'κανένα';
   const ip = $('#invPick'); if (ip) { const opts = await PELDOCS.invOptions(); ip.innerHTML = '<option value="">Αυτόματα (το τιμολόγιο του υποψηφίου)</option>' + opts.map(o => `<option value="${esc(o.no)}" ${c.invNo === o.no ? 'selected' : ''}>${esc(o.label)}</option>`).join(''); }
   const sv = $('#savedPdfs'); if (sv) { const L = (await PELDOCS.listOut()).filter(x => (x.logId || '').startsWith('forms|' + c.id)).sort((a, b) => (b.saved || 0) - (a.saved || 0));
-    sv.innerHTML = L.length ? '<span class="hint" style="margin:0">Αποθηκευμένα:</span>' + L.map(x => `<button class="btn alt" data-savedopen="${esc(x.key)}">📄 ${esc(x.forms || x.label || x.name)} · ${F.dmy(new Date(x.saved || Date.now()).toISOString().slice(0, 10))}${x.signed ? ' ✍️' : ''}</button>`).join('') : ''; }
+    sv.style.display = 'block'; sv.innerHTML = L.length ? '<h3>Αποθηκευμένα PDF</h3>' + L.map(x => `<div class="row" style="border-top:1px solid var(--line);padding-top:8px;margin:6px 0"><span style="flex:1;min-width:180px;font-size:13.5px">📄 ${esc(x.forms || x.label || x.name)}<span class="hint" style="display:block;margin:0">${x.signed ? '✍️ υπογεγραμμένο (σκανάρισμα)' : x.appSigned ? '✍️ υπογεγραμμένο στην οθόνη' : 'χωρίς υπογραφή'} · ${F.dmy(new Date(x.saved || Date.now()).toISOString().slice(0, 10))}</span></span><button class="btn alt" data-savedopen="${esc(x.key)}">Άνοιγμα</button><label class="btn alt" style="cursor:pointer">↻ Υπογεγραμμένο<input type="file" data-arep="${esc(x.key)}" accept="application/pdf,image/*" multiple hidden></label><button class="btn danger" data-adel="${esc(x.key)}">✕</button></div>`).join('') : ''; }
 }
 function render() {
   $('#hb').hidden = view === 'list';
@@ -301,6 +302,8 @@ function editView() {
     <p class="hint" style="margin-top:0">Αν η εταιρεία σού δίνει το έντυπο συμπληρωμένο, ανέβασέ το: οι σελίδες του μπαίνουν όπως είναι και η εφαρμογή βάζει πάνω τους μόνο τα δικά σου.</p>
     <div class="row"><span class="hint" style="margin:0">Συνημμένα υποψηφίου:</span><span id="cfList" class="hint" style="margin:0">…</span><label class="btn alt" style="cursor:pointer">+ Πτυχίο υποψηφίου / email / άλλο<input type="file" id="cfAdd" accept="application/pdf,image/*" multiple style="display:none"></label></div>
     <div class="row"><span class="hint" style="margin:0">Δικά μου στο τέλος:</span>${[['doc:lic', 'Το πτυχίο μου'], ['doc:med', 'Το medical μου'], ['doc:exm', 'Ο examiner μου'], ['inv', 'Τιμολόγιο']].map(([k, l]) => `<label class="chk" style="margin:0"><input type="checkbox" data-att="${k}" ${S.att[k] ? 'checked' : ''}> ${l}</label>`).join('')}</div>
+    <div class="row"><span class="hint" style="margin:0">Υπογραφή υποψηφίου:</span>${c.appSig ? `<img src="${c.appSig}" alt="" style="height:40px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:2px 6px">` : ''}<button class="btn amber" id="sgo">✍️ ${c.appSig ? 'Ξανά υπογραφή' : 'Υπογραφή στην οθόνη'}</button>${c.appSig ? '<button class="btn alt" id="sclr">Σβήσιμο</button>' : ''}</div>
+    <p class="hint" style="margin-top:0">Ο υποψήφιος υπογράφει στο iPad· η υπογραφή μπαίνει στις θέσεις «Applicant's signature» και τα PDF αποθηκεύονται αμέσως στο Αρχείο.</p>
     <div class="row">${fs.map(f => `<button class="btn" data-gen="${f}">${f}</button>`).join('')}${fs.length > 1 ? '<button class="btn amber" data-gen="ALL">Όλα σε ένα PDF</button>' : ''}</div>
     <div class="row"><span class="hint" style="margin:0">Τιμολόγιο:</span><select id="invPick" style="font-size:15px;padding:8px;border-radius:8px;max-width:100%"><option value="">Αυτόματα (το τιμολόγιο του υποψηφίου)</option></select></div>
     <div class="out" id="out"></div><div class="row" id="savedPdfs"></div>`);
@@ -357,6 +360,10 @@ document.addEventListener('click', async e => {
     save(); render(); toast('Σημειώθηκαν Pass'); return;
   }
   if (t.dataset.gen) { generate(t.dataset.gen, t); return; }
+  if (t.id === 'sgo') { const c = cur(); const d = await PELSIG.open('Υπογραφή: ' + ((c.applicant.surname || '') + ' ' + (c.applicant.first || '')).toUpperCase().trim()); if (!d) return; c.appSig = d; save(); render();
+    for (const f of formsFor(c)) await generate(f, { textContent: '' }, true); toast('✍️ Υπογράφηκε και αποθηκεύτηκε στο Αρχείο'); renderCF(); return; }
+  if (t.id === 'sclr') { const c = cur(); if (confirm('Σβήσιμο της υπογραφής του υποψηφίου;')) { delete c.appSig; save(); render(); } return; }
+  if (t.dataset.adel) { if (!confirm('Διαγραφή αυτού του PDF από το Αρχείο;\n\nΗ εξέταση μένει στις Εξετάσεις / 801.')) return; await PELDOCS.dropOut(t.dataset.adel); toast('Διαγράφηκε'); renderCF(); return; }
   if (t.dataset.savedopen) { const r = await PELDOCS.get(t.dataset.savedopen); if (!r) return; const f = new File([r.bytes], r.name || 'form.pdf', { type: 'application/pdf' });
     try { if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f] }); return; } } catch (e) { return; }
     const u = URL.createObjectURL(f), a = document.createElement('a'); a.href = u; a.target = '_blank'; a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); return; }
@@ -372,6 +379,7 @@ document.addEventListener('input', e => {
 });
 document.addEventListener('change', e => {
   const el = e.target;
+  if (el.dataset.arep && el.files && el.files.length) { PELDOCS.replaceOut(PDFLib, el.dataset.arep, el.files).then(() => { toast('Μπήκε το υπογεγραμμένο'); renderCF(); }).catch(er => alert('Σφάλμα: ' + er.message)); return; }
   if (el.id === 'sigPhoto') { const f = el.files && el.files[0]; if (!f) return; sigFromPhoto(f).then(d => { S.ex.sig = d; save(); render(); toast('Η υπογραφή αποθηκεύτηκε'); }).catch(err => alert(err.message)); return; }
   if (el.id === 'imp') { const f = el.files[0]; if (!f) return; f.text().then(t => { try { const d = JSON.parse(t); if (!d.cands) throw new Error('μη έγκυρο'); if (confirm('Αντικατάσταση όλων των δεδομένων με το backup;')) { S = d; save(); render(); toast('Έγινε εισαγωγή'); } } catch (err) { alert('Σφάλμα: ' + err.message); } }); return; }
   if (el.dataset.scanhdr) { const c = cur(); if (!c) return; c.scanHdr = el.checked; save(); toast(el.checked ? 'Δεν θα ξαναγραφτούν όνομα/ημ. γέννησης' : 'Θα γράφονται όνομα/ημ. γέννησης'); return; }
@@ -404,7 +412,7 @@ function setTitle() { const c = cur(); $('#ttl').innerHTML = esc(((c && c.applic
 const pdfCache = {};
 async function pdfBytes(f) { if (!pdfCache[f]) { const r = await fetch(f + '.pdf'); if (!r.ok) throw new Error('Δεν βρέθηκε το ' + f + '.pdf'); pdfCache[f] = new Uint8Array(await r.arrayBuffer()); } return pdfCache[f]; }
 function sigBytes() { if (!S.ex.sig) return null; const b = atob(S.ex.sig.split(',')[1]); const u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
-async function generate(which, btn) {
+async function generate(which, btn, silent) {
   const c = cur(); const fs = which === 'ALL' ? formsFor(c) : [which];
   if (fs.includes('1000') || fs.includes('521')) { /* στοιχεία εξεταστή για 1000/521: ζητούνται μία φορά και αποθηκεύονται */
     let ch = false;
@@ -418,7 +426,7 @@ async function generate(which, btn) {
   try {
     const outs = [];
     for (const f of fs) {
-      const base = { PDFLib, layout: LAYOUT, pdfBytes: await pdfBytes(f), ex: S.ex, c, form: f, pagesMode: S.pages, sigBytes: sigBytes() };
+      const base = { PDFLib, layout: LAYOUT, pdfBytes: await pdfBytes(f), ex: S.ex, c, form: f, pagesMode: S.pages, sigBytes: sigBytes(), appSigBytes: c.appSig ? PELSIG.bytes(c.appSig) : null };
       const sk = 'scan:forms:' + c.id + ':' + f, n = window.PELDOCS ? await PELDOCS.scanCount(PDFLib, sk) : 0;
       if (n) { /* σκαναρισμένο ολόκληρο έντυπο → όλες οι σελίδες, ώστε να αντιστοιχούν 1-1 */
         const tplN = (await PDFLib.PDFDocument.load(base.pdfBytes)).getPageCount(); base.pagesMode = 'full'; if (n >= tplN) base.keepAll = true; /* με σκανάρισμα: πάντα ολόκληρο, ώστε οι σελίδες να αντιστοιχούν 1-1 */
@@ -443,8 +451,8 @@ async function generate(which, btn) {
     if (info) toast(info);
     if (window.PELDOCS) { const A = c.applicant || {}; const tl = [...((c.cpl && c.cpl.flights) || []), ...((c.ir && c.ir.flights) || []), ...((c.tests.ppl && c.ppl && c.ppl.flights) || [])].map(x => x && x.date).filter(Boolean).sort();
       const sd = c.signDate || tl.pop() || new Date().toISOString().slice(0, 10);
-      for (const fl of files) { try { await PELDOCS.saveOut('forms|' + c.id, fl.name, new Uint8Array(await fl.blob.arrayBuffer()), { date: (c.fdate && fs.length === 1 && c.fdate[fs[0]]) || sd, cand: ((A.surname || '') + ' ' + (A.first || '')).toUpperCase().trim(), forms: fs.join(' + ') }); } catch (e) { } } }
-    deliver(files); renderCF();
+      for (const fl of files) { try { await PELDOCS.saveOut('forms|' + c.id, fl.name, new Uint8Array(await fl.blob.arrayBuffer()), { date: (c.fdate && fs.length === 1 && c.fdate[fs[0]]) || sd, cand: ((A.surname || '') + ' ' + (A.first || '')).toUpperCase().trim(), forms: fs.join(' + '), appSigned: !!c.appSig }); } catch (e) { } } }
+    if (!silent) deliver(files); renderCF();
   } catch (err) { alert('Σφάλμα στη δημιουργία PDF: ' + err.message); console.error(err); }
   btn.disabled = false; btn.textContent = old;
 }
