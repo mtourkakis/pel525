@@ -78,6 +78,7 @@
     const font = await tpl.embedFont(StandardFonts.Helvetica), bold = await tpl.embedFont(StandardFonts.HelveticaBold);
     const INK = rgb(0.05, 0.12, 0.45), STAMP = rgb(0.12, 0.2, 0.55), WHITE = rgb(1, 1, 1);
     let sigImg = null; if (o.sigBytes) { try { sigImg = await tpl.embedPng(o.sigBytes); } catch (e) { sigImg = null; } }
+    let appImg = null; if (o.appSigBytes) { try { appImg = await tpl.embedPng(o.appSigBytes); } catch (e) { appImg = null; } }
     const pages = tpl.getPages();
     const pg = n => pages[IX[n]]; const H = n => pg(n).getHeight();
     const A = c.a || {}, D = c.d || {}, AO = c.aoc || {};
@@ -323,6 +324,15 @@
     T(98, 120, 683, exName, 10, { w: 300 });
     stamp(98, 90, 709, 160, true); T(98, 270, 719, exNo.replace(/\//g, '.'), 9, { w: 120, bold: true });
     T(98, 430, 715, dmy(f1.date || A.appDate), 10, { w: 140 });
+
+    /* ---------- υπογραφή υποψηφίου (στην οθόνη) ---------- */
+    function appSig(p, x, top, w, h) { if (!appImg) return; const k = Math.min(w / appImg.width, h / appImg.height); const iw = appImg.width * k, ih = appImg.height * k; pg(p).drawImage(appImg, { x, y: H(p) - top - ih, width: iw, height: ih }); }
+    if (appImg) {
+      appSig(50, 170, 553, 200, 22);
+      appSig(92, 160, 210, 200, 26); appSig(96, 160, 210, 200, 26);
+      appSig(94, 40, 778, 150, 20); if (res === 'partial' && PP.on) appSig(95, 40, 788, 150, 22);
+      appSig(98, 85, 509, 260, 24);
+    }
 
     /* ---------- μόνο οι σελίδες της περίπτωσης ---------- */
     const out = await PDFDocument.create();
