@@ -296,6 +296,7 @@ function editView() {
   S.att = S.att || {};
   h += sec('out', 'Έκδοση PDF', `<div class="row">${segPages()}</div>
     <div class="row" id="scanRow"><span class="hint" style="margin:0">Σκαναρισμένο εταιρείας:</span>${fs.map(f => `<label class="btn alt" style="cursor:pointer" data-scanlbl="${f}">${f} ⬆<input type="file" data-scan="${f}" accept="application/pdf,image/*" multiple style="display:none"></label>`).join('')}</div>
+    <label class="row" style="margin-top:0;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" data-scanhdr="1" ${c.scanHdr ? 'checked' : ''} style="width:22px;height:22px"><span>Το σκαναρισμένο έχει ήδη όνομα &amp; ημ. γέννησης (να μην τα ξαναγράψει)</span></label>
     <p class="hint" style="margin-top:0">Αν η εταιρεία σού δίνει το έντυπο συμπληρωμένο, ανέβασέ το: οι σελίδες του μπαίνουν όπως είναι και η εφαρμογή βάζει πάνω τους μόνο τα δικά σου.</p>
     <div class="row"><span class="hint" style="margin:0">Συνημμένα υποψηφίου:</span><span id="cfList" class="hint" style="margin:0">…</span><label class="btn alt" style="cursor:pointer">+ Πτυχίο υποψηφίου / email / άλλο<input type="file" id="cfAdd" accept="application/pdf,image/*" multiple style="display:none"></label></div>
     <div class="row"><span class="hint" style="margin:0">Δικά μου στο τέλος:</span>${[['doc:lic', 'Το πτυχίο μου'], ['doc:med', 'Το medical μου'], ['doc:exm', 'Ο examiner μου'], ['inv', 'Τιμολόγιο']].map(([k, l]) => `<label class="chk" style="margin:0"><input type="checkbox" data-att="${k}" ${S.att[k] ? 'checked' : ''}> ${l}</label>`).join('')}</div>
@@ -372,6 +373,7 @@ document.addEventListener('change', e => {
   const el = e.target;
   if (el.id === 'sigPhoto') { const f = el.files && el.files[0]; if (!f) return; sigFromPhoto(f).then(d => { S.ex.sig = d; save(); render(); toast('Η υπογραφή αποθηκεύτηκε'); }).catch(err => alert(err.message)); return; }
   if (el.id === 'imp') { const f = el.files[0]; if (!f) return; f.text().then(t => { try { const d = JSON.parse(t); if (!d.cands) throw new Error('μη έγκυρο'); if (confirm('Αντικατάσταση όλων των δεδομένων με το backup;')) { S = d; save(); render(); toast('Έγινε εισαγωγή'); } } catch (err) { alert('Σφάλμα: ' + err.message); } }); return; }
+  if (el.dataset.scanhdr) { const c = cur(); if (!c) return; c.scanHdr = el.checked; save(); toast(el.checked ? 'Δεν θα ξαναγραφτούν όνομα/ημ. γέννησης' : 'Θα γράφονται όνομα/ημ. γέννησης'); return; }
   if (el.dataset.scan) { const c = cur(); const f = el.files; if (!c || !f || !f.length) return;
     if (!confirm('Είναι αυτό το ίδιο το έντυπο ' + el.dataset.scan + ', σκαναρισμένο;\n\nOK = οι σελίδες του μπαίνουν στη θέση των σελίδων της φόρμας.\nΆκυρο = είναι άλλο έγγραφο (techlog, απόδειξη, email…) → μπαίνει ως συνημμένο στο τέλος.')) { PELDOCS.addCandFiles('cand:forms:' + c.id, f).then(() => { el.value = ''; renderCF(); toast('Προστέθηκε ως συνημμένο'); }); return; }
     const k = 'scan:forms:' + c.id + ':' + el.dataset.scan; scanPick(f, el.dataset.scan).then(ff => { if (!ff) throw new Error('Ακυρώθηκε'); return PELDOCS.del(k).then(() => PELDOCS.addCandFiles(k, ff)); }).then(() => { render(); toast('Σκαναρισμένο ' + el.dataset.scan + ' αποθηκεύτηκε'); }).catch(err => alert('Σφάλμα: ' + err.message)); return; }
@@ -419,7 +421,7 @@ async function generate(which, btn) {
       const sk = 'scan:forms:' + c.id + ':' + f, n = window.PELDOCS ? await PELDOCS.scanCount(PDFLib, sk) : 0;
       if (n) { /* σκαναρισμένο ολόκληρο έντυπο → όλες οι σελίδες, ώστε να αντιστοιχούν 1-1 */
         const tplN = (await PDFLib.PDFDocument.load(base.pdfBytes)).getPageCount(); base.pagesMode = 'full'; if (n >= tplN) base.keepAll = true; /* με σκανάρισμα: πάντα ολόκληρο, ώστε οι σελίδες να αντιστοιχούν 1-1 */
-        const full = await F.build(base), ov = await F.build(Object.assign({}, base, { overlay: true }));
+        const full = await F.build(base), ov = await F.build(Object.assign({}, base, { overlay: true, skipHdr: !!c.scanHdr }));
         outs.push({ f, bytes: await PELDOCS.compose(PDFLib, full, ov, sk, (LAYOUT[f] || {}).bbox) });
       } else outs.push({ f, bytes: await F.build(base) });
     }
