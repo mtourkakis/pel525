@@ -96,7 +96,7 @@
     let doc = await PDFDocument.load(pdfBytes);
     /* overlay: ίδιες σελίδες αλλά λευκές, για να μπουν μόνο τα δικά μου πάνω σε σκαναρισμένο έντυπο */
     if (opts.overlay) { const tpl = doc; doc = await PDFDocument.create(); tpl.getPages().forEach(p => doc.addPage([p.getWidth(), p.getHeight()])); }
-    const SKIP0 = /^(a_|s6_name$|s12_date$|cls_|crs_|ir_se$|ir_me$|att_420$|p2_name$|p2_dob$|p6_name$|p6_dob$|h\d+_name$|h\d+_dob$)/, SKIP1000 = /^(lic|surname|first|title|dob|addr1|postcode|mobile|email|ato|atono|atoaddr|atotel|atoemail|appdate)$/;
+    const SKIP0 = /^(a_|s6_name$|s12_date$|cls_|crs_|ir_se$|ir_me$|att_420$)/ /* όνομα & ημ. γέννησης στις κεφαλίδες μπαίνουν ΚΑΙ στο σκαναρισμένο */, SKIP1000 = /^(lic|surname|first|title|dob|addr1|postcode|mobile|email|ato|atono|atoaddr|atotel|atoemail|appdate)$/;
     const SKIP = { test: k => SKIP0.test(k) || (form === '1000' && SKIP1000.test(k)) };
     const font = await doc.embedFont(StandardFonts.Helvetica);
     const bold = await doc.embedFont(StandardFonts.HelveticaBold);
