@@ -80,7 +80,7 @@ header{padding-left:calc(env(safe-area-inset-left) + 78px)}
 </style>
 </head>
 <body>
-<header><a href="index.html" id="to525">‹ 525</a><a href="instr.html" id="toOff" style="margin-right:2px">FI·IRI·TRI</a><a href="office.html" id="toOff">Γραφείο</a><h1 id="ttl">PEL-FCL Forms<small>HCAA · Examiner</small></h1><button id="hb" hidden>‹ Λίστα</button><button id="setb">⚙︎</button></header>
+<header><a href="index.html" id="to525">‹ 525</a><a href="instr.html" id="toOff" style="margin-right:2px">FI·IRI·TRI</a><a href="office.html" id="toOff">Γραφείο</a><h1 id="ttl">PEL-FCL Forms<small>HCAA · Examiner</small></h1><button id="qbk" title="Ερωτήσεις">❓ CPL</button><button id="hb" hidden>‹ Λίστα</button><button id="setb">⚙︎</button></header>
 <main id="app"></main>
 <div class="toast" id="toast"></div>
 <script src="hm.js"></script>
@@ -89,6 +89,8 @@ header{padding-left:calc(env(safe-area-inset-left) + 78px)}
 <script src="fill.js"></script>
 <script src="docs.js"></script>
 <script src="sigpad.js"></script>
+<script src="cplq.js"></script>
+<script src="qbank.js"></script>
 <script>
 const F = window.PELFILL, LAYOUT = window.PEL_LAYOUT, KEY = 'pelfcl_forms_v1';
 const TK = { CPL: 'cpl', IR: 'ir', PPL: 'ppl' };
@@ -553,5 +555,6 @@ function sigData() {
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => { });
 render();
 </script>
+<script>document.getElementById("qbk").addEventListener("click",e=>{e.stopPropagation();QBANK.open([{key:"cpl",title:"CPL",data:window.CPLQ}]);});</script>
 </body>
 </html>
