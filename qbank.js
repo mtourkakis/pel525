@@ -32,7 +32,7 @@
         ${sets.length > 1 ? `<div class="sg">${sets.map(s => `<button data-set="${s.key}" class="${s === set ? 'on' : ''}">${esc(s.title)} (${s.data.BANK.length})</button>`).join('')}</div>` : ''}
         <div class="sg"><button data-c="all" class="${sel === 'all' ? 'on' : ''}">Όλα (${BANK.length})</button>${CATS.filter(c => BANK.some(q => q.cat === c.id)).map(c => `<button data-c="${c.id}" class="${sel === c.id ? 'on' : ''}">${esc(c.name)}</button>`).join('')}</div>
         ${list.map(([q, i], n) => `<div class="fq"><button class="fqq" data-t="${i}"><span class="k">${n + 1}.</span> ${esc(q.q)}</button>${q.ref ? `<div class="ht">${esc(q.ref)}</div>` : ''}
-          <ol>${q.o.map((o, k) => `<li class="${shown[i] ? (k === q.a ? 'ok' : 'no') : ''}"><b>${L[k]}.</b> ${esc(o)}${shown[i] ? (k === q.a ? ' <b>✓</b>' : ' ✗') : ''}</li>`).join('')}</ol>
+          <ol>${q.o.map((o, k) => `<li class="${shown[i] ? (k === q.a ? 'ok' : 'no') : ''}"><b>${(set.L || 'ABCD')[k]}.</b> ${esc(o)}${shown[i] ? (k === q.a ? ' <b>✓</b>' : ' ✗') : ''}</li>`).join('')}</ol>
           ${shown[i] ? `<div class="fqe">${esc(q.e)}</div>` : `<button class="qb" data-t="${i}">Δείξε απάντηση</button>`}</div>`).join('')}</div>`;
     };
     const keep = f => { const bx = m.querySelector('.qbx'), st = bx ? bx.scrollTop : 0; f(); draw(); m.querySelector('.qbx').scrollTop = st; };
