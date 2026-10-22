@@ -80,6 +80,14 @@ h3{font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--mute);
 .pages{font-size:13px;color:var(--navy2);font-weight:600}
 .modal{position:fixed;inset:0;background:rgba(10,18,30,.6);z-index:20;display:flex;align-items:center;justify-content:center;padding:16px}
 .modal .box{background:#fff;border-radius:16px;width:100%;max-width:820px;padding:16px}
+.modal.fiqm{align-items:flex-start;padding-top:calc(env(safe-area-inset-top) + 16px)}
+.fiqm .box{max-height:calc(100vh - 40px);overflow:auto;-webkit-overflow-scrolling:touch}
+.fq{border-top:1px solid var(--line);padding:10px 2px}
+.fqq{border:0;background:none;font:inherit;font-weight:650;text-align:left;padding:0;color:var(--ink);width:100%}
+.fqq .k{color:var(--navy2);font-size:13px;margin-right:4px}
+.fq ol{list-style:none;margin:6px 0;padding-left:4px;font-size:14.5px}.fq li{padding:3px 6px;border-radius:7px;margin:2px 0}
+.fq li.ok{background:#dcf2e5;color:var(--ok);font-weight:600}.fq li.no{color:var(--mute)}
+.fqe{font-size:14px;background:#f4f6fa;border-left:3px solid var(--ok);padding:7px 10px;border-radius:0 8px 8px 0}
 .modal canvas{width:100%;height:260px;border:1px dashed var(--navy2);border-radius:12px;background:#fff;touch-action:none;display:block}
 .arc{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);flex-wrap:wrap}
 .arc:first-child{border-top:0}.arc .n{flex:1;min-width:180px;font-size:13.5px}.arc .n small{display:block;color:var(--mute)}
@@ -93,6 +101,7 @@ h3{font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--mute);
 <script src="hm.js"></script>
 <script src="pdf-lib.min.js"></script>
 <script src="fill935.js"></script>
+<script src="fiq.js"></script>
 <script src="docs.js"></script>
 <script>
 const P = window.PEL935, KEY = 'pel935_v1';
@@ -197,8 +206,8 @@ function renderEd() {
     const fl = (base, i, t) => `<div class="flight"><div class="h">${t}</div><div class="grid">${inp(base + '.' + i + '.type', fiAoc ? 'Class / type' : 'Aircraft type', 'text', UC)}${inp(base + '.' + i + '.reg', fiAoc ? 'Registration / FSTD' : 'Reg. / FSTD ID', 'text', UC)}${inp(base + '.' + i + '.date', 'Ημερομηνία', 'date')}${inp(base + '.' + i + '.off', 'Off blocks', 'time')}${inp(base + '.' + i + '.on', 'On blocks', 'time')}</div></div>`;
     const SEC = fiAoc ? P.FI_SEC : P.TRI_SEC;
     const mk = (id, att, v) => ['P', 'F'].map(x => `<button class="${x} ${v === x ? 'on' : ''}" data-mk="${id}|${att}|${x}">${x}</button>`).join('');
-    const secs = SEC.map(s => `<div class="sec"><div class="sh"><span class="t">${s.s}. ${esc(s.t)}</span><button class="btn alt sm" data-allp="${s.s}">Όλα P</button>${fiAoc ? `<button class="btn alt sm" data-allna="${s.s}">N/A</button>` : ''}</div>
-      ${s.it.map((t, i) => { const id = s.s + '.' + (i + 1), x = AO.m[id] || {}; return `<div class="it"><span class="k">${id}</span><span class="l">${esc(t)}</span><span class="mk">${fiAoc ? `<button class="N ${x.na ? 'on' : ''}" data-na="${id}">N/A</button><span class="sep"></span>` : ''}<span class="lb">1η</span>${mk(id, 'a1', x.a1)}${x.a1 === 'F' || x.a2 ? `<span class="sep"></span><span class="lb">2η</span>${mk(id, 'a2', x.a2)}` : ''}<button class="cmb" data-cmo="${id}" title="Σχόλιο">💬</button></span>${x.a1 === 'F' || x.c || cmOpen[id] ? `<input class="cm" data-cm="${id}" placeholder="Σχόλιο" value="${esc(x.c || '')}">` : ''}</div>`; }).join('')}</div>`).join('');
+    const secs = SEC.map(s => `<div class="sec"><div class="sh"><span class="t">${s.s}. ${esc(s.t)}</span>${fiAoc && s.s === '1' && window.FIQ ? `<button class="btn amber sm" data-fiq="all">❓ Ερωτήσεις (${FIQ.BANK.length})</button>` : ''}<button class="btn alt sm" data-allp="${s.s}">Όλα P</button>${fiAoc ? `<button class="btn alt sm" data-allna="${s.s}">N/A</button>` : ''}</div>
+      ${s.it.map((t, i) => { const id = s.s + '.' + (i + 1), x = AO.m[id] || {}; return `<div class="it"><span class="k">${id}</span><span class="l">${esc(t)}</span><span class="mk">${fiAoc ? `<button class="N ${x.na ? 'on' : ''}" data-na="${id}">N/A</button><span class="sep"></span>` : ''}<span class="lb">1η</span>${mk(id, 'a1', x.a1)}${x.a1 === 'F' || x.a2 ? `<span class="sep"></span><span class="lb">2η</span>${mk(id, 'a2', x.a2)}` : ''}${fiAoc && s.s === '1' && window.FIQ && FIQ.BANK.some(q => q.cat === id) ? `<button class="cmb" data-fiq="${id}" title="Ερωτήσεις">❓</button>` : ''}<button class="cmb" data-cmo="${id}" title="Σχόλιο">💬</button></span>${x.a1 === 'F' || x.c || cmOpen[id] ? `<input class="cm" data-cm="${id}" placeholder="Σχόλιο" value="${esc(x.c || '')}">` : ''}</div>`; }).join('')}</div>`).join('');
     const othN = fiAoc ? 9 : 3; AO.oth = AO.oth || [];
     const oth = `<div class="sec"><div class="sh"><span class="t">${fiAoc ? '6' : '5'}. Other exercises (κατά την κρίση σου)</span></div>${Array.from({ length: Math.min(othN, Math.max(3, AO.oth.filter(o => o && o.d).length + 1)) }, (_, i) => { const o = AO.oth[i] || {}; const id = 'o' + i; return `<div class="it"><span class="k">${i + 1}</span><input data-p="aoc.oth.${i}.d" value="${esc(o.d || '')}" placeholder="Άσκηση" style="font-size:14px;padding:6px 8px"><span class="mk"><span class="lb">1η</span>${['P', 'F'].map(x => `<button class="${x} ${o.a1 === x ? 'on' : ''}" data-ok="${i}|a1|${x}">${x}</button>`).join('')}${fiAoc ? `<span class="sep"></span><span class="lb">2η</span>${['P', 'F'].map(x => `<button class="${x} ${o.a2 === x ? 'on' : ''}" data-ok="${i}|a2|${x}">${x}</button>`).join('')}` : ''}</span>${o.d ? `<input class="cm" data-p="aoc.oth.${i}.c" placeholder="Σχόλιο" value="${esc(o.c || '')}">` : ''}</div>`; }).join('')}</div>`;
     const sug = P.suggestResult(c), res = resultOf(c);
@@ -255,6 +264,7 @@ document.addEventListener('click', async e => { const t = e.target.closest('butt
     const o = (c.a.oth || [])[0]; if (o && /^(FI|IRI|TRI)\(A\)$/.test(o.t || '')) o.t = kk + '(A)';
     save(); renderEd(); return; }
   if (t.dataset.seg) { setP(c, t.dataset.seg, t.dataset.v); save(); renderEd(); return; }
+  if (t.dataset.fiq) { fiqModal(t.dataset.fiq); return; }
   if (t.dataset.cmo) { cmOpen[t.dataset.cmo] = true; renderEd(); const el = document.querySelector('[data-cm="' + t.dataset.cmo + '"]'); if (el) el.focus(); return; }
   if (t.dataset.ck) { const [i, v] = t.dataset.ck.split('|'); c.ckl = c.ckl || {}; c.ckl.ans = c.ckl.ans || {}; c.ckl.ans[i] = v; save(); renderEd(); return; }
   if (t.dataset.mk) { const [id, att, v] = t.dataset.mk.split('|'); const m = c.aoc.m[id] = c.aoc.m[id] || {}; m[att] = m[att] === v ? '' : v; m.na = false; if (att === 'a1' && m.a1 !== 'F') m.a2 = ''; save(); renderEd(); return; }
@@ -271,6 +281,29 @@ document.addEventListener('click', async e => { const t = e.target.closest('butt
   if (t.dataset.aopen) { arcOpen(t.dataset.aopen); return; }
   if (t.dataset.adel) { if (!confirm('Διαγραφή αυτού του PDF από το Αρχείο;\n\nΗ εξέταση μένει στις Εξετάσεις / 801.')) return; await PELDOCS.dropOut(t.dataset.adel); toast('Διαγράφηκε'); renderArc(); return; }
 });
+
+/* ---------- FI oral: δεξαμενή ερωτήσεων (fiq.js) ---------- */
+function fiqModal(sel) {
+  const m = document.createElement('div'); m.className = 'modal fiqm';
+  const L = 'ΑΒΓΔ'; const shown = {};
+  const draw = () => {
+    const cats = FIQ.CATS.filter(c => FIQ.BANK.some(q => q.cat === c.id));
+    const list = FIQ.BANK.map((q, i) => [q, i]).filter(([q]) => sel === 'all' || q.cat === sel);
+    m.innerHTML = `<div class="box"><div class="row" style="margin-top:0"><b style="flex:1">Theoretical knowledge oral · ερωτήσεις</b><button class="btn alt sm" data-qall="1">Όλες οι απαντήσεις</button><button class="btn sm" data-qx="1">Κλείσιμο</button></div>
+      <div class="seg" style="margin:4px 0 10px"><button data-qs="all" class="${sel === 'all' ? 'on' : ''}">Όλα (${FIQ.BANK.length})</button>${cats.map(c => `<button data-qs="${c.id}" class="${sel === c.id ? 'on' : ''}" title="${esc(c.name)}">${c.id}</button>`).join('')}</div>
+      ${sel !== 'all' ? `<div class="hint" style="margin-top:-4px">${sel} ${esc(FIQ.CATS.find(c => c.id === sel).name)}</div>` : ''}
+      <div class="fql">${list.map(([q, i], n) => `<div class="fq ${shown[i] ? 'on' : ''}"><button class="fqq" data-qt="${i}"><span class="k">${sel === 'all' ? q.cat : n + 1 + '.'}</span> ${esc(q.q)}</button>
+        ${q.ref ? `<div class="hint" style="margin:2px 0 0 4px">${esc(q.ref)}</div>` : ''}
+        <ol>${q.o.map((o, k) => `<li class="${shown[i] ? (k === q.a ? 'ok' : 'no') : ''}"><b>${L[k]}.</b> ${esc(o)}${shown[i] ? (k === q.a ? ' <b>✓</b>' : ' ✗') : ''}</li>`).join('')}</ol>
+        ${shown[i] ? `<div class="fqe">${esc(q.e)}</div>` : `<button class="btn alt sm" data-qt="${i}">Δείξε απάντηση</button>`}</div>`).join('')}</div></div>`;
+  };
+  m.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) { if (e.target === m) m.remove(); return; } e.stopPropagation();
+    if (b.dataset.qx) return m.remove();
+    if (b.dataset.qs) { sel = b.dataset.qs; draw(); m.querySelector('.box').scrollTop = 0; return; }
+    if (b.dataset.qall) { const any = FIQ.BANK.some((q, i) => (sel === 'all' || q.cat === sel) && !shown[i]); FIQ.BANK.forEach((q, i) => { if (sel === 'all' || q.cat === sel) shown[i] = any; }); const st = m.querySelector('.box').scrollTop; draw(); m.querySelector('.box').scrollTop = st; return; }
+    if (b.dataset.qt) { const i = +b.dataset.qt; shown[i] = !shown[i]; const st = m.querySelector('.box').scrollTop; draw(); m.querySelector('.box').scrollTop = st; } });
+  draw(); document.body.appendChild(m);
+}
 
 /* ---------- αποθηκευμένα PDF του εκπαιδευτή ---------- */
 async function renderArc() {
