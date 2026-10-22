@@ -275,7 +275,7 @@ function editView() {
     <div class="grid" style="margin-top:10px">${inp(A + 'postcode', 'Postcode')}${inp(A + 'tel', 'Contact tel.', 'tel')}${inp(A + 'mobile', 'Mobile', 'tel')}${inp(A + 'email', 'E-mail', 'email')}</div>
     <h3>Άδεια που έχει</h3><div class="grid">${inp(A + 'licType', 'Type (π.χ. PPL(A))', 'text', UC + ' placeholder="PPL(A)"')}${inp(A + 'licNo', 'HCAA licence no. (μετά το EL/FCL/)')}${inp(A + 'licState', 'State of issue', 'text', UC + ' placeholder="GREECE"')}</div>`,
     c.applicant.surname ? `<span class="tag">${esc(c.applicant.surname.toUpperCase())}</span>` : '');
-  if (c.tests.pbn) h += sec('ato', 'ATO / AOC (για 1000)', `<div class="grid">${inp(T + 'name', 'Name of ATO/AOC')}${inp(T + 'number', 'Approval / Ref. No')}${inp(T + 'tel', 'Contact tel.', 'tel')}${inp(T + 'email', 'E-mail', 'email')}</div><div style="margin-top:10px">${inp(T + 'address', 'Address')}</div>
+  if (c.tests.pbn) h += sec('ato', 'ATO / AOC (για 1000)', `<div class="grid">${inp(T + 'name', 'Name of ATO/AOC')}${inp(T + 'number', 'Approval / Ref. No')}${inp(T + 'tel', 'Contact tel.', 'tel')}${inp(T + 'email', 'E-mail', 'email')}${inp('pbnAppDate', 'Ημ. δήλωσης υποψηφίου (§3 · κενό = ημ. εξέτασης)', 'date')}</div><div style="margin-top:10px">${inp(T + 'address', 'Address')}</div>
     <h3>Checklist συνημμένων</h3>
     ${[['pc', 'Proficiency Check / Skill Test'], ['lic', 'Examiner’s EU Part-FCL licence'], ['pbn', 'Examiner’s PBN endorsement'], ['ato', 'PBN letter/certificate για ATO/AOC από την αρχή']].map(([k, l]) => `<label class="chk"><input type="checkbox" data-chk="pbnChecklist.${k}" ${c.pbnChecklist[k] ? 'checked' : ''}> ${l}</label>`).join('')}`);
   if (c.tests.cpl) h += sec('cpl', 'CPL(A) skill test', testHTML('CPL'), overall(c.cpl, 'CPL'));
