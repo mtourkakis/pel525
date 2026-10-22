@@ -219,6 +219,8 @@ function renderEd() {
     <div class="row">${c.appSig ? `<img class="sigprev" src="${c.appSig}" alt="">` : ''}<button class="btn amber" id="sgo">✍️ ${c.appSig ? 'Ξανά υπογραφή' : 'Υπογραφή στην οθόνη'}</button>${c.appSig ? '<button class="btn alt" id="sclr">Σβήσιμο υπογραφής</button>' : ''}</div>`);
   h += card('out', 'Έκδοση PDF', '', `<p class="pages">PEL-FCL 935 · σελίδες ${P.pagesFor(c).join(', ')}</p>
     <div class="row"><span class="hint" style="margin:0">Επισύναψη:</span>${[['doc:lic', 'Το πτυχίο μου'], ['doc:med', 'Το medical μου'], ['doc:exm', 'Ο examiner μου']].map(([kk, l]) => `<label class="chk" style="padding:0 6px 0 0"><input type="checkbox" data-att="${kk}" ${(S.att || {})[kk] ? 'checked' : ''}><span>${l}</span></label>`).join('')}</div>
+    <label class="chk"><input type="checkbox" data-c="ckl.on" ${c.ckl && c.ckl.on ? 'checked' : ''}><span>Με submission checklist (σελ. ${P.cklPage(c)})</span></label>
+    ${c.ckl && c.ckl.on ? `<details class="sec" style="margin-top:4px" open><summary class="sh" style="cursor:pointer"><span class="t">Checklist · πάτα για αλλαγή απάντησης</span></summary>${(() => { const A = P.cklAnswers(c); return (P.CKL[P.cklPage(c)] || []).map((r, i) => `<div class="it" style="grid-template-columns:1fr auto"><span class="l">${esc(r[0])}</span><span class="mk"><button class="${A[i] === 'L' ? (r[2] === 'No' ? 'F' : 'N') + ' on' : ''}" data-ck="${i}|L" style="width:auto;padding:0 8px">${esc(r[2])}</button><button class="P ${A[i] === 'Y' ? 'on' : ''}" data-ck="${i}|Y">Yes</button></span></div>`).join(''); })()}</details>` : ''}
     <div class="row"><button class="btn amber" id="gen">ΔΗΜΙΟΥΡΓΙΑ PDF</button><button class="btn danger" id="del">Διαγραφή εκπαιδευτή</button></div><div class="out" id="out"></div>
     <h3>Αποθηκευμένα PDF</h3><div id="arcl" class="hint">…</div>`);
   const y = window.scrollY; $('#app').innerHTML = h; window.scrollTo(0, y); renderArc();
@@ -254,6 +256,7 @@ document.addEventListener('click', async e => { const t = e.target.closest('butt
     save(); renderEd(); return; }
   if (t.dataset.seg) { setP(c, t.dataset.seg, t.dataset.v); save(); renderEd(); return; }
   if (t.dataset.cmo) { cmOpen[t.dataset.cmo] = true; renderEd(); const el = document.querySelector('[data-cm="' + t.dataset.cmo + '"]'); if (el) el.focus(); return; }
+  if (t.dataset.ck) { const [i, v] = t.dataset.ck.split('|'); c.ckl = c.ckl || {}; c.ckl.ans = c.ckl.ans || {}; c.ckl.ans[i] = v; save(); renderEd(); return; }
   if (t.dataset.mk) { const [id, att, v] = t.dataset.mk.split('|'); const m = c.aoc.m[id] = c.aoc.m[id] || {}; m[att] = m[att] === v ? '' : v; m.na = false; if (att === 'a1' && m.a1 !== 'F') m.a2 = ''; save(); renderEd(); return; }
   if (t.dataset.na) { const m = c.aoc.m[t.dataset.na] = c.aoc.m[t.dataset.na] || {}; m.na = !m.na; if (m.na) { m.a1 = ''; m.a2 = ''; } save(); renderEd(); return; }
   if (t.dataset.ok) { const [i, att, v] = t.dataset.ok.split('|'); const o = c.aoc.oth[+i] = c.aoc.oth[+i] || {}; o[att] = o[att] === v ? '' : v; save(); renderEd(); return; }
