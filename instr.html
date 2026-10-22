@@ -237,7 +237,14 @@ document.addEventListener('change', e => { const t = e.target, c = cur();
   if (t.dataset.aocoff && c) { c.aoc.off = !t.checked; save(); renderEd(); }
   if (t.dataset.arep && t.files && t.files.length) { PELDOCS.replaceOut(PDFLib, t.dataset.arep, t.files).then(() => { toast('Μπήκε το υπογεγραμμένο'); renderArc(); }).catch(er => alert('Σφάλμα: ' + er.message)); return; }
   if (t.dataset.att) { S.att = S.att || {}; S.att[t.dataset.att] = t.checked; save(); } });
-document.addEventListener('click', async e => { const t = e.target.closest('button,[data-open]'); if (!t) return; const c = cur();
+/* ό,τι γράφτηκε (π.χ. με Pencil / Scribble) περνάει στα δεδομένα πριν από κάθε ενέργεια */
+function flushInputs() { const c = cur(); if (!c || view !== 'ed') return; let ch = false;
+  document.querySelectorAll('#app input[data-cm]').forEach(el => { const m = c.aoc.m[el.dataset.cm] = c.aoc.m[el.dataset.cm] || {}; if ((m.c || '') !== el.value) { m.c = el.value; ch = true; } });
+  document.querySelectorAll('#app input[data-p]').forEach(el => { if (el.type === 'checkbox') return; const v = getP(c, el.dataset.p); if ((v == null ? '' : String(v)) !== el.value) { setP(c, el.dataset.p, el.value); ch = true; } });
+  if (ch) save(); }
+document.addEventListener('focusout', e => { if (e.target.matches && e.target.matches('#app input')) flushInputs(); }, true);
+document.addEventListener('pointerdown', () => flushInputs(), true);
+document.addEventListener('click', async e => { const t = e.target.closest('button,[data-open]'); if (!t) return; flushInputs(); const c = cur();
   if (t.dataset.open) { S.cur = t.dataset.open; open = {}; save(); renderEd(); window.scrollTo(0, 0); return; }
   if (t.id === 'new') { const n = blank('FI', 'reval'); S.cands.push(n); S.cur = n.id; open = {}; save(); renderEd(); window.scrollTo(0, 0); return; }
   if (t.id === 'hb') { renderList(); window.scrollTo(0, 0); return; }
@@ -307,6 +314,7 @@ function trimSig(cv) {
 let tplCache = null;
 function sigBytes(ex) { if (!ex.sig) return null; const b = atob(ex.sig.split(',')[1]); const u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
 async function generate(btn, silent) {
+  flushInputs();
   const c = cur(); btn = btn || { }; btn.disabled = true; const old = btn.textContent; btn.textContent = '…';
   try {
     if (!tplCache) { const r = await fetch('935.pdf'); if (!r.ok) throw new Error('Δεν βρέθηκε το 935.pdf'); tplCache = new Uint8Array(await r.arrayBuffer()); }

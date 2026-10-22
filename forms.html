@@ -371,6 +371,13 @@ document.addEventListener('click', async e => {
   if (t.id === 'sigsave') { S.ex.sig = sigData(); save(); toast(S.ex.sig ? 'Η υπογραφή αποθηκεύτηκε' : 'Άδεια υπογραφή'); render(); return; }
   if (t.id === 'sigdel') { S.ex.sig = ''; save(); render(); return; }
 });
+/* ό,τι γράφτηκε με Pencil / Scribble χωρίς συμβάν input περνάει στα δεδομένα */
+function flushInputs() { if (view !== 'edit' && view !== 'settings') return; const obj = view === 'settings' ? S : cur(); if (!obj) return; let ch = false;
+  document.querySelectorAll('#app input[data-p], #app textarea[data-p]').forEach(el => { if (el.type === 'checkbox' || el.type === 'file') return;
+    const cv = el.dataset.p.split('.').reduce((x, k) => x == null ? x : x[k], obj); if ((cv == null ? '' : String(cv)) !== el.value) { setP(obj, el.dataset.p, el.value); ch = true; } });
+  if (ch) save(); }
+document.addEventListener('focusout', e => { if (e.target.matches && e.target.matches('#app input, #app textarea')) flushInputs(); }, true);
+document.addEventListener('pointerdown', () => flushInputs(), true);
 document.addEventListener('input', e => {
   const el = e.target; if (!el.dataset.p) return;
   const obj = view === 'settings' ? S : cur();
@@ -413,6 +420,7 @@ const pdfCache = {};
 async function pdfBytes(f) { if (!pdfCache[f]) { const r = await fetch(f + '.pdf'); if (!r.ok) throw new Error('Δεν βρέθηκε το ' + f + '.pdf'); pdfCache[f] = new Uint8Array(await r.arrayBuffer()); } return pdfCache[f]; }
 function sigBytes() { if (!S.ex.sig) return null; const b = atob(S.ex.sig.split(',')[1]); const u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
 async function generate(which, btn, silent) {
+  flushInputs();
   const c = cur(); const fs = which === 'ALL' ? formsFor(c) : [which];
   if (fs.includes('1000') || fs.includes('521')) { /* στοιχεία εξεταστή για 1000/521: ζητούνται μία φορά και αποθηκεύονται */
     let ch = false;
