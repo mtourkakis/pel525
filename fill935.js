@@ -273,7 +273,8 @@
     const OTH = (AO.oth || []).filter(o => o && clean(o.d));
     const R93o = [[599, 619], [619, 639], [639, 659], [659, 679], [679, 699], [699, 719], [719, 740], [740, 760], [760, 780]];
     OTH.slice(0, 9).forEach((o, i) => { const [t0, t1] = R93o[i], y = t1 - (t1 - t0) / 2 + 3.5; T(93, 40, y, o.d, 8.5, { w: 240 }); C(93, 284, 327, y, o.a1, 10); C(93, 327, 370, y, o.a2, 10); T(93, 374, y, o.c, 8.5, { w: 196 }); });
-    if (KINDS[c.kind].aoc === 'fi' && OTH.length < 9) { const t = R93o[OTH.length][0]; strike(93, 40, 778, 560, t + 2); }
+    if (KINDS[c.kind].aoc === 'fi' && !OTH.length) { const y = R93o[0][1] - (R93o[0][1] - R93o[0][0]) / 2 + 3.5; T(93, 40, y, 'N/A', 8.5); C(93, 284, 327, y, 'N/A', 8.5); }
+    if (KINDS[c.kind].aoc === 'fi' && OTH.length < 9) { const t = R93o[Math.max(1, OTH.length)][0]; strike(93, 40, 778, 560, t + 2); }
     /* σελ. 94: Section 7 */
     const res = AO.result || suggestResult(c);
     T(94, 34, 354, NM, 10, { w: 200 });
@@ -288,7 +289,7 @@
     if (f1.type || f1.reg || f1.date) { pg(94).drawRectangle({ x: 456, y: H(94) - 395, width: 120, height: 20, color: WHITE }); flight(94, f1, R1, K94); }
     if (f2.type || f2.reg || f2.date) { pg(94).drawRectangle({ x: 456, y: H(94) - 480, width: 120, height: 20, color: WHITE }); flight(94, f2, R2, K94); }
     const SEC = KINDS[c.kind].aoc === 'tri' ? TRI_SEC : FI_SEC;
-    const sr = FI_SEC.map(x => secResult(M, x.s, x.it.length, 1)).concat([OTH.length ? (OTH.some(o => o.a1 === 'F') ? 'F' : 'P') : '']);
+    const sr = FI_SEC.map(x => secResult(M, x.s, x.it.length, 1)).concat([OTH.length ? (OTH.some(o => o.a1 === 'F') ? 'F' : 'P') : 'N/A']);
     const K94r = [174, 239, 301, 379, 443, 514, 578];
     sr.forEach((v, i) => C(94, K94r[i] + 8, K94r[i + 1], 530.5, v, 10));
     sr.forEach((v, i) => { if (v === 'F' && res === 'partial') tick(94, (K94r[i] + K94r[i + 1]) / 2, 551, 5); });
@@ -309,7 +310,7 @@
       const K95 = [111, 225, 310, 396, 459, 575];
       if (g1.type || g1.reg || g1.date) { pg(95).drawRectangle({ x: 460, y: H(95) - 412, width: 114, height: 26, color: WHITE }); flight(95, g1, [[377, 418], [418, 458]], K95); }
       if (g2.type || g2.reg || g2.date) { pg(95).drawRectangle({ x: 460, y: H(95) - 515, width: 114, height: 26, color: WHITE }); flight(95, g2, [[479, 522], [522, 563]], K95); }
-      const sr2 = FI_SEC.map(x => secResult(M, x.s, x.it.length, 2)).concat([OTH.length ? (OTH.some(o => (o.a2 || o.a1) === 'F') ? 'F' : 'P') : '']);
+      const sr2 = FI_SEC.map(x => secResult(M, x.s, x.it.length, 2)).concat([OTH.length ? (OTH.some(o => (o.a2 || o.a1) === 'F') ? 'F' : 'P') : 'N/A']);
       const K95r = [180, 248, 310, 383, 455, 526, 575];
       sr2.forEach((v, i) => C(95, K95r[i] + 8, K95r[i + 1], 577, v, 10));
       const r2 = PP.result || (sr2.includes('F') ? 'fail' : 'pass');
@@ -334,6 +335,7 @@
     triRows(96, '2', [[564, 590], [590, 616], [616, 642], [642, 669], [669, 696], [696, 723], [723, 750]]);
     triRows(97, '3', [[224, 248], [248, 272], [272, 295], [295, 319], [319, 343], [343, 367], [367, 390]]);
     triRows(97, '4', [[466, 490], [490, 513], [513, 537], [537, 561], [561, 585], [585, 608], [608, 632]]);
+    if (!OTH.length) { T(97, 82, 721.5, 'N/A', 8.5); C(97, 313, 348, 721.5, 'N/A', 8); }
     OTH.slice(0, 3).forEach((o, i) => { const t0 = [708, 728, 748][i], y = t0 + 13.5; T(97, 82, y, o.d, 8.5, { w: 228 }); const v = o.a2 || o.a1; if (v === 'P') tick(97, 330.5, y - 3.5, 5); if (v === 'F') tick(97, 366, y - 3.5, 5); T(97, 388, y, o.c, 8.5, { w: 183 }); });
     const TR = c.tri || {};
     T(98, 256, 225, (TR.fstd || f1.reg || '').toUpperCase(), 10, { w: 320 });
