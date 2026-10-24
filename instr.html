@@ -230,7 +230,7 @@ function renderEd() {
     <div class="row"><span class="hint" style="margin:0">Επισύναψη:</span>${[['doc:lic', 'Το πτυχίο μου'], ['doc:med', 'Το medical μου'], ['doc:exm', 'Ο examiner μου']].map(([kk, l]) => `<label class="chk" style="padding:0 6px 0 0"><input type="checkbox" data-att="${kk}" ${(S.att || {})[kk] ? 'checked' : ''}><span>${l}</span></label>`).join('')}</div>
     <label class="chk"><input type="checkbox" data-c="ckl.on" ${c.ckl && c.ckl.on ? 'checked' : ''}><span>Με submission checklist (σελ. ${P.cklPage(c)})</span></label>
     ${c.ckl && c.ckl.on ? `<details class="sec" style="margin-top:4px" open><summary class="sh" style="cursor:pointer"><span class="t">Checklist · πάτα για αλλαγή απάντησης</span></summary>${(() => { const A = P.cklAnswers(c); return (P.CKL[P.cklPage(c)] || []).map((r, i) => `<div class="it" style="grid-template-columns:1fr auto"><span class="l">${esc(r[0])}</span><span class="mk"><button class="${A[i] === 'L' ? (r[2] === 'No' ? 'F' : 'N') + ' on' : ''}" data-ck="${i}|L" style="width:auto;padding:0 8px">${esc(r[2])}</button><button class="P ${A[i] === 'Y' ? 'on' : ''}" data-ck="${i}|Y">Yes</button></span></div>`).join(''); })()}</details>` : ''}
-    <div class="row"><button class="btn amber" id="gen">ΔΗΜΙΟΥΡΓΙΑ PDF</button><button class="btn danger" id="del">Διαγραφή εκπαιδευτή</button></div><div class="out" id="out"></div>
+    <div class="row"><button class="btn amber" id="gen">ΔΗΜΙΟΥΡΓΙΑ PDF</button><button class="btn danger" id="del">Διαγραφή εκπαιδευτή</button></div><div class="row"><button class="btn alt" id="dup">↺ Νέα 935 για τον ίδιο (επανεξέταση)</button></div><div class="out" id="out"></div>
     <h3>Αποθηκευμένα PDF</h3><div id="arcl" class="hint">…</div>`);
   const y = window.scrollY; $('#app').innerHTML = h; window.scrollTo(0, y); renderArc();
 }
@@ -274,6 +274,7 @@ document.addEventListener('click', async e => { const t = e.target.closest('butt
   if (t.dataset.allna) { const s = P.FI_SEC.find(x => x.s === t.dataset.allna); s.it.forEach((_, i) => { c.aoc.m[s.s + '.' + (i + 1)] = { na: true }; }); save(); renderEd(); return; }
   if (t.dataset.clr) { if (confirm('Καθαρισμός όλων των βαθμών;')) { c.aoc.m = {}; c.aoc.result = ''; save(); renderEd(); } return; }
   if (t.dataset.res != null) { c.aoc.result = t.dataset.res; save(); renderEd(); return; }
+  if (t.id === 'dup') { const b = blank(c.kind, c.app), n = JSON.parse(JSON.stringify(c)); n.id = b.id; n.created = b.created; n.aoc = b.aoc; n.tri = b.tri; delete n.appSig; delete n.invNo; n.a.appDate = today(); S.cands.push(n); S.cur = n.id; open = { aoc: true }; save(); renderEd(); window.scrollTo(0, 0); toast('Νέα 935 για ' + (nameOf(n) || 'τον ίδιο') + ' — η παλιά μένει στη λίστα'); return; }
   if (t.id === 'del') { if (!confirm('Διαγραφή του ' + (nameOf(c) || 'υποψηφίου') + ';')) return; S.cands = S.cands.filter(x => x.id !== c.id); S.cur = null; save(); renderList(); return; }
   if (t.id === 'gen') return generate(t);
   if (t.id === 'sgo') { sigModal(); return; }
