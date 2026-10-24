@@ -243,7 +243,7 @@ document.addEventListener('input', e => { const t = e.target, c = cur(); if (!c)
   if (t.dataset.p) { let v = t.value; if (t.getAttribute('autocapitalize') === 'characters') { const s = t.selectionStart; v = v.toUpperCase(); if (t.value !== v) { t.value = v; try { t.setSelectionRange(s, s); } catch (er) { } } } setP(c, t.dataset.p, v); save();
     if (/^a\.(surname|first)$/.test(t.dataset.p)) $('#ttl').innerHTML = esc(nameOf(c) || 'Νέος εκπαιδευτής') + '<small>' + esc(caseLabel(c)) + '</small>'; } });
 document.addEventListener('change', e => { const t = e.target, c = cur();
-  if (t.dataset.p && c && /^(date|time)$/.test(t.type)) { renderEd(); return; }
+  if (t.dataset.p && c && /^(date|time)$/.test(t.type)) { setP(c, t.dataset.p, t.value); save(); const y = window.scrollY; renderEd(); window.scrollTo(0, y); return; }
   if (t.dataset.c && c) { const p = t.dataset.c; if (/\.nv$/.test(p) || /^crs\.An\./.test(p)) setP(c, p, !t.checked); else setP(c, p, t.checked); save(); renderEd(); }
   if (t.dataset.aocoff && c) { c.aoc.off = !t.checked; save(); renderEd(); }
   if (t.dataset.arep && t.files && t.files.length) { PELDOCS.replaceOut(PDFLib, t.dataset.arep, t.files).then(() => { toast('Μπήκε το υπογεγραμμένο'); renderArc(); }).catch(er => alert('Σφάλμα: ' + er.message)); return; }
