@@ -238,11 +238,11 @@ function render() { view === 'ed' ? renderEd() : renderList(); }
 
 /* ---------- events ---------- */
 document.addEventListener('toggle', e => { const d = e.target; if (d.dataset && d.dataset.sec) open[d.dataset.sec] = d.open; }, true);
-document.addEventListener('input', e => { const t = e.target, c = cur(); if (!c) return;
+document.addEventListener('input', e => { const t = e.target, c = cur(); if (!c) return; if (!e.target.isConnected) return; /* συμβάν από στοιχείο που ξαναζωγραφίστηκε (iPad date picker) — αγνοείται */
   if (t.dataset.cm) { const m = c.aoc.m[t.dataset.cm] = c.aoc.m[t.dataset.cm] || {}; m.c = t.value; save(); return; }
   if (t.dataset.p) { let v = t.value; if (t.getAttribute('autocapitalize') === 'characters') { const s = t.selectionStart; v = v.toUpperCase(); if (t.value !== v) { t.value = v; try { t.setSelectionRange(s, s); } catch (er) { } } } setP(c, t.dataset.p, v); save();
     if (/^a\.(surname|first)$/.test(t.dataset.p)) $('#ttl').innerHTML = esc(nameOf(c) || 'Νέος εκπαιδευτής') + '<small>' + esc(caseLabel(c)) + '</small>'; } });
-document.addEventListener('change', e => { const t = e.target, c = cur();
+document.addEventListener('change', e => { const t = e.target, c = cur(); if (!e.target.isConnected) return; /* συμβάν από στοιχείο που ξαναζωγραφίστηκε (iPad date picker) — αγνοείται */
   if (t.dataset.p && c && /^(date|time)$/.test(t.type)) { setP(c, t.dataset.p, t.value); save(); const y = window.scrollY; renderEd(); window.scrollTo(0, y); return; }
   if (t.dataset.c && c) { const p = t.dataset.c; if (/\.nv$/.test(p) || /^crs\.An\./.test(p)) setP(c, p, !t.checked); else setP(c, p, t.checked); save(); renderEd(); }
   if (t.dataset.aocoff && c) { c.aoc.off = !t.checked; save(); renderEd(); }
@@ -251,7 +251,7 @@ document.addEventListener('change', e => { const t = e.target, c = cur();
 /* ό,τι γράφτηκε (π.χ. με Pencil / Scribble) περνάει στα δεδομένα πριν από κάθε ενέργεια */
 function flushInputs() { const c = cur(); if (!c || view !== 'ed') return; let ch = false;
   document.querySelectorAll('#app input[data-cm]').forEach(el => { const m = c.aoc.m[el.dataset.cm] = c.aoc.m[el.dataset.cm] || {}; if ((m.c || '') !== el.value) { m.c = el.value; ch = true; } });
-  document.querySelectorAll('#app input[data-p]').forEach(el => { if (el.type === 'checkbox') return; const v = getP(c, el.dataset.p); if ((v == null ? '' : String(v)) !== el.value) { setP(c, el.dataset.p, el.value); ch = true; } });
+  document.querySelectorAll('#app input[data-p]').forEach(el => { if (el.type === 'checkbox' || el.type === 'date' || el.type === 'time') return; /* ημερομηνίες/ώρες μόνο από input/change */ const v = getP(c, el.dataset.p); if ((v == null ? '' : String(v)) !== el.value) { setP(c, el.dataset.p, el.value); ch = true; } });
   if (ch) save(); }
 document.addEventListener('focusout', e => { if (e.target.matches && e.target.matches('#app input')) flushInputs(); }, true);
 document.addEventListener('pointerdown', () => flushInputs(), true);

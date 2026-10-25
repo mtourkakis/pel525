@@ -377,19 +377,19 @@ document.addEventListener('click', async e => {
 });
 /* ό,τι γράφτηκε με Pencil / Scribble χωρίς συμβάν input περνάει στα δεδομένα */
 function flushInputs() { if (view !== 'edit' && view !== 'settings') return; const obj = view === 'settings' ? S : cur(); if (!obj) return; let ch = false;
-  document.querySelectorAll('#app input[data-p], #app textarea[data-p]').forEach(el => { if (el.type === 'checkbox' || el.type === 'file') return;
+  document.querySelectorAll('#app input[data-p], #app textarea[data-p]').forEach(el => { if (el.type === 'checkbox' || el.type === 'file' || el.type === 'date' || el.type === 'time') return; /* ημερομηνίες/ώρες αποθηκεύονται μόνο από input/change — ποτέ δεν σβήνονται από εδώ */
     const cv = el.dataset.p.split('.').reduce((x, k) => x == null ? x : x[k], obj); if ((cv == null ? '' : String(cv)) !== el.value) { setP(obj, el.dataset.p, el.value); ch = true; } });
   if (ch) save(); }
 document.addEventListener('focusout', e => { if (e.target.matches && e.target.matches('#app input, #app textarea')) flushInputs(); }, true);
 document.addEventListener('pointerdown', () => flushInputs(), true);
 document.addEventListener('input', e => {
-  const el = e.target; if (!el.dataset.p) return;
+  const el = e.target; if (!el.dataset.p) return; if (!e.target.isConnected) return; /* συμβάν από στοιχείο που ξαναζωγραφίστηκε (iPad date picker) — αγνοείται */
   const obj = view === 'settings' ? S : cur();
   let v = el.value; setP(obj, el.dataset.p, v); save();
   if (el.dataset.r !== undefined) { const fl = el.closest('.flight'); if (fl) { const ins = fl.querySelectorAll('input[type=time],input[data-hm]'); const d = F.dur(ins[0].value, ins[1].value); fl.querySelector('.h span:last-child').textContent = d ? 'Διάρκεια ' + d : ''; } }
 });
 document.addEventListener('change', e => {
-  const el = e.target;
+  const el = e.target; if (!e.target.isConnected) return; /* συμβάν από στοιχείο που ξαναζωγραφίστηκε (iPad date picker) — αγνοείται */
   if (el.dataset.arep && el.files && el.files.length) { PELDOCS.replaceOut(PDFLib, el.dataset.arep, el.files).then(() => { toast('Μπήκε το υπογεγραμμένο'); renderCF(); }).catch(er => alert('Σφάλμα: ' + er.message)); return; }
   if (el.id === 'sigPhoto') { const f = el.files && el.files[0]; if (!f) return; sigFromPhoto(f).then(d => { S.ex.sig = d; save(); render(); toast('Η υπογραφή αποθηκεύτηκε'); }).catch(err => alert(err.message)); return; }
   if (el.id === 'imp') { const f = el.files[0]; if (!f) return; f.text().then(t => { try { const d = JSON.parse(t); if (!d.cands) throw new Error('μη έγκυρο'); if (confirm('Αντικατάσταση όλων των δεδομένων με το backup;')) { S = d; save(); render(); toast('Έγινε εισαγωγή'); } } catch (err) { alert('Σφάλμα: ' + err.message); } }); return; }
