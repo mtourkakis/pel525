@@ -224,12 +224,16 @@
     let O = {}; try { O = JSON.parse(localStorage.getItem('pel_office_v1')) || {}; } catch (e) { }
     const inv = O.invoices || [], cl = O.clients || [];
     const num = v => { const n = parseFloat(String(v == null ? '' : v).replace(',', '.')); return isNaN(n) ? null : n; };
-    return ((await get('invindex')) || []).map(x => { const i = inv.find(v => v.no === x.no) || {};
+    const idx = (await get('invindex')) || [], has = new Set(idx.map(x => x.no));
+    /* όλα τα τιμολόγια του Γραφείου — και όσα δεν έχουν ακόμα αποθηκευμένο PDF */
+    const all = idx.map(x => ({ no: x.no, date: x.date })).concat(inv.filter(v => v.no && !has.has(v.no)).map(v => ({ no: v.no, date: v.date })));
+    return all.map(x => { const i = inv.find(v => v.no === x.no) || {};
       const who = i.client === '__self' ? (i.clientLines || '').split('\n')[0] : (i.clientName || (cl.find(c => c.id === i.client) || {}).name || '');
       const tot = (i.lines || []).reduce((a, l) => { const f = num(l.fee), q = num(l.qty); return a + (f == null ? 0 : q != null ? q * f : f); }, 0);
-      return { no: x.no, date: x.date || i.date || '', label: x.no + (who ? ' · ' + who : '') + (tot ? ' · €' + tot.toFixed(2).replace('.', ',') : '') + (x.date ? ' · ' + x.date.split('-').reverse().join('/') : '') }; })
+      const d = x.date || i.date || '';
+      return { no: x.no, date: d, hasPdf: has.has(x.no), label: x.no + (who ? ' · ' + who : '') + (tot ? ' · €' + tot.toFixed(2).replace('.', ',') : '') + (d ? ' · ' + d.split('-').reverse().join('/') : '') + (has.has(x.no) ? '' : ' · ⚠️ χωρίς PDF') }; })
       .sort((a, b) => (b.date || '').localeCompare(a.date || '') || (parseInt(b.no) - parseInt(a.no)));
   }
-
-  root.PELDOCS = { MY, saveFile, get, del, put, status, append, saveInvoice, dropInvoice, findInvoice, label, candFiles, addCandFiles, removeCandFile, compose, scanCount, saveOut, listOut, dropOut, invList, addUpload, replaceOut, invOptions };
+  async function hasInvoicePdf(no) { return !!(await get('inv:' + no)); }
+  root.PELDOCS = { MY, saveFile, get, del, put, status, append, saveInvoice, dropInvoice, findInvoice, label, candFiles, addCandFiles, removeCandFile, compose, scanCount, saveOut, listOut, dropOut, invList, addUpload, replaceOut, invOptions, hasInvoicePdf };
 })(typeof window !== 'undefined' ? window : globalThis);
