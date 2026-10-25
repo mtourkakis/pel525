@@ -380,7 +380,9 @@ function flushInputs() { if (view !== 'edit' && view !== 'settings') return; con
   document.querySelectorAll('#app input[data-p], #app textarea[data-p]').forEach(el => { if (el.type === 'checkbox' || el.type === 'file' || el.type === 'date' || el.type === 'time') return; /* ημερομηνίες/ώρες αποθηκεύονται μόνο από input/change — ποτέ δεν σβήνονται από εδώ */
     const cv = el.dataset.p.split('.').reduce((x, k) => x == null ? x : x[k], obj); if ((cv == null ? '' : String(cv)) !== el.value) { setP(obj, el.dataset.p, el.value); ch = true; } });
   if (ch) save(); }
-document.addEventListener('focusout', e => { if (e.target.matches && e.target.matches('#app input, #app textarea')) flushInputs(); }, true);
+let dateDirty = false;
+document.addEventListener('focusout', e => { if (e.target.matches && e.target.matches('#app input, #app textarea')) flushInputs();
+  if (dateDirty && e.target.matches && e.target.matches('#app input[type=date], #app input[type=time]')) { dateDirty = false; setTimeout(() => { if (view === 'edit' && !(document.activeElement && document.activeElement.matches && document.activeElement.matches('#app input[type=date], #app input[type=time]'))) { const y = window.scrollY; render(); window.scrollTo(0, y); } else dateDirty = true; }, 50); } }, true);
 document.addEventListener('pointerdown', () => flushInputs(), true);
 document.addEventListener('input', e => {
   const el = e.target; if (!el.dataset.p) return; if (!e.target.isConnected) return; /* συμβάν από στοιχείο που ξαναζωγραφίστηκε (iPad date picker) — αγνοείται */
@@ -401,7 +403,8 @@ document.addEventListener('change', e => {
   if (el.id === 'invPick') { const c = cur(); c.invNo = el.value; S.att = S.att || {}; if (el.value) { S.att.inv = true; const cb = document.querySelector('[data-att="inv"]'); if (cb) cb.checked = true; } save(); toast(el.value ? 'Θα επισυναφθεί το τιμολόγιο ' + el.value : 'Τιμολόγιο: αυτόματα'); return; }
   if (el.dataset.att) { S.att = S.att || {}; S.att[el.dataset.att] = el.checked; save(); return; }
   if (el.dataset.chk) { setP(cur(), el.dataset.chk, el.checked); save(); render(); return; }
-  if (el.dataset.p && (el.type === 'date' || el.type === 'time')) { setP(view === 'settings' ? S : cur(), el.dataset.p, el.value); save(); if (view === 'edit') { const y = window.scrollY; render(); window.scrollTo(0, y); } }
+  /* ημερομηνία/ώρα: αποθήκευση αμέσως, αλλά ΧΩΡΙΣ ξαναζωγράφισμα όσο είναι ανοιχτό το ημερολόγιο του iPad (αλλιώς κλείνει στην αλλαγή μήνα/έτους) — ανανέωση όταν κλείσει */
+  if (el.dataset.p && (el.type === 'date' || el.type === 'time')) { setP(view === 'settings' ? S : cur(), el.dataset.p, el.value); save(); if (view === 'edit') { if (document.activeElement === el) dateDirty = true; else { const y = window.scrollY; render(); window.scrollTo(0, y); } } }
 });
 /* «Διόρθωση» από το Αρχείο: άνοιγμα του υποψηφίου */
 setTimeout(() => { const q = new URLSearchParams(location.search), id = q.get('open'); if (!id) return; history.replaceState(null, '', location.pathname); if (S.cands.some(c => c.id === id)) { S.cur = id; openSecs = { prog: true, app: true }; view = 'edit'; setTitle(); render(); window.scrollTo(0, 0); } else alert('Ο υποψήφιος δεν υπάρχει πια στις φόρμες.'); }, 0);

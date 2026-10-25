@@ -82,7 +82,7 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
 </head>
 <body>
 <div class="wrap">
-<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v79</span><a class="swl" href="forms.html">CPL · IR · PBN ›</a><a class="swl" style="margin-left:6px" href="instr.html">FI · IRI · TRI ›</a><a class="swl" style="margin-left:6px" href="office.html">Γραφείο ›</a></header>
+<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v80</span><a class="swl" href="forms.html">CPL · IR · PBN ›</a><a class="swl" style="margin-left:6px" href="instr.html">FI · IRI · TRI ›</a><a class="swl" style="margin-left:6px" href="office.html">Γραφείο ›</a></header>
 
 <details id="exBox">
 <summary>Εγώ · Examiner <em id="exSum">ρύθμιση</em></summary>
@@ -331,7 +331,7 @@ function renderItems(){const box=$("items");box.innerHTML="";let last=null;
   if(st===true){const cd=$("date").value,od=S.idates[it.id],w=document.createElement("label");w.className="idw"+(od&&od!==cd?" diff":"");
    const sp=document.createElement("span");sp.textContent=dmy(od||cd,true).slice(0,5)||"ημ.";const di=document.createElement("input");di.type="date";di.value=od||cd;
    w.addEventListener("click",ev=>ev.stopPropagation());
-   di.addEventListener("change",()=>{if(!di.value||di.value===$("date").value)delete S.idates[it.id];else S.idates[it.id]=di.value;persist();renderItems();});
+   di.addEventListener("change",()=>{if(!di.value||di.value===$("date").value)delete S.idates[it.id];else S.idates[it.id]=di.value;persist();if(document.activeElement!==di)renderItems();});di.addEventListener("blur",()=>setTimeout(renderItems,50));
    w.appendChild(sp);w.appendChild(di);r.insertBefore(w,r.querySelector(".m"));}
   r.addEventListener("click",()=>{const c=S.items[it.id];S.items[it.id]=c===true?"na":c==="na"?false:true;persist();renderItems();});box.appendChild(r);});
  countItems();}
