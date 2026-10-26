@@ -155,18 +155,18 @@
     }
 
     /* ---------- σελ. 49: προσωπικά στοιχεία & άδεια ---------- */
-    T(49, 100, 231, A.surname && A.surname.toUpperCase(), 10, { w: 225 });
-    T(49, 388, 231, A.first && A.first.toUpperCase(), 10, { w: 170 });
-    T(49, 140, 255, A.title || 'Mr', 9.5, { w: 42 });
-    T(49, 306, 255, dmy(A.dob), 9.5, { w: 82 });
-    T(49, 446, 255, (A.nat || 'HELLENIC').toUpperCase(), 9.5, { w: 115 });
-    T(49, 127, 278, (A.addr1 || '').toUpperCase(), 9.5, { w: 425 });
-    T(49, 60, 302, (A.addr2 || '').toUpperCase(), 9.5, { w: 490 });
+    T(49, 100, 229, A.surname && A.surname.toUpperCase(), 10, { w: 225 });
+    T(49, 395, 229, A.first && A.first.toUpperCase(), 10, { w: 160 });
+    T(49, 149, 253, A.title || 'Mr', 9.5, { w: 36 });
+    T(49, 311, 253, dmy(A.dob), 9.5, { w: 76 });
+    T(49, 446, 253, (A.nat || 'HELLENIC').toUpperCase(), 9.5, { w: 115 });
+    T(49, 137, 276, (A.addr1 || '').toUpperCase(), 9.5, { w: 415 });
+    T(49, 60, 300, (A.addr2 || '').toUpperCase(), 9.5, { w: 490 });
     box(49, [155, 316, 12, 12], A.postalSame !== false);
-    if (A.postalSame === false) T(49, 172, 326, (A.postal || '').toUpperCase(), 9.5, { w: 380 });
-    T(49, 122, 373, A.tel, 9.5, { w: 205 });
-    T(49, 388, 373, A.mobile, 9.5, { w: 166 });
-    T(49, 113, 397, A.email, 9.5, { w: 437 });
+    if (A.postalSame === false) T(49, 172, 324, (A.postal || '').toUpperCase(), 9.5, { w: 380 });
+    T(49, 122, 371, A.tel, 9.5, { w: 205 });
+    T(49, 405, 371, A.mobile, 9.5, { w: 150 });
+    T(49, 117, 395, A.email, 9.5, { w: 433 });
     { const d = (A.appDate || '').replace(/\D/g, ''); /* yyyymmdd → dd mm yyyy */
       if (d.length === 8) cells(49, [131, 152, 174, 195, 215, 236, 256, 277], 16.5, 424.5, (d.slice(6, 8) + d.slice(4, 6) + d.slice(0, 4)).split(''), 10.5); }
     box(49, [541, 415, 12, 12], !!A.contactChanged);
