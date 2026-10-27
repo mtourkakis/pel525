@@ -487,7 +487,7 @@ function logForms(c) {
   if (c.tests.rev) logRev(c, name, A);
   const tests = []; if (c.tests.cpl) tests.push(c.cpl); if (c.tests.ir) tests.push(c.ir); if (c.tests.ppl && c.ppl) tests.push(c.ppl); if (!tests.length) return;
   const fl = tests.flatMap(t => [...(t.flights || []), ...((t.retest && t.retest.on && t.retest.flights) || [])]).filter(f => f && (f.date || f.type));
-  const dates = fl.map(f => f.date).filter(Boolean).sort(); if (!dates.length) return;
+  const dates = fl.map(f => f.date).filter(Boolean).sort(); if (!dates.length) { /* χωρίς πτήσεις στην εφαρμογή (π.χ. τις έγραψε η εταιρεία) → ημερομηνία του εντύπου */ const fd = c.fdate || {}; const d0 = fd['220A'] || fd['320A'] || fd['320B'] || fd['420A'] || c.signDate; if (!d0) return; dates.push(d0); }
   let mins = 0; fl.forEach(f => { const d = F.dur(f.dep, f.arr); if (d) { const [h, m] = d.split(':'); mins += (+h) * 60 + (+m); } });
   const rs = tests.map(t => (t.retest && t.retest.on && t.retest.result) ? t.retest.result : t.result);
   const res = rs.includes('fail') ? 'F' : rs.includes('partial') ? 'PP' : rs.every(r => r === 'pass') ? 'P' : '';
