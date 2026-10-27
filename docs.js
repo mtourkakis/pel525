@@ -92,9 +92,16 @@
   /* JPEG της σελίδας ενός σκαναρισμένου PDF (iPhone: μία εικόνα ανά σελίδα) */
   function pageJpeg(PDFLib, d, i) {
     try {
-      const { PDFName } = PDFLib; const p = d.getPage(i); const xo = p.node.Resources().lookup(PDFName.of('XObject'));
-      if (!xo || xo.keys().length !== 1) return null; const st = d.context.lookup(xo.get(xo.keys()[0]));
+      const { PDFName } = PDFLib; const p = d.getPage(i); const res = p.node.Resources(); const xo = res.lookup(PDFName.of('XObject'));
+      if (!xo || xo.keys().length !== 1) return null;
+      /* ψηφιακό PDF (με κείμενο) δεν είναι φωτογραφία σελίδας — π.χ. η μόνη εικόνα είναι το λογότυπο */
+      const fo = res.lookup(PDFName.of('Font')); if (fo && fo.keys && fo.keys().length) return null;
+      const st = d.context.lookup(xo.get(xo.keys()[0]));
       if (!st || !st.dict || String(st.dict.get(PDFName.of('Filter'))) !== '/DCTDecode' || !st.contents) return null;
+      /* η εικόνα πρέπει να έχει αναλογίες σελίδας (όχι λογότυπο / μικρή εικόνα) */
+      const iw = +String(st.dict.get(PDFName.of('Width'))), ih = +String(st.dict.get(PDFName.of('Height')));
+      const { width: pw, height: ph } = p.getSize();
+      if (!(iw > 0 && ih > 0) || Math.abs((iw / ih) / (pw / ph) - 1) > 0.15) return null;
       return st.contents;
     } catch (e) { return null; }
   }
