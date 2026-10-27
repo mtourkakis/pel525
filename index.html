@@ -355,8 +355,10 @@ $("tplDel").addEventListener("click",()=>{const n=$("tpl").value;if(!n||!confirm
 
 function refresh(){$("latinWarn").style.display=(nonLatin($("c_surname").value)||nonLatin($("c_first").value))?"block":"none";
  $("repWarn").style.display=nonLatin(($("report").value||"").replace(/\n/g," "))?"block":"none";
- {const t=/^(\d{1,2}):(\d{2})$/.exec(($("total").value||"").trim()),c=S.chips||{},rv=c.pcReval||c.irReval||c.aReval,dw=$("durWarn");
-  if(dw){const m=t?(+t[1])*60+(+t[2]):null;const bad=rv&&m!==null&&m<60;dw.textContent=bad?"⚠️ Revalidation: διάρκεια "+$("total").value.trim()+" — ελάχιστο 1:00.":"";dw.style.display=bad?"block":"none";}}
+ {const t=/^(\d{1,2}):(\d{2})$/.exec(($("total").value||"").trim()),c=S.chips||{},dw=$("durWarn");
+  /* SEP/MEP: ελάχιστο 1:00· μαζί με IR +0:30 = 1:30 (το Total μετράει και τη γραμμή SIM) */
+  if(dw){let k=null;try{k=acClass();}catch(e){}const ir=c.irReval||c.irRenew||c.ir6se||c.ir6me,min=ir?90:60,m=t?(+t[1])*60+(+t[2]):null;
+   const bad=!!k&&m!==null&&m<min;dw.textContent=bad?"⚠️ "+(k==="ME"?"MEP":"SEP")+(ir?" + IR":"")+": διάρκεια "+$("total").value.trim()+" — ελάχιστο "+(ir?"1:30":"1:00")+".":"";dw.style.display=bad?"block":"none";}}
  const sn=upper($("c_surname").value).replace(/\s+/g,"-"),ln=$("c_licno").value.trim();$("subj").textContent="PEL-FCL-"+(ln?ln+"-":"")+(sn||"ΕΠΩΝΥΜΟ");}
 
 document.querySelectorAll("[data-fill]").forEach(b=>b.addEventListener("click",()=>{const el=$(b.dataset.fill);el.value=b.dataset.v;checkInput();}));
