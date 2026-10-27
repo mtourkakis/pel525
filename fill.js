@@ -57,13 +57,15 @@
     return Math.floor(d / 60) + ':' + String(d % 60).padStart(2, '0');
   }
   function sectionResult(marks, sec, att) {
-    let any = false, fail = false;
+    let pass = false, na = false, fail = false;
     for (const [id] of sec.it) {
       const v = (marks[sec.s + id] || [])[att];
       if (v === 'F') fail = true;
-      if (v === 'P' || v === 'NA') any = true;
+      if (v === 'P') pass = true;
+      if (v === 'NA') na = true;
     }
-    return fail ? 'F' : any ? 'P' : '';
+    /* όλα N/A (π.χ. Section 6 σε μονοκινητήριο) → ούτε Pass ούτε Fail */
+    return fail ? 'F' : pass ? 'P' : na ? 'NA' : '';
   }
   /* αναθεώρηση SEP με εμπειρία: νέα λήξη = τρέχουσα λήξη + 24 μήνες (εκτός αν γραφτεί με το χέρι) */
   function revNewExpiry(R) {
@@ -193,7 +195,7 @@
         let stamped = false;
         [0, 1].forEach(att => {
           const sr = sectionResult(t.marks, sec, att);
-          if (!sr) return;
+          if (!sr || sr === 'NA') return;
           circle(res.p, res.boxes[att * 2 + (sr === 'F' ? 1 : 0)]);
           if (!stamped) { stamp(res.p, res.boxes[3][2] + 20, res.top - 1, 150, true); stamped = true; }
         });

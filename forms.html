@@ -227,7 +227,7 @@ function marksHTML(kind, t) {
   let h = `<div class="row"><button class="btn alt" data-allpass="${kind}">Όλα ✓ (1η προσπάθεια)</button><label class="chk"><input type="checkbox" data-chk="${TK[kind]}.second" ${two ? 'checked' : ''}> 2η προσπάθεια</label></div>`;
   secs.forEach(s => {
     const r1 = F.sectionResult(t.marks, s, 0), r2 = two ? F.sectionResult(t.marks, s, 1) : '';
-    const tg = r => r ? `<span class="tag ${r === 'P' ? 'ok' : 'bad'}">${r === 'P' ? 'PASS' : 'FAIL'}</span>` : '';
+    const tg = r => r === 'NA' ? '<span class="tag">N/A</span>' : r ? `<span class="tag ${r === 'P' ? 'ok' : 'bad'}">${r === 'P' ? 'PASS' : 'FAIL'}</span>` : '';
     h += `<div class="sec"><div class="sh"><span class="t">Section ${s.s} – ${esc(s.t)}</span>${tg(r1)}${two ? ' / ' + (tg(r2) || '–') : ''}<button class="cmb" data-secpass="${kind}|${s.s}" title="Όλη η ενότητα Pass">✓✓</button></div>`;
     s.it.forEach(([id, lab]) => {
       const k = s.s + id; const m = t.marks[k] || [];
@@ -262,7 +262,7 @@ function testHTML(kind) {
 function overall(t, kind) {
   const secs = F.ITEMS[kind]; const r = secs.map(s => F.sectionResult(t.marks, s, 0));
   if (r.includes('F')) return '<span class="tag bad">FAIL</span>';
-  if (r.every(x => x === 'P')) return '<span class="tag ok">PASS</span>';
+  if (r.some(x => x === 'P') && r.every(x => x === 'P' || x === 'NA')) return '<span class="tag ok">PASS</span>';
   return '';
 }
 function editView() {
@@ -369,7 +369,7 @@ document.addEventListener('click', async e => {
       if (kind === 'CPL' && tt.engine === 'SE' && ['6a', '6b', '6c'].includes(k)) v = 'NA';
       if (kind === 'IR' && s.s === '6' && tt.engine === 'SE') v = 'NA';
       if (kind === 'PPL' && tt.engine === 'ME' && ['4d', '5a', '5b', '5c'].includes(k)) v = 'NA';
-      if (kind === 'PPL' && tt.engine !== 'ME' && ['6a', '6b', '6c'].includes(k)) v = 'NA';
+      if (kind === 'PPL' && tt.engine !== 'ME' && s.s === '6') v = 'NA'; /* μονοκινητήριο: όλη η Section 6 N/A */
       if (kind === 'PPL' && tt.lic === 'LAPL' && ['3e', '3f'].includes(k)) v = 'NA';
       const m = tt.marks[k] || []; m[0] = v; tt.marks[k] = m; }); });
     save(); render(); toast('Σημειώθηκαν Pass'); return;
