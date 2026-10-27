@@ -186,6 +186,7 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
  <div></div>
 </div>
 <div class="note" style="margin-top:0">2η γραμμή προαιρετική (π.χ. SIM + αεροσκάφος): τυπώνονται πάνω-κάτω στο ίδιο κουτί και το Total είναι το άθροισμα.</div>
+<div class="warn" id="durWarn"></div>
 <div class="row">
  <div><label for="from">From</label><input id="from" autocapitalize="characters"></div>
  <div><label for="to">To</label><input id="to" autocapitalize="characters"></div>
@@ -316,7 +317,7 @@ function checkInput(e){if(e&&["off","on","off2","on2"].includes(e.target.id))cal
 /* chips */
 function renderChips(){document.querySelectorAll(".chip").forEach(b=>b.setAttribute("aria-pressed",S.chips[b.dataset.k]?"true":"false"));}
 document.querySelectorAll(".chip").forEach(b=>b.addEventListener("click",()=>{const g=b.parentElement,on=b.getAttribute("aria-pressed")!=="true";
- if(g.dataset.single)g.querySelectorAll(".chip").forEach(o=>S.chips[o.dataset.k]=false);S.chips[b.dataset.k]=on;persist();renderChips();}));
+ if(g.dataset.single)g.querySelectorAll(".chip").forEach(o=>S.chips[o.dataset.k]=false);S.chips[b.dataset.k]=on;persist();renderChips();refresh();}));
 /* κλάση αεροσκάφους για τα items: SE-only (4.5, 5.2, 5.3) και ME-only (Section 6) — Part-FCL App.9 B */
 const SE_ONLY=["4.5","5.2","5.3"];const isMEitem=id=>/^6\./.test(id);
 function acClass(){const c=S.chips||{},se=c.r6sep||c.ir6se,me=c.r6mep||c.ir6me;if(me&&!se)return"ME";if(se&&!me)return"SE";
@@ -354,6 +355,8 @@ $("tplDel").addEventListener("click",()=>{const n=$("tpl").value;if(!n||!confirm
 
 function refresh(){$("latinWarn").style.display=(nonLatin($("c_surname").value)||nonLatin($("c_first").value))?"block":"none";
  $("repWarn").style.display=nonLatin(($("report").value||"").replace(/\n/g," "))?"block":"none";
+ {const t=/^(\d{1,2}):(\d{2})$/.exec(($("total").value||"").trim()),c=S.chips||{},rv=c.pcReval||c.irReval||c.aReval,dw=$("durWarn");
+  if(dw){const m=t?(+t[1])*60+(+t[2]):null;const bad=rv&&m!==null&&m<60;dw.textContent=bad?"⚠️ Revalidation: διάρκεια "+$("total").value.trim()+" — ελάχιστο 1:00.":"";dw.style.display=bad?"block":"none";}}
  const sn=upper($("c_surname").value).replace(/\s+/g,"-"),ln=$("c_licno").value.trim();$("subj").textContent="PEL-FCL-"+(ln?ln+"-":"")+(sn||"ΕΠΩΝΥΜΟ");}
 
 document.querySelectorAll("[data-fill]").forEach(b=>b.addEventListener("click",()=>{const el=$(b.dataset.fill);el.value=b.dataset.v;checkInput();}));

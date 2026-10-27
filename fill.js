@@ -383,6 +383,23 @@
       const last = fl.map(f => f.date).filter(Boolean).sort().pop();
       if (last) { const d = new Date(last); d.setDate(d.getDate() + 14); W.push(`ℹ️ ${k}: υποβολή Part 2 στην HCAA έως ${dmy(d.toISOString().slice(0, 10))}.`); }
     }
+    /* ελάχιστη διάρκεια πτήσης: PPL 1:30, CPL 1:30, IR 1:00, CPL+IR μαζί 2:30 */
+    {
+      const flMin = fl => fl.filter(f => f && f.dep && f.arr).reduce((a, f) => { const k = mins(f.arr) - mins(f.dep); return a + (k > 0 ? k : 0); }, 0);
+      const hm = m => Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0');
+      const used = t => (t.flights || []).filter(f => f && f.dep && f.arr);
+      const both = c.tests.cpl && c.tests.ir;
+      if (both) {
+        const seen = new Set(), all = [...used(c.cpl), ...used(c.ir)].filter(f => { const k = [f.date, f.reg, f.dep, f.arr].join('|'); if (seen.has(k)) return false; seen.add(k); return true; });
+        const m = flMin(all); if (all.length && m < 150) W.push(`CPL + IR (combined): συνολική διάρκεια ${hm(m)} — ελάχιστο 2:30.`);
+      } else {
+        const R = [];
+        if (c.tests.cpl) R.push(['CPL', c.cpl, 90]);
+        if (c.tests.ir) R.push(['IR', c.ir, 60]);
+        if (c.tests.ppl && c.ppl && c.ppl.lic !== 'LAPL') R.push(['PPL', c.ppl, 90]);
+        for (const [k, t, min] of R) { const f = used(t); const m = flMin(f); if (f.length && m < min) W.push(`${k}: διάρκεια πτήσης ${hm(m)} — ελάχιστο ${hm(min)}.`); }
+      }
+    }
     if (c.tests.ir) {
       const ir = c.ir;
       if (!ir.pbn) W.push('IR: δεν έχει δηλωθεί PBN competency (YES/NO) – περνά στο 320B Ενότ. 10.');
