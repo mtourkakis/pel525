@@ -95,9 +95,10 @@ h3{font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--mute);
 </style>
 </head>
 <body>
-<header><a href="index.html" class="nav">‹ 525</a><a href="forms.html" class="nav">CPL·IR</a><a href="office.html" class="nav">Γραφείο</a><h1 id="ttl">Εκπαιδευτές<small>PEL-FCL 935 · FI · IRI · TRI</small></h1><button id="hb" hidden>‹ Λίστα</button></header>
+<header><a href="home.html" class="nav">⌂</a><a href="index.html" class="nav">‹ 525</a><a href="forms.html" class="nav">CPL·IR</a><a href="office.html" class="nav">Γραφείο</a><h1 id="ttl">Εκπαιδευτές<small>PEL-FCL 935 · FI · IRI · TRI</small></h1><button id="hb" hidden>‹ Λίστα</button></header>
 <main id="app"></main>
 <div class="toast" id="toast"></div>
+<script src="flow.js"></script>
 <script src="hm.js"></script>
 <script src="pdf-lib.min.js"></script>
 <script src="fill935.js"></script>
@@ -384,7 +385,7 @@ function logExam(c, date) {
   let L = []; try { L = JSON.parse(localStorage.getItem('pel_log_v1')) || []; } catch (e) { }
   const i = L.findIndex(x => x.id === id);
   if (i >= 0) { const o = L[i]; if (!o.manualEdit) L[i] = Object.assign({}, rec, { client: o.client, price: o.price, invoice: o.invoice, note: o.note, qty: o.qty, in801: o.in801, exp: o.exp || [] }); } else L.push(rec);
-  localStorage.setItem('pel_log_v1', JSON.stringify(L));
+  localStorage.setItem('pel_log_v1', JSON.stringify(L)); try { PELFLOW.setLog(id, rec.name); } catch (e) { }
 }
 function deliver(files) {
   const out = $('#out');
@@ -396,6 +397,7 @@ function deliver(files) {
 }
 
 /* άνοιγμα από το Αρχείο (✎) */
+if (new URLSearchParams(location.search).get('new')) { history.replaceState(null, '', location.pathname); const n = blank('FI', 'reval'); S.cands.push(n); S.cur = n.id; open = {}; view = 'ed'; save(); }
 { const q = new URLSearchParams(location.search).get('open'); if (q && S.cands.some(c => c.id === q)) { S.cur = q; open = {}; view = 'ed'; } }
 render();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });

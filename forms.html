@@ -80,7 +80,7 @@ header{padding-left:calc(env(safe-area-inset-left) + 78px)}
 </style>
 </head>
 <body>
-<header><a href="index.html" id="to525">‹ 525</a><a href="instr.html" id="toOff" style="margin-right:2px">FI·IRI·TRI</a><a href="office.html" id="toOff">Γραφείο</a><h1 id="ttl">PEL-FCL Forms<small>HCAA · Examiner</small></h1><button id="qbk" title="Ερωτήσεις">❓ PPL·CPL</button><button id="hb" hidden>‹ Λίστα</button><button id="setb">⚙︎</button></header>
+<header><a href="home.html" id="to525">⌂</a><a href="index.html" id="to525">‹ 525</a><a href="instr.html" id="toOff" style="margin-right:2px">FI·IRI·TRI</a><a href="office.html" id="toOff">Γραφείο</a><h1 id="ttl">PEL-FCL Forms<small>HCAA · Examiner</small></h1><button id="qbk" title="Ερωτήσεις">❓ PPL·CPL</button><button id="hb" hidden>‹ Λίστα</button><button id="setb">⚙︎</button></header>
 <main id="app"></main>
 <div class="toast" id="toast"></div>
 <script src="hm.js"></script>
@@ -88,6 +88,7 @@ header{padding-left:calc(env(safe-area-inset-left) + 78px)}
 <script src="layout.js"></script>
 <script src="fill.js"></script>
 <script src="docs.js"></script>
+<script src="flow.js"></script>
 <script src="pdfread.js"></script>
 <script src="sigpad.js"></script>
 <script src="pplq.js"></script>
@@ -418,6 +419,9 @@ document.addEventListener('change', e => {
   if (el.dataset.p && (el.type === 'date' || el.type === 'time')) { setP(view === 'settings' ? S : cur(), el.dataset.p, el.value); save(); if (view === 'edit') { if (document.activeElement === el) dateDirty = true; else { const y = window.scrollY; render(); window.scrollTo(0, y); } } }
 });
 /* «Διόρθωση» από το Αρχείο: άνοιγμα του υποψηφίου */
+setTimeout(() => { const q = new URLSearchParams(location.search), nw = q.get('new'); if (!nw) return; history.replaceState(null, '', location.pathname);
+  const n = newCand(); if (nw === 'ppl') n.tests = { ppl: true }; else if (nw === 'rev') n.tests = { rev: true }; save();
+  S.cur = n.id; openSecs = { prog: true, app: true }; view = 'edit'; setTitle(); render(); window.scrollTo(0, 0); }, 0);
 setTimeout(() => { const q = new URLSearchParams(location.search), id = q.get('open'); if (!id) return; history.replaceState(null, '', location.pathname); if (S.cands.some(c => c.id === id)) { S.cur = id; openSecs = { prog: true, app: true }; view = 'edit'; setTitle(); render(); window.scrollTo(0, 0); } else alert('Ο υποψήφιος δεν υπάρχει πια στις φόρμες.'); }, 0);
 /* σκανάρισμα με πολλά έντυπα μαζί: διαλέγεις ποιες σελίδες (και με ποια σειρά) ανήκουν σε αυτό το έντυπο */
 async function scanPick(fl, form) {
@@ -500,7 +504,7 @@ function logForms(c) {
   let L = []; try { L = JSON.parse(localStorage.getItem('pel_log_v1')) || []; } catch (e) { }
   const i = L.findIndex(x => x.id === id);
   if (i >= 0) { const o = L[i]; if (!o.manualEdit) L[i] = Object.assign({}, rec, { client: o.client, price: o.price, invoice: o.invoice, note: o.note, qty: o.qty, in801: o.in801, exp: o.exp || [] }); } else L.push(rec);
-  localStorage.setItem('pel_log_v1', JSON.stringify(L));
+  localStorage.setItem('pel_log_v1', JSON.stringify(L)); try { PELFLOW.setLog(id, rec.name); } catch (e) { }
 }
 /* 521: εγγραφή στις Εξετάσεις (revalidation με εμπειρία, χωρίς πτήση) */
 function logRev(c, name, A) {
@@ -512,7 +516,7 @@ function logRev(c, name, A) {
   let L = []; try { L = JSON.parse(localStorage.getItem('pel_log_v1')) || []; } catch (e) { }
   const i = L.findIndex(x => x.id === id);
   if (i >= 0) { const o = L[i]; if (!o.manualEdit) L[i] = Object.assign({}, rec, { client: o.client, price: o.price, invoice: o.invoice, note: o.note, qty: o.qty }); else o.exp = rec.exp; } else L.push(rec);
-  localStorage.setItem('pel_log_v1', JSON.stringify(L));
+  localStorage.setItem('pel_log_v1', JSON.stringify(L)); try { PELFLOW.setLog(id, rec.name); } catch (e) { }
 }
 function deliver(files) {
   const out = $('#out');

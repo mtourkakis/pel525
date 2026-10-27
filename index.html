@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="el">
 <head>
+<script>try{if(!location.search&&!sessionStorage.getItem("pelhome"))location.replace("home.html");}catch(e){}</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>PEL-FCL 525 · Examiner</title>
@@ -11,6 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="PEL 525">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="flow.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="docs.js"></script>
 <script src="sigpad.js"></script>
@@ -82,7 +84,7 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
 </head>
 <body>
 <div class="wrap">
-<header><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v80</span><a class="swl" href="forms.html">CPL · IR · PBN ›</a><a class="swl" style="margin-left:6px" href="instr.html">FI · IRI · TRI ›</a><a class="swl" style="margin-left:6px" href="office.html">Γραφείο ›</a></header>
+<header><a class="swl" style="margin:0 8px 0 0" href="home.html">⌂</a><h1>PEL-FCL <span>525</span></h1><span class="sub">Examiner · ΥΠΑ · v80</span><a class="swl" href="forms.html">CPL · IR · PBN ›</a><a class="swl" style="margin-left:6px" href="instr.html">FI · IRI · TRI ›</a><a class="swl" style="margin-left:6px" href="office.html">Γραφείο ›</a></header>
 
 <details id="exBox">
 <summary>Εγώ · Examiner <em id="exSum">ρύθμιση</em></summary>
@@ -299,6 +301,7 @@ function candInput(){if(S.cur<0){S.cands.push({});S.cur=S.cands.length-1;}
  const o=$("candSel").options[S.cur];if(o)o.textContent=candLabel(c);else renderCands();refresh();}
 $("candSel").addEventListener("change",e=>{S.cur=+e.target.value;persist();fillCand();});
 $("candNew").addEventListener("click",()=>{S.cands.push({});S.cur=S.cands.length-1;persist();renderCands();fillCand();$("c_surname").focus();});
+if(new URLSearchParams(location.search).get("new")){history.replaceState(null,"",location.pathname);setTimeout(()=>$("candNew").click(),0);}
 $("candDel").addEventListener("click",()=>{if(S.cur<0)return;if(!confirm("Διαγραφή του "+candLabel(S.cands[S.cur])+";"))return;
  S.cands.splice(S.cur,1);S.cur=S.cands.length?0:-1;persist();renderCands();fillCand();});
 /* check fields */
@@ -521,7 +524,7 @@ const rec={id,src:"525",cat:"exam",date,name,lic:upper(g("c_licno")),dep:[fr,to]
 let L=[];try{L=JSON.parse(localStorage.getItem("pel_log_v1"))||[];}catch(e){}
 const i=L.findIndex(x=>x.id===id);
 if(i>=0){const o=L[i];L[i]=o.manualEdit?Object.assign(o,{exp}):Object.assign({},rec,{client:o.client,price:o.price,invoice:o.invoice,note:o.note,qty:o.qty,in801:o.in801});}else L.push(rec);
-localStorage.setItem("pel_log_v1",JSON.stringify(L));}
+localStorage.setItem("pel_log_v1",JSON.stringify(L));try{PELFLOW.setLog(id,name);}catch(e){}}
 let dl=null;(async()=>{try{dl=await window.claude?.use?.("downloads")??null;}catch(e){dl=null;}})();
 $("go").addEventListener("click",async()=>{const silent=SILENT525;SILENT525=false;const btn=$("go");btn.disabled=true;setStatus("Δημιουργία…");
  try{if(!window.PDFLib)throw 0;

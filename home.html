@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PEL 525">
+<meta name="theme-color" content="#14202e">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Αρχική · Εξεταστής</title>
+<style>
+:root{--navy:#14202e;--navy2:#2b3d52;--amber:#d98a00;--ink:#14213d;--mute:#5d6b82;--line:#d8dee9;--bg:#eef1f6;--card:#fff;--ok:#1d8a4e;--bad:#c62f2f}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.35 "IBM Plex Sans",-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--navy);color:#fff;padding:calc(env(safe-area-inset-top) + 12px) 16px 12px;display:flex;align-items:center;gap:10px;border-bottom:3px solid var(--amber)}
+header h1{font-size:18px;margin:0;flex:1}
+header h1 small{display:block;font-weight:400;font-size:11px;opacity:.75;letter-spacing:1.5px;text-transform:uppercase}
+main{max-width:860px;margin:0 auto;padding:16px 14px calc(env(safe-area-inset-bottom) + 40px)}
+.big{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;border:0;border-radius:16px;background:var(--amber);color:#14202e;font-weight:800;font-size:22px;font-family:inherit;padding:22px;cursor:pointer;box-shadow:0 2px 8px rgba(217,138,0,.3)}
+h2{font-size:13px;letter-spacing:1.4px;text-transform:uppercase;color:var(--mute);margin:26px 4px 10px}
+.kinds{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.kinds button,.kinds a{display:block;text-align:left;border:2px solid var(--line);background:#fff;border-radius:14px;padding:16px;font:inherit;font-weight:700;font-size:17px;color:var(--navy2);cursor:pointer;text-decoration:none}
+.kinds small{display:block;font-weight:500;font-size:13px;color:var(--mute);margin-top:4px}
+.kinds button:active,.kinds a:active{border-color:var(--navy)}
+.card{background:var(--card);border-radius:14px;box-shadow:0 1px 2px rgba(14,42,92,.08);overflow:hidden}
+.it{display:flex;align-items:center;gap:10px;padding:13px 16px;border-top:1px solid var(--line);text-decoration:none;color:inherit}
+.it:first-child{border-top:0}.it b{display:block}.it span{font-size:13px;color:var(--mute)}
+.tag{font-size:11px;font-weight:700;padding:3px 7px;border-radius:6px;background:#e7ecf5;color:var(--navy2);margin-left:auto;white-space:nowrap}
+.tag.ok{background:#dcf2e5;color:var(--ok)}.tag.bad{background:#fbe2e2;color:var(--bad)}
+.empty{padding:16px;color:var(--mute)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.grid a{background:var(--navy2);color:#fff;text-decoration:none;border-radius:12px;padding:13px;font-weight:700;text-align:center}
+#pick{display:none}#pick.on{display:block}
+</style>
+</head>
+<body>
+<header><h1>Εξεταστής<small>Νέα εξέταση · Τιμολόγιο · 801</small></h1></header>
+<main>
+  <button class="big" id="nb">＋ Νέα εξέταση</button>
+  <div id="pick">
+    <h2>Τι εξέταση;</h2>
+    <div class="kinds">
+      <button data-go="525"><b>PEL-FCL 525</b><small>LPC / LST · Class/Type · IR revalidation</small></button>
+      <button data-go="ppl"><b>PPL(A) / LAPL(A)</b><small>PEL-FCL 220A skill test</small></button>
+      <button data-go="cpl"><b>CPL · IR · PBN</b><small>320A / 320B · 420A · 1000</small></button>
+      <button data-go="rev"><b>SEP revalidation</b><small>PEL-FCL 521 · με εμπειρία</small></button>
+      <button data-go="instr"><b>FI · IRI · TRI</b><small>PEL-FCL 935 · initial / reval / renewal</small></button>
+    </div>
+  </div>
+  <h2>Τελευταίες εξετάσεις</h2>
+  <div class="card" id="recent"></div>
+  <h2>Κατευθείαν</h2>
+  <div class="grid">
+    <a href="index.html?stay=1">525</a><a href="forms.html">CPL · IR · PPL</a><a href="instr.html">FI · IRI · TRI</a>
+    <a href="office.html">Γραφείο</a><a href="office.html?tab=inv">Τιμολόγια</a><a href="office.html?tab=r801">801</a><a href="office.html?tab=stud">Μαθητές</a>
+  </div>
+</main>
+<script src="flow.js"></script>
+<script>
+try { sessionStorage.setItem('pelhome', '1'); } catch (e) { }
+try { PELFLOW.set(null); PELFLOW.draw(); } catch (e) { }
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const dmy = d => d ? d.slice(8, 10) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4) : '';
+$('#nb').addEventListener('click', () => { $('#pick').classList.toggle('on'); if ($('#pick').classList.contains('on')) $('#pick').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+const GO = { '525': ['index.html?new=1', 'PEL-FCL 525'], ppl: ['forms.html?new=ppl', 'PPL(A) · 220A'], cpl: ['forms.html?new=cpl', 'CPL · IR · PBN'], rev: ['forms.html?new=rev', 'SEP reval · 521'], instr: ['instr.html?new=1', 'FI · IRI · TRI'] };
+document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (!b) return; const [url, label] = GO[b.dataset.go]; PELFLOW.start(b.dataset.go, label); location.href = url; });
+(function () {
+  let L = []; try { L = JSON.parse(localStorage.getItem('pel_log_v1')) || []; } catch (e) { }
+  L = L.filter(e => !e.deleted && (e.cat === 'exam' || !e.cat) && e.date).sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 8);
+  $('#recent').innerHTML = L.length ? L.map(e => {
+    const st = e.invoice ? `<span class="tag ok">τιμ. ${esc(e.invoice)}</span>` : e.noInv ? '<span class="tag">χωρίς τιμολόγιο</span>' : (e.client && e.price != null) ? '<span class="tag">για τιμολόγηση</span>' : '<span class="tag bad">χρειάζεται χρέωση</span>';
+    return `<a class="it" href="office.html?edit=${encodeURIComponent(e.id)}"><div><b>${dmy(e.date)} · ${esc(e.name || '—')}</b><span>${esc(e.test || '')}</span></div>${st}</a>`;
+  }).join('') : '<div class="empty">Καμία ακόμα.</div>';
+})();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });
+</script>
+</body>
+</html>
