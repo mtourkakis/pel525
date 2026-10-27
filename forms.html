@@ -88,6 +88,7 @@ header{padding-left:calc(env(safe-area-inset-left) + 78px)}
 <script src="layout.js"></script>
 <script src="fill.js"></script>
 <script src="docs.js"></script>
+<script src="pdfread.js"></script>
 <script src="sigpad.js"></script>
 <script src="pplq.js"></script>
 <script src="cplq.js"></script>
@@ -147,12 +148,22 @@ function formsFor(c) {
 }
 const FORMNAME = { '320A': 'PEL-FCL 320A · CPL Modular', '320B': 'PEL-FCL 320B · CPL Integrated', '420A': 'PEL-FCL 420A · IR Part 2', '1000': 'PEL-FCL 1000 · PBN', '220A': 'PEL-FCL 220A · LAPL/PPL(A)', '521': 'PEL-FCL 521 · SEP revalidation (experience)' };
 
+/* στοιχεία υποψηφίου από το ψηφιακό PDF της εταιρείας → γεμίζουν μόνο τα κενά πεδία (μία φορά ανά αρχείο) */
+async function autoFillFrom(c, key) {
+  if (!window.PELREAD || (c.autoRead || {})[key]) return;
+  const r = await PELDOCS.get(key); const pdf = r && r.files && r.files.find(x => x.kind === 'pdf'); if (!pdf) return;
+  (c.autoRead = c.autoRead || {})[key] = 1; save();
+  let d = {}; try { d = await PELREAD.personal(pdf.bytes); } catch (e) { return; }
+  const A = c.applicant, done = [];
+  for (const [k, v] of Object.entries(d)) { if (!v) continue; if (k === 'title' ? v !== A.title : !(A[k] || '').trim()) { A[k] = k === 'email' ? v.toLowerCase() : v; done.push(k); } }
+  if (!done.length) return; save(); if (cur() === c) { setTitle(); render(); } toast('Περάστηκαν από το PDF: ' + (A.surname || '') + ' ' + (A.first || '') + ' (' + done.length + ' στοιχεία)');
+}
 /* ---------- views ---------- */
 /* συνημμένα ανά υποψήφιο (Notification of Test email, FSTD cert κ.λπ.) */
 async function renderCF() {
   const c = cur(), box = $('#cfList'); if (!c || !box || !window.PELDOCS) return;
   for (const lb of document.querySelectorAll('[data-scanlbl]')) { const f = lb.dataset.scanlbl, n = await PELDOCS.scanCount(PDFLib, 'scan:forms:' + c.id + ':' + f);
-    if (n) { lb.outerHTML = `<span class="tag ok">${f} · σκαναρισμένο ${n} σελ.</span><button class="cmb" data-scandel="${f}">✕</button>`; } }
+    if (n) { lb.outerHTML = `<span class="tag ok">${f} · σκαναρισμένο ${n} σελ.</span><button class="cmb" data-scandel="${f}">✕</button>`; autoFillFrom(c, 'scan:forms:' + c.id + ':' + f); } }
   const fs = await PELDOCS.candFiles('cand:forms:' + c.id);
   box.innerHTML = fs.length ? fs.map((f, i) => `📎 ${esc(f.name)} <button class="cmb" data-cfdel="${i}">✕</button>`).join(' &nbsp; ') : 'κανένα';
   const ip = $('#invPick'); if (ip && !ip.dataset.rf) { ip.dataset.rf = 1; const rf = async () => { const c2 = cur(); if (!c2) return; const v = ip.value, o2 = await PELDOCS.invOptions(); ip.innerHTML = '<option value="">Αυτόματα (το τιμολόγιο του υποψηφίου)</option>' + o2.map(o => `<option value="${esc(o.no)}">${esc(o.label)}</option>`).join(''); ip.value = c2.invNo || v || ''; }; ip.addEventListener('focus', rf); window.addEventListener('pageshow', rf); document.addEventListener('visibilitychange', () => { if (!document.hidden) rf(); }); }
