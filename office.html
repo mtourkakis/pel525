@@ -179,8 +179,11 @@ async function fillEntryPdfs() {
   const nk = nkey(edit.name); let L = (await arcItems()).filter(x => x.logId === edit.id || (edit.invoice && x.key === 'inv:' + edit.invoice) || (nk && (nkey(x.title) === nk || nkey(x.sub) === nk)));
   const rank = x => x.kind === 'inv' ? 3 : x.merged ? 4 : x.up ? 2 : 1; L = L.sort((a, b) => rank(a) - rank(b) || (a.date || '').localeCompare(b.date || ''));
   const pick = L.filter(x => !x.merged);
+  /* φόρμα που υπάρχει ήδη μέσα σε «όλες μαζί» έξοδο → όχι τσεκαρισμένη (αλλιώς μπαίνει δύο φορές) */
+  const fset = x => String(x.forms || '').split('+').map(t => t.trim()).filter(Boolean);
+  const covered = x => { const f = fset(x); return f.length === 1 && pick.some(y => y !== x && fset(y).length > 1 && fset(y).includes(f[0])); };
   const noPdf = edit.invoice && !L.some(x => x.key === 'inv:' + edit.invoice) && O.invoices.some(i => i.no === edit.invoice);
-  box.innerHTML = `<h3>Αποθηκευμένα PDF${nk ? ' · ' + esc(nk) : ''}</h3>${L.length ? `<div class="card list" style="margin:0">${L.map(x => (x.merged ? '' : `<label class="chk" style="margin:0 0 -6px 14px;font-size:13px"><input type="checkbox" data-mk="${esc(x.key)}" ${x.kind !== 'inv' ? 'checked' : ''}> στο ενιαίο PDF</label>`) + arcRow(x, x.sub.startsWith('📎') || x.merged)).join('')}</div>` : ''}
+  box.innerHTML = `<h3>Αποθηκευμένα PDF${nk ? ' · ' + esc(nk) : ''}</h3>${L.length ? `<div class="card list" style="margin:0">${L.map(x => (x.merged ? '' : `<label class="chk" style="margin:0 0 -6px 14px;font-size:13px"><input type="checkbox" data-mk="${esc(x.key)}" ${x.kind !== 'inv' && !covered(x) ? 'checked' : ''}> στο ενιαίο PDF</label>`) + arcRow(x, x.sub.startsWith('📎') || x.merged)).join('')}</div>` : ''}
   ${noPdf ? `<div class="row"><span class="hint" style="margin:0">Τιμολόγιο ${esc(edit.invoice)}: δεν έχει αποθηκευμένο PDF.</span><button class="btn alt" data-mkinv="${esc(edit.invoice)}">Δημιουργία PDF τιμολογίου</button></div>` : ''}
   <div class="row">${pick.length > 1 ? '<button class="btn amber" id="mergeE">📑 Ένωση σε ένα PDF</button>' : ''}<label class="btn alt" style="cursor:pointer">+ Συνημμένο (techlog, φωτογραφία…)<input type="file" data-upload="entry" accept="application/pdf,image/*" multiple style="display:none"></label></div>`;
 }
@@ -188,7 +191,19 @@ async function fillEntryPdfs() {
 async function mergeEntry() {
   const keys = [...document.querySelectorAll('[data-mk]')].filter(c => c.checked).map(c => c.dataset.mk); if (keys.length < 2) { toast('Διάλεξε τουλάχιστον 2'); return; }
   const doc = await PDFLib.PDFDocument.create();
-  for (const k of keys) { const r = await PELDOCS.get(k); if (!r || !r.bytes) continue; const d = await PDFLib.PDFDocument.load(r.bytes, { ignoreEncryption: true }); (await doc.copyPages(d, d.getPageIndices())).forEach(pg => doc.addPage(pg)); }
+  /* ίδια σελίδα (π.χ. το πτυχίο μου που υπάρχει στο τέλος κάθε PDF) μπαίνει μόνο μία φορά */
+  const seen = new Set(); let skipped = 0;
+  const fnv = (h, u) => { for (let i = 0; i < u.length; i++) { h ^= u[i]; h = Math.imul(h, 16777619) >>> 0; } return h; };
+  const pageKey = (d, pg) => { try { const { PDFName, PDFArray } = PDFLib; let h = 2166136261; const n = pg.node, c = n.Contents();
+      const parts = !c ? [] : c instanceof PDFArray ? c.asArray().map(r => d.context.lookup(r)) : [c];
+      parts.forEach(st => { if (st && st.contents) h = fnv(h, st.contents); });
+      const xo = n.Resources() && n.Resources().lookup(PDFName.of('XObject'));
+      if (xo) xo.keys().forEach(k => { const st = d.context.lookup(xo.get(k)); if (st && st.contents) h = fnv(h, st.contents); });
+      return h + ':' + Math.round(pg.getWidth()) + 'x' + Math.round(pg.getHeight()); } catch (e) { return null; } };
+  for (const k of keys) { const r = await PELDOCS.get(k); if (!r || !r.bytes) continue; const d = await PDFLib.PDFDocument.load(r.bytes, { ignoreEncryption: true });
+    const idx = d.getPageIndices().filter(i => { const pk = pageKey(d, d.getPage(i)); if (pk && seen.has(pk)) { skipped++; return false; } if (pk) seen.add(pk); return true; });
+    if (idx.length) (await doc.copyPages(d, idx)).forEach(pg => doc.addPage(pg)); }
+  if (skipped) toast(skipped + ' διπλές σελίδες παραλείφθηκαν');
   const bytes = await doc.save(); const nm = (nkey(edit.name) || 'EXAM').replace(/[^A-Z0-9]+/g, '_') + '_' + (edit.date || '') + '_ALL.pdf';
   try { await PELDOCS.saveOut(edit.id, nm, bytes, { key: 'out:merged|' + edit.id, cand: edit.name || '', date: edit.date || '', forms: 'Όλα μαζί', merged: true }); } catch (e) { }
   const f = new File([bytes], nm, { type: 'application/pdf' }); fillEntryPdfs();
