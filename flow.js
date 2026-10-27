@@ -45,7 +45,7 @@ body.flowon{padding-bottom:84px}body.flowon .fab{bottom:calc(env(safe-area-inset
   root.PELFLOW = {
     get, set, draw, on,
     start(type, label) { set({ type, label, log: null, step: 'form' }); },
-    setLog(id, name) { const f = get(); if (!f) return; f.log = id; if (name) f.name = name; set(f); draw(); },
+    setLog(id, name) { let f = get(); if (!f) { /* μπήκε στη φόρμα χωρίς «Νέα εξέταση» → ξεκινά η ροή μόλις βγει το PDF */ const L = { 'index.html': ['525', 'PEL-FCL 525'], 'forms.html': ['forms', 'CPL · IR · PPL'], 'instr.html': ['instr', 'FI · IRI · TRI'] }[page] || [page, '']; f = { type: L[0], label: L[1], log: null, step: 'form' }; } f.log = id; if (name) f.name = name; set(f); draw(); },
     step(s) { const f = get(); if (!f) return; f.step = s; set(f); draw(); }
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', draw); else draw();
