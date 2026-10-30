@@ -44,6 +44,7 @@ h1{font-size:20px;margin:0}
 .ckul li.gone,.cksec.gone{display:none}
 .ckph{display:flex;gap:8px;margin-top:8px}
 .ckph input{flex:1;min-width:0;font:inherit;font-size:17px;padding:8px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px}
+.ctout{align-self:center;white-space:nowrap;font-size:16px;color:var(--acc)}.ctout.soon{color:#c98a00}.ctout.late{color:var(--warn)}
 .ckcall{padding:9px 12px;border-radius:8px;background:var(--acc);color:var(--accink);text-decoration:none;font-weight:700;white-space:nowrap}
 </style>
 </head>
@@ -60,7 +61,7 @@ h1{font-size:20px;margin:0}
 <script>
 const $=id=>document.getElementById(id);
 const CK=[
- {s:'1 · Planning & Crew',i:[['Check <b>eCrew</b>'],['Check <b>flight package</b>'],['Set up <b>AeroBrief</b>'],['Send <b>“Crew in transport”</b> message'],['<b>Brief crew</b>'],['Call <b>handler</b>','If required','ph'],['Request <b>handling services</b>','If required'],['<b>NOTAMs & weather</b> – DEP / DEST / ALTN'],['<b>Slot / CTOT</b>'],['<b>Permits</b> – overflight & landing'],['<b>Crew duty / FDP</b> margin','If pax are late'],['<b>Pax documents</b> – passports, GenDec','eAPIS for USA'],['<b>Fuel order</b> confirmed'],['<b>Tech log</b> – open MEL items & expiry']]},
+ {s:'1 · Planning & Crew',i:[['Check <b>eCrew</b>'],['Check <b>flight package</b>'],['Set up <b>AeroBrief</b>'],['Send <b>“Crew in transport”</b> message'],['<b>Brief crew</b>'],['Call <b>handler</b>','If required','ph'],['Request <b>handling services</b>','If required'],['<b>NOTAMs & weather</b> – DEP / DEST / ALTN'],['<b>Slot / CTOT</b>','','ctot'],['<b>Permits</b> – overflight & landing'],['<b>Crew duty / FDP</b> margin','If pax are late'],['<b>Pax documents</b> – passports, GenDec','eAPIS for USA'],['<b>Fuel order</b> confirmed'],['<b>Tech log</b> – open MEL items & expiry']]},
  {s:'2 · At the Aircraft',i:[['Send <b>“Crew at aircraft”</b> message'],['<b>Unlock aircraft</b> – connect batteries','If refuelling soon: do NOT unlock fuel panel until APU ON'],['Load <b>crew luggage</b>'],['Collect <b>covers & pins</b>'],['<b>APU start</b> – establish bleeds & cabin power'],['<b>iPads</b> functional – <b>EFB</b> available'],['<b>Cabin ready</b> – temp, lights, catering, lav serviced']]},
  {s:'3 · Inspections & Flows',i:[['<b>External inspection</b>','With tyre pressure gauges'],['<b>Internal inspection</b>','Incl. water tank level & toilet'],['<b>Safety checklist</b>'],['<b>Originating flow</b>'],['<b>Sector sheet</b>']]},
  {s:'4 · Cockpit Preparation',i:[['<b>ATIS</b> – set <b>QNH</b>'],['<b>Cockpit preparation</b>'],['Download <b>secondary flight plan</b>'],['<b>Activate</b>','If no discontinuity'],['<b>Confirm flight plan</b> in the system – expected departure'],['Monitor <b>handling frequency</b>'],['<b>Oceanic</b> – HF / SELCAL check, CPDLC logon','Transatlantic'],['<b>NAT tracks</b> & oceanic clearance','Transatlantic']]},
@@ -68,22 +69,31 @@ const CK=[
  {s:'6 · Arrival Setup',i:[['Set expected <b>arrival – STAR</b> & transition'],['Select <b>alternate charts</b>'],['<b>Nav aids</b> setup for approach'],['<b>FIX 3</b> – arrival RWY, distance ring = <b>TOD</b>'],['<b>FIX 4</b> – arrival MSA']]},
  {s:'7 · Waiting for Pax',i:[['<b>Pax ETA</b> from handler / FBO'],['<b>ATC clearance / PDC</b> obtained','Ready to start when pax arrive'],['<b>Cabin temp</b> set – APU ON'],['<b>Final fuel figures</b>'],['<b>Latest ATIS</b>']]}
 ];
-const K='g550-preflight-v1';let st={},cl={},hd={},ph='',ed=false;
-try{const o=JSON.parse(localStorage.getItem(K)||'{}');st=o.st||{};cl=o.cl||{};hd=o.hd||{};ph=o.ph||''}catch(e){}
-const sv=()=>{try{localStorage.setItem(K,JSON.stringify({st:st,cl:cl,hd:hd,ph:ph}))}catch(e){}};
+const K='g550-preflight-v1';let st={},cl={},hd={},ph='',ct='',ed=false;
+try{const o=JSON.parse(localStorage.getItem(K)||'{}');st=o.st||{};cl=o.cl||{};hd=o.hd||{};ph=o.ph||'';ct=o.ct||''}catch(e){}
+const sv=()=>{try{localStorage.setItem(K,JSON.stringify({st:st,cl:cl,hd:hd,ph:ph,ct:ct}))}catch(e){}};
 const box=$('cklist');
 const vis=si=>CK[si].i.map((_,ii)=>si+'-'+ii).filter(id=>!hd[id]);
 const done=si=>{const v=vis(si);return v.length>0&&v.every(id=>st[id])};
-let phin=null,phcall=null;
+let phin=null,phcall=null,ctin=null,ctout=null;
+function ctUpd(){if(!ctout)return;const m=/^(\d{1,2}):?(\d{2})$/.exec(ct.trim());
+  if(!m||+m[1]>23||+m[2]>59){ctout.textContent=ct.trim()?'ΩΩ:ΛΛ':'';ctout.className='ctout';return}
+  const n=new Date(),now=n.getUTCHours()*60+n.getUTCMinutes()+n.getUTCSeconds()/60;let d=(+m[1])*60+(+m[2])-now;
+  if(d<-720)d+=1440;if(d>720)d-=1440;const a=Math.abs(Math.round(d)),hm=Math.floor(a/60)+':'+String(a%60).padStart(2,'0');
+  ctout.textContent=d>=0?'σε '+hm:'πριν '+hm;ctout.className='ctout'+(d<0?' late':d<=15?' soon':'')}
+setInterval(ctUpd,30000);
 function phUpd(){if(!phcall)return;const d=ph.replace(/[^\d+]/g,'');phcall.href='tel:'+d;phcall.style.display=d?'':'none'}
 CK.forEach((sec,si)=>{
   const el=document.createElement('div');el.className='cksec';
   el.innerHTML='<div class="cksh"><b>'+sec.s+'</b><span></span></div><ul class="ckul"></ul>';
   const ul=el.querySelector('ul');
   sec.i.forEach((it,ii)=>{const id=si+'-'+ii,li=document.createElement('li');li.dataset.id=id;
-    const ex=it[2]==='ph'?'<span class="ckph"><input type="tel" inputmode="tel" placeholder="Τηλ. handler"><a class="ckcall">Κλήση</a></span>':'';
+    const ex=it[2]==='ctot'?'<span class="ckph"><input inputmode="numeric" maxlength="5" placeholder="CTOT ΩΩ:ΛΛ (UTC)"><b class="ctout"></b></span>':it[2]==='ph'?'<span class="ckph"><input type="tel" inputmode="tel" placeholder="Τηλ. handler"><a class="ckcall">Κλήση</a></span>':'';
     li.innerHTML='<span class="ckbox"></span><span class="ckt">'+it[0]+(it[1]?'<span class="ckn">'+it[1]+'</span>':'')+ex+'</span>';
-    if(ex){const w=li.querySelector('.ckph');w.addEventListener('click',e=>e.stopPropagation());
+    if(it[2]==='ctot'){const w=li.querySelector('.ckph');w.addEventListener('click',e=>e.stopPropagation());
+      ctin=w.querySelector('input');ctout=w.querySelector('.ctout');ctin.value=ct;
+      ctin.addEventListener('input',()=>{let v=ctin.value.replace(/[^\d:]/g,'');if(/^\d{4}$/.test(v))v=v.slice(0,2)+':'+v.slice(2);ctin.value=v;ct=v;sv();ctUpd()});ctUpd()}
+    else if(ex){const w=li.querySelector('.ckph');w.addEventListener('click',e=>e.stopPropagation());
       phin=w.querySelector('input');phcall=w.querySelector('a');phin.value=ph;
       phin.addEventListener('input',()=>{ph=phin.value;sv();phUpd()});phUpd()}
     li.onclick=()=>{if(ed){hd[id]=!hd[id];if(!hd[id])delete hd[id];sv();draw();return}
@@ -106,7 +116,7 @@ const eb=$('cked');
 eb.onclick=()=>{ed=!ed;eb.textContent=ed?'Τέλος':'Επεξεργασία';eb.classList.toggle('on',ed);$('ckhint').style.display=ed?'':'none';draw()};
 const rb=$('ckreset');let arm=null;
 rb.onclick=()=>{if(!arm){rb.textContent='Ξανά για reset';rb.classList.add('arm');arm=setTimeout(()=>{arm=null;rb.textContent='Reset';rb.classList.remove('arm')},3000);return}
-  clearTimeout(arm);arm=null;rb.textContent='Reset';rb.classList.remove('arm');st={};cl={};ph='';if(phin)phin.value='';phUpd();sv();draw();window.scrollTo(0,0)};
+  clearTimeout(arm);arm=null;rb.textContent='Reset';rb.classList.remove('arm');st={};cl={};ph='';if(phin)phin.value='';phUpd();ct='';if(ctin)ctin.value='';ctUpd();sv();draw();window.scrollTo(0,0)};
 draw();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
