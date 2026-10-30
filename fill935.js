@@ -283,7 +283,10 @@
     function flight(p, f, rr, cols) {
       const ya = rr[0][1] - (rr[0][1] - rr[0][0]) / 2 + 3.5, yb = rr[1][1] - (rr[1][1] - rr[1][0]) / 2 + 3.5;
       C(p, cols[0], cols[1], ya, (f.type || '').toUpperCase(), 10); C(p, cols[2], cols[3], ya, (f.reg || '').toUpperCase(), 10); C(p, cols[4], cols[5], ya, dmy(f.date), 10);
-      C(p, cols[0], cols[1], yb, f.off && hhmm(f.off), 10); C(p, cols[2], cols[3], yb, f.on && hhmm(f.on), 10); C(p, cols[4], cols[5], yb, dur(f.off, f.on), 10);
+      const two = f.off2 || f.on2, j = (a, b) => [a, b].filter(Boolean).join(' / ');
+      C(p, cols[0], cols[1], yb, two ? j(f.off && hhmm(f.off), f.off2 && hhmm(f.off2)) : (f.off && hhmm(f.off)), 10);
+      C(p, cols[2], cols[3], yb, two ? j(f.on && hhmm(f.on), f.on2 && hhmm(f.on2)) : (f.on && hhmm(f.on)), 10);
+      C(p, cols[4], cols[5], yb, two ? j(dur(f.off, f.on), dur(f.off2, f.on2)) : dur(f.off, f.on), 10);
     }
     const K94 = [103, 218, 301, 391, 455, 579];
     if (f1.type || f1.reg || f1.date) { pg(94).drawRectangle({ x: 456, y: H(94) - 395, width: 120, height: 20, color: WHITE }); flight(94, f1, R1, K94); }

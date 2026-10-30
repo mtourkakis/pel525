@@ -204,7 +204,7 @@ function renderEd() {
   /* AoC */
   if (aoc) {
     const AO = c.aoc; AO.fl = AO.fl || [{}, {}];
-    const fl = (base, i, t) => `<div class="flight"><div class="h">${t}</div><div class="grid">${inp(base + '.' + i + '.type', fiAoc ? 'Class / type' : 'Aircraft type', 'text', UC)}${inp(base + '.' + i + '.reg', fiAoc ? 'Registration / FSTD' : 'Reg. / FSTD ID', 'text', UC)}${inp(base + '.' + i + '.date', 'Ημερομηνία', 'date')}${inp(base + '.' + i + '.off', 'Off blocks', 'time')}${inp(base + '.' + i + '.on', 'On blocks', 'time')}</div></div>`;
+    const fl = (base, i, t) => `<div class="flight"><div class="h">${t}</div><div class="grid">${inp(base + '.' + i + '.type', fiAoc ? 'Class / type' : 'Aircraft type', 'text', UC)}${inp(base + '.' + i + '.reg', fiAoc ? 'Registration / FSTD' : 'Reg. / FSTD ID', 'text', UC)}${inp(base + '.' + i + '.date', 'Ημερομηνία', 'date')}${inp(base + '.' + i + '.off', 'Off blocks', 'time')}${inp(base + '.' + i + '.on', 'On blocks', 'time')}${inp(base + '.' + i + '.off2', 'SIM start (2ος χρόνος)', 'time')}${inp(base + '.' + i + '.on2', 'SIM end', 'time')}</div></div>`;
     const SEC = fiAoc ? P.FI_SEC : P.TRI_SEC;
     const mk = (id, att, v) => ['P', 'F'].map(x => `<button class="${x} ${v === x ? 'on' : ''}" data-mk="${id}|${att}|${x}">${x}</button>`).join('');
     const secs = SEC.map(s => `<div class="sec"><div class="sh"><span class="t">${s.s}. ${esc(s.t)}</span>${fiAoc && s.s === '1' && window.FIQ ? `<button class="btn amber sm" data-fiq="all">❓ Ερωτήσεις (${FIQ.BANK.length})</button>` : ''}<button class="btn alt sm" data-allp="${s.s}">Όλα P</button>${fiAoc ? `<button class="btn alt sm" data-allna="${s.s}">N/A</button>` : ''}</div>
@@ -377,7 +377,7 @@ async function generate(btn, silent) {
 function logExam(c, date) {
   if (!P.aocOn(c)) return; /* χωρίς AoC δεν είναι εξέταση */
   const f = (c.aoc.fl || []).filter(x => x && (x.type || x.date));
-  let m = 0; f.forEach(x => { const d = P.dur(x.off, x.on); if (d) { const [hh, mm] = d.split(':'); m += (+hh) * 60 + (+mm); } });
+  let m = 0; f.forEach(x => [[x.off, x.on], [x.off2, x.on2]].forEach(([a, b]) => { const d = P.dur(a, b); if (d) { const [hh, mm] = d.split(':'); m += (+hh) * 60 + (+mm); } }));
   const r = resultOf(c), res = r === 'pass' ? 'P' : r === 'partial' ? 'PP' : r === 'fail' ? 'F' : '';
   const join = a => [...new Set(a.filter(Boolean).map(s => String(s).toUpperCase().trim()))].join('/');
   const id = 'instr|' + c.id, A = c.a;
