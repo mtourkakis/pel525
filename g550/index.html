@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="G550 Checklist">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>G550 Preflight</title>
+<style>
+:root{--bg:#e9eef2;--card:#fff;--ink:#14212b;--mut:#5b6b78;--line:#c9d4dc;--acc:#0e7c86;--accink:#fff;--warn:#b5482a}
+@media (prefers-color-scheme:dark){:root{--bg:#101a22;--card:#1a2832;--ink:#e6eef3;--mut:#93a5b3;--line:#2e4150;--acc:#3fb7c2;--accink:#06262a;--warn:#e8876a}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 -apple-system,"Segoe UI",Roboto,sans-serif;
+  padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
+main{max-width:640px;margin:0 auto;padding:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.note{font-size:13px;color:var(--mut);margin:8px 0 0}
+.ckhead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+h1{font-size:20px;margin:0}
+.ckbar{height:6px;background:var(--line);border-radius:3px;margin:10px 0 0;overflow:hidden}
+.ckbar i{display:block;height:100%;width:0;background:var(--acc);transition:width .25s}
+.ckreset{padding:8px 12px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;font:inherit;font-size:14px}
+.ckreset.arm{border-color:var(--warn);color:var(--warn)}
+.ckreset.on{background:var(--acc);color:var(--accink);border-color:var(--acc)}
+.cksec{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.cksh{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;cursor:pointer;user-select:none}
+.cksh b{font-size:14px;text-transform:uppercase;letter-spacing:.5px}
+.cksh span{font-size:13px;color:var(--mut)}
+.cksec.done .cksh span{color:var(--acc);font-weight:700}
+.cksec.shut .ckul{display:none}
+.ckul{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.ckul li{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-bottom:1px solid var(--line);cursor:pointer;user-select:none}
+.ckul li:last-child{border-bottom:0}
+.ckbox{flex:0 0 24px;height:24px;border:2px solid var(--mut);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.ckul li.on .ckbox{background:var(--acc);border-color:var(--acc)}
+.ckul li.on .ckbox::after{content:"";width:6px;height:11px;border:solid var(--accink);border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.ckul li.on .ckt{color:var(--mut);text-decoration:line-through}
+.ckn{display:block;font-size:13px;color:var(--mut);margin-top:3px}
+.ckt{flex:1;min-width:0}
+.ckul li.hid{opacity:.35}.ckul li.hid .ckt{text-decoration:line-through}
+.ckul li.gone,.cksec.gone{display:none}
+.ckph{display:flex;gap:8px;margin-top:8px}
+.ckph input{flex:1;min-width:0;font:inherit;font-size:17px;padding:8px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px}
+.ckcall{padding:9px 12px;border-radius:8px;background:var(--acc);color:var(--accink);text-decoration:none;font-weight:700;white-space:nowrap}
+</style>
+</head>
+<body>
+<main>
+<div class="card">
+<div class="ckhead"><div><h1>G550 Preflight</h1><span class="note" id="cksum"></span></div><span><button class="ckreset" id="cked">Επεξεργασία</button> <button class="ckreset" id="ckreset">Reset</button></span></div>
+<div class="ckbar"><i id="ckprog"></i></div>
+<p class="note" id="ckhint" style="display:none">Πάτα τα items που δεν θέλεις για να κρυφτούν. Πάτα ξανά για να επιστρέψουν. Με «Τέλος» γυρνάς στη λίστα.</p>
+</div>
+<div id="cklist"></div>
+<p class="note">Πάτα ένα item για τσεκάρισμα, τον τίτλο της ενότητας για άνοιγμα/κλείσιμο. Δουλεύει και χωρίς ίντερνετ.</p>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const CK=[
+ {s:'1 · Planning & Crew',i:[['Check <b>eCrew</b>'],['Check <b>flight package</b>'],['Set up <b>AeroBrief</b>'],['Send <b>“Crew in transport”</b> message'],['<b>Brief crew</b>'],['Call <b>handler</b>','If required','ph'],['Request <b>handling services</b>','If required'],['<b>NOTAMs & weather</b> – DEP / DEST / ALTN'],['<b>Slot / CTOT</b>'],['<b>Permits</b> – overflight & landing'],['<b>Crew duty / FDP</b> margin','If pax are late'],['<b>Pax documents</b> – passports, GenDec','eAPIS for USA'],['<b>Fuel order</b> confirmed'],['<b>Tech log</b> – open MEL items & expiry']]},
+ {s:'2 · At the Aircraft',i:[['Send <b>“Crew at aircraft”</b> message'],['<b>Unlock aircraft</b> – connect batteries','If refuelling soon: do NOT unlock fuel panel until APU ON'],['Load <b>crew luggage</b>'],['Collect <b>covers & pins</b>'],['<b>APU start</b> – establish bleeds & cabin power'],['<b>iPads</b> functional – <b>EFB</b> available'],['<b>Cabin ready</b> – temp, lights, catering, lav serviced']]},
+ {s:'3 · Inspections & Flows',i:[['<b>External inspection</b>','With tyre pressure gauges'],['<b>Internal inspection</b>','Incl. water tank level & toilet'],['<b>Safety checklist</b>'],['<b>Originating flow</b>'],['<b>Sector sheet</b>']]},
+ {s:'4 · Cockpit Preparation',i:[['<b>ATIS</b> – set <b>QNH</b>'],['<b>Cockpit preparation</b>'],['Download <b>secondary flight plan</b>'],['<b>Activate</b>','If no discontinuity'],['<b>Confirm flight plan</b> in the system – expected departure'],['Monitor <b>handling frequency</b>'],['<b>Oceanic</b> – HF / SELCAL check, CPDLC logon','Transatlantic'],['<b>NAT tracks</b> & oceanic clearance','Transatlantic']]},
+ {s:'5 · Departure Setup',i:[['Set <b>T/O RWY, SID</b>, transition & charts'],['Set <b>RWY HDG</b> & <b>altitude preselector</b>'],['<b>PERF INIT</b>'],['<b>Takeoff performance</b>'],['Set speed <b>V2</b>'],['<b>FIX 1</b> – departure RWY + RWY track – <b>emergency profile</b>','If no DP expected'],['<b>FIX 2</b> – departure MSA'],['Run <b>APG</b>'],['Enter <b>CG</b> into takeoff performance'],['Set <b>acceleration altitude</b>'],['<b>DP</b> – nav aids, course & fixes','If DP required']]},
+ {s:'6 · Arrival Setup',i:[['Set expected <b>arrival – STAR</b> & transition'],['Select <b>alternate charts</b>'],['<b>Nav aids</b> setup for approach'],['<b>FIX 3</b> – arrival RWY, distance ring = <b>TOD</b>'],['<b>FIX 4</b> – arrival MSA']]},
+ {s:'7 · Waiting for Pax',i:[['<b>Pax ETA</b> from handler / FBO'],['<b>ATC clearance / PDC</b> obtained','Ready to start when pax arrive'],['<b>Cabin temp</b> set – APU ON'],['<b>Final fuel figures</b>'],['<b>Latest ATIS</b>']]}
+];
+const K='g550-preflight-v1';let st={},cl={},hd={},ph='',ed=false;
+try{const o=JSON.parse(localStorage.getItem(K)||'{}');st=o.st||{};cl=o.cl||{};hd=o.hd||{};ph=o.ph||''}catch(e){}
+const sv=()=>{try{localStorage.setItem(K,JSON.stringify({st:st,cl:cl,hd:hd,ph:ph}))}catch(e){}};
+const box=$('cklist');
+const vis=si=>CK[si].i.map((_,ii)=>si+'-'+ii).filter(id=>!hd[id]);
+const done=si=>{const v=vis(si);return v.length>0&&v.every(id=>st[id])};
+let phin=null,phcall=null;
+function phUpd(){if(!phcall)return;const d=ph.replace(/[^\d+]/g,'');phcall.href='tel:'+d;phcall.style.display=d?'':'none'}
+CK.forEach((sec,si)=>{
+  const el=document.createElement('div');el.className='cksec';
+  el.innerHTML='<div class="cksh"><b>'+sec.s+'</b><span></span></div><ul class="ckul"></ul>';
+  const ul=el.querySelector('ul');
+  sec.i.forEach((it,ii)=>{const id=si+'-'+ii,li=document.createElement('li');li.dataset.id=id;
+    const ex=it[2]==='ph'?'<span class="ckph"><input type="tel" inputmode="tel" placeholder="Τηλ. handler"><a class="ckcall">Κλήση</a></span>':'';
+    li.innerHTML='<span class="ckbox"></span><span class="ckt">'+it[0]+(it[1]?'<span class="ckn">'+it[1]+'</span>':'')+ex+'</span>';
+    if(ex){const w=li.querySelector('.ckph');w.addEventListener('click',e=>e.stopPropagation());
+      phin=w.querySelector('input');phcall=w.querySelector('a');phin.value=ph;
+      phin.addEventListener('input',()=>{ph=phin.value;sv();phUpd()});phUpd()}
+    li.onclick=()=>{if(ed){hd[id]=!hd[id];if(!hd[id])delete hd[id];sv();draw();return}
+      st[id]=!st[id];if(done(si))cl[si]=true;sv();draw()};ul.appendChild(li)});
+  el.querySelector('.cksh').onclick=()=>{cl[si]=!cl[si];sv();draw()};
+  box.appendChild(el);
+});
+function draw(){let t=0,o=0;
+  [...box.children].forEach((el,si)=>{let c=0,n=0;
+    el.querySelectorAll('li').forEach(li=>{const id=li.dataset.id,h=!!hd[id],v=!!st[id];
+      li.classList.toggle('hid',h&&ed);li.classList.toggle('gone',h&&!ed);li.classList.toggle('on',v&&!h);
+      if(!h){n++;if(v)c++}});
+    t+=n;o+=c;
+    el.querySelector('.cksh span').textContent=n&&c===n?'✓ DONE':c+' / '+n;
+    el.classList.toggle('done',n>0&&c===n);el.classList.toggle('shut',!!cl[si]&&!ed);
+    el.classList.toggle('gone',n===0&&!ed)});
+  $('cksum').textContent=o+' / '+t+(t&&o===t?' · COMPLETE':'');
+  $('ckprog').style.width=(t?o/t*100:0)+'%'}
+const eb=$('cked');
+eb.onclick=()=>{ed=!ed;eb.textContent=ed?'Τέλος':'Επεξεργασία';eb.classList.toggle('on',ed);$('ckhint').style.display=ed?'':'none';draw()};
+const rb=$('ckreset');let arm=null;
+rb.onclick=()=>{if(!arm){rb.textContent='Ξανά για reset';rb.classList.add('arm');arm=setTimeout(()=>{arm=null;rb.textContent='Reset';rb.classList.remove('arm')},3000);return}
+  clearTimeout(arm);arm=null;rb.textContent='Reset';rb.classList.remove('arm');st={};cl={};ph='';if(phin)phin.value='';phUpd();sv();draw();window.scrollTo(0,0)};
+draw();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
