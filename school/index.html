@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ψηφιακός Φάκελος Μαθητή (Demo)</title>
+<style>
+:root{--bg:#f3f5f8;--card:#fff;--ink:#14202e;--mute:#6b7787;--line:#e3e8ef;--blue:#1d4f91;--green:#1f8a4c;--amber:#c9820a;--red:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#0f141b;--card:#18202b;--ink:#e8edf3;--mute:#93a0b0;--line:#26313f;--blue:#6aa3ec}}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.4}
+.wrap{max-width:560px;margin:0 auto;padding:14px 14px 40px}
+.demo{font-size:11px;text-align:center;color:var(--mute);letter-spacing:.08em;margin-bottom:8px}
+.hero{background:linear-gradient(135deg,#0d2c55,#1d4f91);color:#fff;border-radius:18px;padding:18px;display:flex;gap:14px;align-items:center}
+.av{width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;flex:none}
+.hero h1{font-size:19px;margin:0}
+.hero .sub{opacity:.85;font-size:13px;margin-top:2px}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px;margin-top:6px}
+.ok{background:#d9f2e3;color:#14663a}.warn{background:#fdf0d5;color:#8a5a00}.bad{background:#fbe0dd;color:#8e2a1f}
+.tabs{display:flex;gap:6px;margin:14px 0 10px;overflow-x:auto}
+.tabs button{flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 13px;border-radius:99px;font-size:14px}
+.tabs button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:0 0 10px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-top:1px solid var(--line);gap:10px}
+.row:first-of-type{border-top:0}
+.k{color:var(--mute);font-size:13px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:var(--bg);border-radius:10px;padding:10px;text-align:center}
+.stat b{display:block;font-size:20px}
+.stat span{font-size:11px;color:var(--mute)}
+.bar{height:8px;background:var(--line);border-radius:9px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:var(--green)}
+.fl{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line);cursor:pointer}
+.fl:first-of-type{border-top:0}
+.dot{width:10px;height:10px;border-radius:50%;margin-top:6px;flex:none}
+.fl .t{font-weight:600}
+.fl .m{font-size:13px;color:var(--mute)}
+.gs{display:none;margin:4px 0 8px 20px;padding:10px;background:var(--bg);border-radius:10px;font-size:13px}
+.gs.open{display:block}
+.gs table{width:100%;border-collapse:collapse}
+.gs td{padding:4px 0;border-bottom:1px solid var(--line)}
+.gs td:last-child{text-align:right;font-weight:600}
+.sig{display:flex;gap:8px;margin-top:8px}
+.sig div{flex:1;border:1px dashed var(--line);border-radius:8px;padding:6px;text-align:center;font-size:12px}
+.list a{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid var(--line);color:var(--ink);text-decoration:none}
+.list a:first-of-type{border-top:0}
+.foot{text-align:center;font-size:12px;color:var(--mute);margin-top:18px}
+.back{display:inline-block;margin-bottom:10px;color:var(--blue);text-decoration:none;font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+const SCHOOL = "Σχολή Πτήσεων Μεγάρων · LGMG";
+const STUDENTS = {
+  "s1001": {
+    name:"Γιώργος Αντωνίου", role:"Μαθητής PPL(A)", id:"ST-1001", course:"PPL(A) – Ενότητα 3: Navigation",
+    status:["ok","Ενεργός"],
+    docs:[
+      ["Medical Class 2","λήγει 14/05/2027","ok"],
+      ["Student Pilot / SPL","ενεργό","ok"],
+      ["Πρώτη σόλο","εγκρίθηκε 22/09/2026","ok"],
+      ["Θεωρία ATO (εξετάσεις)","5/9 μαθήματα","warn"],
+      ["Ταυτότητα / Διαβατήριο","κατατέθηκε","ok"]
+    ],
+    hours:{dual:31.4, solo:7.2, total:38.6, req:45},
+    flights:[
+      {d:"30/10/2026",ac:"C172 · DEMO-01",ins:"Κ. Δημητρίου",dur:"1:30",ex:"Ex 18 – Navigation LGMG–LGTG–LGMG",type:"Dual",st:"pend",
+       g:[["Pre-flight / Briefing",4],["Χειρισμοί",3],["Ναυτιλία / Log",3],["Ραδιοεπικοινωνία",4],["Airmanship",4]],
+       c:"Καλή προετοιμασία. Να δουλέψει τις διορθώσεις πορείας στον άνεμο.", sigI:true, sigS:false},
+      {d:"27/10/2026",ac:"C172 · DEMO-02",ins:"—",dur:"1:00",ex:"Solo circuits",type:"Solo",st:"ok",
+       g:[["Circuits",4],["Προσγειώσεις",4],["Ραδιοεπικοινωνία",4]],c:"Χωρίς παρατηρήσεις.",sigI:true,sigS:true},
+      {d:"24/10/2026",ac:"C172 · DEMO-01",ins:"Κ. Δημητρίου",dur:"1:20",ex:"Ex 16 – Forced landing",type:"Dual",st:"ok",
+       g:[["Επιλογή πεδίου",4],["Pattern",3],["Checks",4],["Airmanship",4]],c:"Επανάληψη την επόμενη πτήση.",sigI:true,sigS:true},
+      {d:"20/10/2026",ac:"C152 · DEMO-03",ins:"Μ. Παππά",dur:"1:10",ex:"Ex 12/13 – Takeoff & landing",type:"Dual",st:"ok",
+       g:[["Απογείωση",4],["Προσγείωση",3],["Go-around",4]],c:"Πρόοδος σταθερή.",sigI:true,sigS:true}
+    ],
+    notes:[["warn","Το αεροδρόμιο Μεγάρων κλειστό 03/11 (NOTAM) – οι πτήσεις μεταφέρονται."],["ok","Επόμενη πτήση: 02/11/2026 09:00 · Ex 18 (2ο σκέλος)"]]
+  },
+  "s1002": {
+    name:"Ελένη Μαρκοπούλου", role:"Μαθήτρια PPL(A)", id:"ST-1002", course:"PPL(A) – Ενότητα 1: Βασικοί χειρισμοί",
+    status:["warn","Προσοχή"],
+    docs:[
+      ["Medical Class 2","λήγει 18/11/2026","warn"],
+      ["Student Pilot / SPL","ενεργό","ok"],
+      ["Πρώτη σόλο","όχι ακόμα","warn"],
+      ["Θεωρία ATO (εξετάσεις)","1/9 μαθήματα","warn"]
+    ],
+    hours:{dual:9.5, solo:0, total:9.5, req:45},
+    flights:[
+      {d:"29/10/2026",ac:"C152 · DEMO-03",ins:"Μ. Παππά",dur:"1:00",ex:"Ex 6 – Straight & level",type:"Dual",st:"ok",
+       g:[["Trim",3],["Τήρηση ύψους",3],["Lookout",4]],c:"Να διαβάσει το Ex 7 πριν την επόμενη.",sigI:true,sigS:true}
+    ],
+    notes:[["bad","Το Medical λήγει σε λιγότερο από 30 ημέρες."]]
+  }
+};
+const col = {ok:"var(--green)",warn:"var(--amber)",bad:"var(--red)",pend:"var(--amber)"};
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ini = n => n.split(" ").map(w=>w[0]).join("").slice(0,2);
+let tab = "flights";
+
+function list(){
+  return `<div class="demo">DEMO · ΠΛΑΣΜΑΤΙΚΑ ΣΤΟΙΧΕΙΑ</div>
+  <div class="card"><h2>${SCHOOL} – Κάρτες</h2><div class="list">
+  ${Object.entries(STUDENTS).map(([k,s])=>`<a href="#${k}"><span><b>${esc(s.name)}</b><br><span class="k">${esc(s.id)} · ${esc(s.role)}</span></span><span class="pill ${s.status[0]}">${s.status[1]}</span></a>`).join("")}
+  </div></div><div class="foot">Κάθε κάρτα Wallet ανοίγει απευθείας τον δικό της φάκελο.</div>`;
+}
+
+function folder(key){
+  const s = STUDENTS[key];
+  const pct = Math.min(100, Math.round(s.hours.total/s.hours.req*100));
+  const T = {
+    flights:`<div class="card"><h2>Πτήσεις & Φύλλα βαθμολογίας</h2>
+      ${s.flights.map((f,i)=>`<div class="fl" data-i="${i}"><span class="dot" style="background:${col[f.st]}"></span>
+        <div style="flex:1"><div class="t">${esc(f.d)} · ${esc(f.ex)}</div>
+        <div class="m">${esc(f.type)} · ${esc(f.dur)} · ${esc(f.ac)} · ${esc(f.ins)}</div>
+        <div class="m" style="color:${col[f.st]}">${f.st==="ok"?"✓ Κλειστή – υπογεγραμμένη":"⏳ Αναμένει υπογραφή μαθητή"}</div></div></div>
+        <div class="gs" id="gs${i}"><b>Φύλλο βαθμολογίας</b> <span class="k">(1–5)</span>
+          <table>${f.g.map(r=>`<tr><td>${esc(r[0])}</td><td>${r[1]}/5</td></tr>`).join("")}</table>
+          <div style="margin-top:8px">${esc(f.c)}</div>
+          <div class="sig"><div>Εκπαιδευτής<br>${f.sigI?"✓ υπογράφηκε":"—"}</div><div>Μαθητής<br>${f.sigS?"✓ υπογράφηκε":"εκκρεμεί"}</div></div>
+        </div>`).join("")}</div>`,
+    progress:`<div class="card"><h2>Ώρες πτήσης</h2><div class="stats">
+        <div class="stat"><b>${s.hours.dual}</b><span>Dual</span></div>
+        <div class="stat"><b>${s.hours.solo}</b><span>Solo</span></div>
+        <div class="stat"><b>${s.hours.total}</b><span>Σύνολο</span></div></div>
+        <div style="margin-top:12px" class="k">Πρόοδος προς ${s.hours.req} ώρες PPL: ${pct}%</div>
+        <div class="bar"><i style="width:${pct}%"></i></div></div>
+      <div class="card"><h2>Τρέχουσα φάση</h2>${esc(s.course)}</div>`,
+    docs:`<div class="card"><h2>Έγγραφα & ισχύς</h2>
+      ${s.docs.map(d=>`<div class="row"><span>${esc(d[0])}<br><span class="k">${esc(d[1])}</span></span><span class="dot" style="background:${col[d[2]]};margin:0"></span></div>`).join("")}</div>`,
+    notes:`<div class="card"><h2>Ειδοποιήσεις</h2>
+      ${s.notes.map(n=>`<div class="row"><span>${esc(n[1])}</span><span class="dot" style="background:${col[n[0]]};margin:0"></span></div>`).join("")}</div>`
+  };
+  const btn=(k,l)=>`<button class="${tab===k?"on":""}" data-t="${k}">${l}</button>`;
+  return `<div class="demo">DEMO · ΠΛΑΣΜΑΤΙΚΑ ΣΤΟΙΧΕΙΑ</div>
+  <a class="back" href="#">‹ Όλες οι κάρτες</a>
+  <div class="hero"><div class="av">${esc(ini(s.name))}</div><div>
+    <h1>${esc(s.name)}</h1><div class="sub">${esc(s.role)} · ${esc(s.id)}</div><div class="sub">${SCHOOL}</div>
+    <span class="pill ${s.status[0]}">${s.status[1]}</span></div></div>
+  <div class="tabs">${btn("flights","Πτήσεις")}${btn("progress","Πρόοδος")}${btn("docs","Έγγραφα")}${btn("notes","Ειδοποιήσεις")}</div>
+  ${T[tab]}
+  <div class="foot">Τελευταία ενημέρωση από το Excel της σχολής: 01/11/2026 09:15</div>`;
+}
+
+function render(){
+  const k = location.hash.replace("#","");
+  const app = document.getElementById("app");
+  app.innerHTML = STUDENTS[k] ? folder(k) : list();
+  app.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{tab=b.dataset.t;render();});
+  app.querySelectorAll(".fl").forEach(f=>f.onclick=()=>document.getElementById("gs"+f.dataset.i).classList.toggle("open"));
+  window.scrollTo(0,0);
+}
+window.addEventListener("hashchange",()=>{tab="flights";render();});
+render();
+</script>
+</body>
+</html>
