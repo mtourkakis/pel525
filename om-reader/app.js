@@ -13,7 +13,7 @@ const debounce = (fn, ms) => { let h; return (...a) => { clearTimeout(h); h = se
 let dbp;
 function db() {
   return dbp ||= new Promise((res, rej) => {
-    const r = indexedDB.open('omreader', 2);
+    const r = indexedDB.open('omreader', 3);
     r.onupgradeneeded = () => {
       const d = r.result;
       const has = n => d.objectStoreNames.contains(n);
@@ -22,6 +22,7 @@ function db() {
       if (!has('text')) d.createObjectStore('text');
       if (!has('favs')) d.createObjectStore('favs', { keyPath: 'id', autoIncrement: true });
       if (!has('notes')) d.createObjectStore('notes', { keyPath: 'key' });
+      if (!has('ink')) d.createObjectStore('ink', { keyPath: 'key' });
     };
     r.onsuccess = () => res(r.result);
     r.onerror = () => rej(r.error);
@@ -40,7 +41,7 @@ const put = (st, v, k) => tx(st, 'readwrite', s => k === undefined ? s.put(v) : 
 const del = (st, k) => tx(st, 'readwrite', s => s.delete(k));
 
 /* ---------- state ---------- */
-const S = { docs: [], favs: [], notes: [], doc: null, pdf: null, text: {}, zoom: 1, hits: [], hitIdx: 0, hitTerm: '', cur: 1 };
+const S = { docs: [], favs: [], notes: [], inkMeta: [], doc: null, pdf: null, text: {}, zoom: 1, hits: [], hitIdx: 0, hitTerm: '', cur: 1 };
 const LS = { get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
 
 /* ---------- theme ---------- */
@@ -130,6 +131,7 @@ function renameDoc(doc, isNew) {
     await del('docs', doc.id); await del('files', doc.id); await del('text', doc.id);
     for (const f of S.favs.filter(f => f.docId === doc.id)) await del('favs', f.id);
     for (const n of S.notes.filter(n => n.docId === doc.id)) await del('notes', n.key);
+    for (const n of S.inkMeta.filter(n => n.docId === doc.id)) await del('ink', n.key);
     delete S.text[doc.id]; closeModal(); await loadAll(); renderHome();
   };
 }
@@ -139,6 +141,7 @@ async function loadAll() {
   S.docs = (await all('docs')).sort((a, b) => a.short.localeCompare(b.short));
   S.favs = await all('favs');
   S.notes = (await all('notes')).sort((a, b) => b.updated - a.updated);
+  S.inkMeta = (await all('ink')).filter(x => x.strokes?.length).map(x => ({ key: x.key, docId: x.docId, page: x.page, section: x.section, updated: x.updated, ink: true }));
 }
 async function textOf(id) { return S.text[id] ||= await get('text', id) || []; }
 
@@ -176,7 +179,7 @@ function renderHome() {
   $('#favWrap').classList.toggle('hidden', !S.favs.length);
   $('#favs').innerHTML = S.favs.map(favChip).join('');
   bindFavs($('#favs'));
-  renderNotes(S.notes, $('#notesWrap'), $('#notes'));
+  renderNotes(allNotes(), $('#notesWrap'), $('#notes'));
   runSearch($('#qAll').value, null, $('#homeResults'), $('#homeMain'));
 }
 
@@ -230,7 +233,7 @@ function openDoc(id) {
   const favs = S.favs.filter(f => f.docId === id);
   $('#docFavWrap').classList.toggle('hidden', !favs.length);
   $('#docFavs').innerHTML = favs.map(favChip).join(''); bindFavs($('#docFavs'));
-  renderNotes(S.notes.filter(n => n.docId === id), $('#docNotesWrap'), $('#docNotes'));
+  renderNotes(allNotes().filter(n => n.docId === id), $('#docNotesWrap'), $('#docNotes'));
   const ch = d.outline?.length ? d.outline : autoChapters(d);
   $('#chapters').innerHTML = ch.map((c, i) => `
     <button class="tile" data-ch="${i}"><span class="pg">σ.${c.page ?? '–'}</span>
@@ -266,6 +269,8 @@ async function openReader(docId, page = 1, opts = {}) {
     S.pdfId = docId;
   }
   S.doc = d; show('reader');
+  S.ink = new Map(); for (const r of await all('ink')) if (r.docId === docId) S.ink.set(r.page, r.strokes || []);
+  inkHist = []; setInkMode(false);
   $('#rdTitle').textContent = d.short;
   S.zoom = LS.get('zoom', 1);
   S.hitTerm = opts.term || ''; S.hits = opts.hits || []; S.hitIdx = Math.max(0, S.hits.indexOf(page));
@@ -303,12 +308,12 @@ async function renderPage(n, el) {
     el.style.height = Math.round(vp.height) + 'px';
     await page.render({ canvasContext: c.getContext('2d'), viewport: page.getViewport({ scale: scale * dpr }) }).promise;
     if (!renderQ.has(n)) return; // was cancelled
-    el.querySelector('canvas')?.remove(); el.prepend(c);
+    el.querySelector('canvas.pdf')?.remove(); c.className = 'pdf'; el.prepend(c); attachInk(n, el);
     rendered.set(n, true);
     if (S.hitTerm) highlight(page, vp, el);
   } catch (e) { console.warn(e); } finally { renderQ.delete(n); }
 }
-function unrender(n, el) { renderQ.delete(n); if (!rendered.has(n)) return; el.querySelector('canvas')?.remove(); el.querySelectorAll('.hl').forEach(x => x.remove()); rendered.delete(n); }
+function unrender(n, el) { renderQ.delete(n); if (!rendered.has(n)) return; el.querySelector('canvas.pdf')?.remove(); el.querySelector('canvas.ink')?.remove(); el.querySelectorAll('.hl').forEach(x => x.remove()); rendered.delete(n); }
 const mctx = document.createElement('canvas').getContext('2d'); mctx.font = '100px Helvetica, Arial, sans-serif';
 const mw = t => mctx.measureText(t).width || 1;
 async function highlight(page, vp, el) {
@@ -334,7 +339,7 @@ function setCur(p) {
   S.cur = p; $('#pageInd').textContent = `${p} / ${S.pdf.numPages}`;
   const fav = S.favs.find(f => f.docId === S.doc.id && f.page === p);
   $('#favBtn').textContent = fav ? '★' : '☆'; $('#favBtn').classList.toggle('on', !!fav);
-  $('#noteBtn').classList.toggle('on', !!S.notes.find(n => n.key === `${S.doc.id}:${p}`));
+  $('#noteBtn').classList.toggle('on', !!S.notes.find(n => n.key === `${S.doc.id}:${p}`) || !!S.ink?.get(p)?.length);
 }
 const saveLast = debounce(async () => { if (S.doc) { S.doc.last = S.cur; await put('docs', S.doc); } }, 800);
 $('#pages').addEventListener('scroll', () => {
@@ -344,7 +349,7 @@ $('#pages').addEventListener('scroll', () => {
   const p = lo + 1; if (p !== S.cur) { setCur(p); saveLast(); }
 }, { passive: true });
 
-$('#rdBack').onclick = async () => { S.doc.last = S.cur; await put('docs', S.doc); await loadAll(); S.hitTerm = ''; openDoc(S.doc.id); };
+$('#rdBack').onclick = async () => { setInkMode(false); S.doc.last = S.cur; await put('docs', S.doc); await loadAll(); S.hitTerm = ''; openDoc(S.doc.id); };
 $('#pageInd').onclick = () => {
   modal(`<h3>Μετάβαση σε σελίδα</h3><input id="mPg" type="number" inputmode="numeric" min="1" max="${S.pdf.numPages}" value="${S.cur}"><div class="btns"><button class="ib" id="mCancel">Άκυρο</button><button class="ib acc" id="mGo">Μετάβαση</button></div>`);
   const i = $('#mPg'); i.focus(); i.select();
@@ -472,13 +477,14 @@ function nextCheck(off, earliest, total, duty) {
 /* ---------- notes ---------- */
 function noteCard(n, hl) {
   const d = S.docs.find(x => x.id === n.docId);
+  if (n.ink) { const dt = new Date(n.updated); return `<button class="res note-c ink-c" data-note="${esc(n.key)}" data-ink="1"><div class="h"><span><b>${esc(d?.short || '?')}</b> · σελ. ${n.page}${n.section ? ' · ' + esc(n.section) : ''}</span><span>${dt.getDate()}/${dt.getMonth() + 1}/${String(dt.getFullYear()).slice(2)}</span></div><div class="x">✏️ Χειρόγραφη σημείωση</div></button>`; }
   let t = esc(n.text);
   if (hl) { const i = norm(n.text).indexOf(norm(hl)); if (i >= 0) t = esc(n.text.slice(0, i)) + '<mark>' + esc(n.text.slice(i, i + hl.length)) + '</mark>' + esc(n.text.slice(i + hl.length)); }
   const dt = new Date(n.updated);
   return `<button class="res note-c" data-note="${esc(n.key)}"><div class="h"><span><b>${esc(d?.short || '?')}</b> · σελ. ${n.page}${n.section ? ' · ' + esc(n.section) : ''}</span><span>${dt.getDate()}/${dt.getMonth() + 1}/${String(dt.getFullYear()).slice(2)}</span></div><div class="x" style="white-space:pre-wrap">${t}</div></button>`;
 }
 function bindNotes(root) {
-  root.querySelectorAll('[data-note]').forEach(b => b.onclick = () => { const n = S.notes.find(x => x.key === b.dataset.note); if (n) openReader(n.docId, n.page); });
+  root.querySelectorAll('[data-note]').forEach(b => b.onclick = () => { const n = allNotes().find(x => x.key === b.dataset.note); if (n) openReader(n.docId, n.page); });
 }
 function renderNotes(list, wrap, box) {
   wrap.classList.toggle('hidden', !list.length);
@@ -507,10 +513,102 @@ $('#noteBtn').onclick = () => {
 async function exportNotes(list) {
   if (!list.length) return toast('Δεν υπάρχουν σημειώσεις');
   const txt = list.slice().sort((a, b) => (a.docId + String(a.page).padStart(5, '0')).localeCompare(b.docId + String(b.page).padStart(5, '0')))
-    .map(n => `${S.docs.find(d => d.id === n.docId)?.short || ''} σελ. ${n.page}${n.section ? ' – ' + n.section : ''}\n${n.text}`).join('\n\n');
+    .map(n => `${S.docs.find(d => d.id === n.docId)?.short || ''} σελ. ${n.page}${n.section ? ' – ' + n.section : ''}\n${n.ink ? '[χειρόγραφη σημείωση]' : n.text}`).join('\n\n');
   try { if (navigator.share) { await navigator.share({ title: 'Σημειώσεις OM', text: txt }); return; } } catch (e) { if (e.name === 'AbortError') return; }
   try { await navigator.clipboard.writeText(txt); toast('Αντιγράφηκαν στο πρόχειρο'); } catch { toast('Η εξαγωγή απέτυχε'); }
 }
-$('#notesExport').onclick = () => exportNotes(S.notes);
-$('#docNotesExport').onclick = () => exportNotes(S.notes.filter(n => n.docId === S.doc.id));
+$('#notesExport').onclick = () => exportNotes(allNotes());
+$('#docNotesExport').onclick = () => exportNotes(allNotes().filter(n => n.docId === S.doc.id));
 
+
+/* ---------- ink (Apple Pencil) ---------- */
+const allNotes = () => [...S.notes, ...S.inkMeta].sort((a, b) => b.updated - a.updated);
+let inkOn = false, inkTool = 'red', inkHist = [];
+const TOOLS = { red: { c: '#e53935', w: 0.0028 }, blue: { c: '#1e6fe0', w: 0.0028 }, black: { c: '#111111', w: 0.0028 }, hl: { c: '#ffd400', w: 0.016, hl: true }, erase: null };
+function setInkMode(on) {
+  inkOn = on; document.body.classList.toggle('inking', on);
+  $('#inkBtn').classList.toggle('on', on); $('#inkBar').classList.toggle('hidden', !on);
+  if (on) $('#hitBar').classList.add('hidden'); else if (S.hitTerm) $('#hitBar').classList.remove('hidden');
+}
+$('#inkBtn').onclick = () => setInkMode(!inkOn);
+$('#inkDone').onclick = () => setInkMode(false);
+document.querySelectorAll('#inkBar [data-tool]').forEach(b => b.onclick = () => {
+  inkTool = b.dataset.tool; document.querySelectorAll('#inkBar [data-tool]').forEach(x => x.classList.toggle('sel', x === b));
+});
+$('#inkUndo').onclick = () => {
+  const h = inkHist.pop(); if (!h) return toast('Τίποτα για αναίρεση');
+  const list = S.ink.get(h.page) || [];
+  if (h.op === 'add') { const i = list.lastIndexOf(h.stroke); if (i >= 0) list.splice(i, 1); }
+  else list.push(...h.strokes);
+  S.ink.set(h.page, list); redrawInk(h.page); saveInk(h.page);
+};
+function attachInk(n, el) {
+  el.querySelector('canvas.ink')?.remove();
+  const c = document.createElement('canvas'); c.className = 'ink';
+  const dpr = Math.min(window.devicePixelRatio || 1, 2.5), w = el.clientWidth, h = el.clientHeight;
+  c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c._dpr = dpr;
+  el.append(c); drawStrokes(c, S.ink.get(n) || []);
+  let cur = null;
+  const pt = e => { const r = c.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; };
+  const isPen = e => e.pointerType === 'pen' || e.pointerType === 'mouse';
+  // iOS: stop the page from scrolling only when the stylus touches; fingers keep scrolling
+  c.addEventListener('touchstart', e => { if (inkOn && [...e.touches].some(t => t.touchType === 'stylus')) e.preventDefault(); }, { passive: false });
+  c.addEventListener('touchmove', e => { if (inkOn && [...e.touches].some(t => t.touchType === 'stylus')) e.preventDefault(); }, { passive: false });
+  c.addEventListener('pointerdown', e => {
+    if (!inkOn || !isPen(e)) return; e.preventDefault(); c.setPointerCapture(e.pointerId);
+    if (inkTool === 'erase') { cur = { erase: true }; eraseAt(n, pt(e)); return; }
+    const t = TOOLS[inkTool]; cur = { c: t.c, w: t.w, hl: !!t.hl, pts: [pt(e)] };
+  });
+  c.addEventListener('pointermove', e => {
+    if (!cur || !isPen(e)) return; e.preventDefault();
+    const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+    for (const ev of (evs.length ? evs : [e])) {
+      if (cur.erase) { eraseAt(n, pt(ev)); continue; }
+      const p = pt(ev), last = cur.pts[cur.pts.length - 1]; cur.pts.push(p);
+      const ctx = c.getContext('2d'); styleCtx(ctx, cur, c);
+      ctx.beginPath(); ctx.moveTo(last[0] * c.width, last[1] * c.height); ctx.lineTo(p[0] * c.width, p[1] * c.height); ctx.stroke();
+    }
+  });
+  const end = e => {
+    if (!cur) return; const st = cur; cur = null;
+    if (st.erase) return;
+    if (st.pts.length === 1) st.pts.push([st.pts[0][0] + 0.0005, st.pts[0][1]]);
+    st.pts = st.pts.map(p => [+p[0].toFixed(4), +p[1].toFixed(4)]);
+    const list = S.ink.get(n) || []; list.push(st); S.ink.set(n, list);
+    inkHist.push({ op: 'add', page: n, stroke: st }); if (inkHist.length > 200) inkHist.shift();
+    redrawInk(n); saveInk(n);
+  };
+  c.addEventListener('pointerup', end); c.addEventListener('pointercancel', end);
+}
+function styleCtx(ctx, st, c) {
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = st.c;
+  ctx.lineWidth = Math.max(1, st.w * c.width); ctx.globalAlpha = st.hl ? 0.38 : 1;
+}
+function drawStrokes(c, strokes) {
+  const ctx = c.getContext('2d'); ctx.clearRect(0, 0, c.width, c.height);
+  for (const st of strokes) { // highlighter first so ink stays on top
+    if (!st.hl) continue; styleCtx(ctx, st, c); path(ctx, st, c);
+  }
+  for (const st of strokes) { if (st.hl) continue; styleCtx(ctx, st, c); path(ctx, st, c); }
+  ctx.globalAlpha = 1;
+}
+function path(ctx, st, c) {
+  ctx.beginPath(); st.pts.forEach((p, i) => i ? ctx.lineTo(p[0] * c.width, p[1] * c.height) : ctx.moveTo(p[0] * c.width, p[1] * c.height)); ctx.stroke();
+}
+function redrawInk(n) { const c = $(`#pages .page[data-p="${n}"] canvas.ink`); if (c) drawStrokes(c, S.ink.get(n) || []); setCur(S.cur); }
+function eraseAt(n, p) {
+  const list = S.ink.get(n) || [], r = 0.018, gone = [];
+  const keep = list.filter(st => { const hit = st.pts.some(q => Math.hypot(q[0] - p[0], (q[1] - p[1]) * ratio) < r + st.w); if (hit) gone.push(st); return !hit; });
+  if (!gone.length) return;
+  S.ink.set(n, keep); inkHist.push({ op: 'erase', page: n, strokes: gone }); redrawInk(n); saveInk(n);
+}
+const inkTimers = {};
+function saveInk(n) {
+  clearTimeout(inkTimers[n]);
+  inkTimers[n] = setTimeout(async () => {
+    const key = `${S.doc.id}:${n}`, strokes = S.ink.get(n) || [];
+    if (strokes.length) await put('ink', { key, docId: S.doc.id, page: n, section: sectionTitle(n), strokes, updated: Date.now() });
+    else await del('ink', key);
+    await loadAll(); setCur(S.cur);
+  }, 600);
+}

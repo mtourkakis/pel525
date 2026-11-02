@@ -103,6 +103,14 @@ body.day .fl input{color-scheme:light}
 .card textarea{width:100%;min-height:180px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);padding:12px 14px;outline:0;margin-bottom:14px;font:inherit;font-size:18px;color:var(--txt);resize:vertical}
 .note-c{border-left:4px solid var(--acc2)}
 #noteBtn.on{border-color:var(--acc2);background:rgba(79,179,255,.18)}
+.page canvas.ink{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;filter:none!important}
+body.inking .page canvas.ink{pointer-events:auto;touch-action:pan-y pinch-zoom}
+body.inking .page{outline:2px dashed rgba(79,179,255,.35)}
+.page{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.dot i{display:block;width:22px;height:22px;border-radius:50%}
+#inkBar .sel{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc) inset}
+#inkBtn.on{border-color:var(--acc2);background:rgba(79,179,255,.18)}
+.ink-c{border-left-color:#e53935}
 </style>
 </head>
 <body>
@@ -156,11 +164,21 @@ body.day .fl input{color-scheme:light}
     <button class="ib" id="pageInd">– / –</button>
     <button class="ib" id="zoomOut">−</button>
     <button class="ib" id="zoomIn">＋</button>
+    <button class="ib" id="inkBtn">✏️</button>
     <button class="ib" id="noteBtn">📝</button>
     <button class="ib" id="favBtn">☆</button>
     <button class="ib" id="themeBtn2">☾</button>
   </div>
   <div id="pages"></div>
+  <div class="float hidden" id="inkBar">
+    <button class="ib dot sel" data-tool="red"><i style="background:#e53935"></i></button>
+    <button class="ib dot" data-tool="blue"><i style="background:#1e6fe0"></i></button>
+    <button class="ib dot" data-tool="black"><i style="background:#111;box-shadow:0 0 0 2px #888"></i></button>
+    <button class="ib dot" data-tool="hl"><i style="background:#ffd400;width:26px;height:12px;border-radius:3px;opacity:.8"></i></button>
+    <button class="ib" data-tool="erase">⌫ Σβήσιμο</button>
+    <button class="ib" id="inkUndo">↶</button>
+    <button class="ib acc" id="inkDone">Τέλος</button>
+  </div>
   <div class="float hidden" id="hitBar">
     <button class="ib" id="hitPrev">‹</button>
     <div class="lbl" id="hitLbl"></div>
