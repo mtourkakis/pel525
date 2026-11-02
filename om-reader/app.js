@@ -407,20 +407,30 @@ const toLocalInput = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.g
 const segVal = id => $(`#${id} .sel`).dataset.v;
 document.querySelectorAll('#rest .seg').forEach(g => g.onclick = e => {
   const b = e.target.closest('button'); if (!b) return;
-  g.querySelectorAll('button').forEach(x => x.classList.toggle('sel', x === b)); calcRest();
+  g.querySelectorAll('button').forEach(x => x.classList.toggle('sel', x === b));
+  if (g.id === 'rPre' || g.id === 'rNPre') fromFlight(); else calcRest();
 });
 $('#restBtn').onclick = () => {
   const saved = LS.get('rest', null);
-  if (saved) { $('#rOn').value = saved.on; $('#rOff').value = saved.off; $('#rNext').value = saved.next || ''; }
+  if (saved) { $('#rOn').value = saved.on; $('#rOff').value = saved.off; $('#rNext').value = saved.next || ''; $('#rStd').value = saved.std || ''; $('#rBlk').value = saved.blk || ''; $('#rNStd').value = saved.nstd || '';
+    for (const [g, v] of [['rPre', saved.pre], ['rNPre', saved.npre]]) if (v) document.querySelectorAll(`#${g} button`).forEach(x => x.classList.toggle('sel', x.dataset.v === v)); }
   else { const n = new Date(); n.setMinutes(0, 0, 0); $('#rOff').value = toLocalInput(n); n.setHours(n.getHours() - 10); $('#rOn').value = toLocalInput(n); }
   show('rest'); calcRest();
 };
 $('#restBack').onclick = () => renderHome();
 $('#rOn').oninput = $('#rOff').oninput = $('#rNext').oninput = () => calcRest();
+const addMin = (v, m) => { const d = new Date(v); return isNaN(d) ? '' : toLocalInput(new Date(d.getTime() + m * 60000)); };
+function fromFlight() {
+  if ($('#rStd').value) $('#rOn').value = addMin($('#rStd').value, -segVal('rPre'));
+  if ($('#rBlk').value) $('#rOff').value = addMin($('#rBlk').value, 30);
+  if ($('#rNStd').value) $('#rNext').value = addMin($('#rNStd').value, -segVal('rNPre'));
+  calcRest();
+}
+$('#rStd').oninput = $('#rBlk').oninput = $('#rNStd').oninput = fromFlight;
 function calcRest() {
   const on = new Date($('#rOn').value), off = new Date($('#rOff').value);
   if (isNaN(on) || isNaN(off) || off <= on) { $('#rOut').innerHTML = '<p class="s" style="margin:18px 4px">Βάλε duty on και duty off (το off μετά το on).</p>'; return; }
-  LS.set('rest', { on: $('#rOn').value, off: $('#rOff').value, next: $('#rNext').value });
+  LS.set('rest', { on: $('#rOn').value, off: $('#rOff').value, next: $('#rNext').value, std: $('#rStd').value, blk: $('#rBlk').value, nstd: $('#rNStd').value, pre: segVal('rPre'), npre: segVal('rNPre') });
   const duty = (off - on) / 60000;                       // minutes
   const home = segVal('rBase') === 'home';
   const floor = (home ? 12 : 10) * 60;

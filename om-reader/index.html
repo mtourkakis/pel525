@@ -178,13 +178,21 @@ body.day .fl input{color-scheme:light}
   </div>
   <div class="scroll"><div class="wrap" style="max-width:720px">
     <div class="tile" style="min-height:0;gap:14px">
+      <div class="fl">Report πριν την πτήση
+        <div class="seg" id="rPre"><button data-v="60" class="sel">1:00</button><button data-v="90">1:30 (ΗΠΑ)</button></div></div>
+      <label class="fl">Off-block (STD)<input type="datetime-local" id="rStd"></label>
+      <label class="fl">On-block<input type="datetime-local" id="rBlk"></label>
+      <div class="s" style="margin-top:-4px">Duty on = STD − report · Duty off = on-block + 0:30. Μπορείς να τα αλλάξεις και χειροκίνητα.</div>
       <label class="fl">Duty on (report)<input type="datetime-local" id="rOn"></label>
       <label class="fl">Duty off<input type="datetime-local" id="rOff"></label>
       <div class="fl">Το rest γίνεται
         <div class="seg" id="rBase"><button data-v="home" class="sel">Στη βάση</button><button data-v="away">Εκτός βάσης</button></div></div>
       <div class="fl">Διαφορά ζωνών ώρας από εκεί που άρχισε το FDP
         <div class="seg" id="rTz"><button data-v="0" class="sel">0–2</button><button data-v="1">3–5</button><button data-v="2">6–7</button><button data-v="3">8+</button></div></div>
-      <label class="fl">Επόμενο report – πτήση αύριο (προαιρετικό)<input type="datetime-local" id="rNext"></label>
+      <div class="fl">Επόμενη πτήση (προαιρετικό) – report πριν
+        <div class="seg" id="rNPre"><button data-v="60" class="sel">1:00</button><button data-v="90">1:30 (ΗΠΑ)</button></div></div>
+      <label class="fl">Επόμενη πτήση STD<input type="datetime-local" id="rNStd"></label>
+      <label class="fl">Επόμενο report<input type="datetime-local" id="rNext"></label>
       <div class="fl">Το FDP είχε planned extension (+1h);
         <div class="seg" id="rExt"><button data-v="0" class="sel">Όχι</button><button data-v="2">Ναι, +2h πριν & μετά</button><button data-v="4">Ναι, +4h μόνο μετά</button></div></div>
     </div>
