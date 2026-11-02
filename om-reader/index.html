@@ -98,6 +98,11 @@ body.day .fl input{color-scheme:light}
 .chk{margin-top:12px;padding:12px 14px;border-radius:12px;font-size:17px;font-weight:600}
 .chk.ok{background:rgba(69,209,139,.15);color:var(--ok)}
 .chk.bad{background:rgba(255,107,107,.15);color:var(--red)}
+.hrow{display:flex;align-items:center;justify-content:space-between}
+.hrow .ib{height:38px;min-width:0;font-size:14px;text-transform:none;letter-spacing:0;font-weight:600;color:var(--txt)}
+.card textarea{width:100%;min-height:180px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);padding:12px 14px;outline:0;margin-bottom:14px;font:inherit;font-size:18px;color:var(--txt);resize:vertical}
+.note-c{border-left:4px solid var(--acc2)}
+#noteBtn.on{border-color:var(--acc2);background:rgba(79,179,255,.18)}
 </style>
 </head>
 <body>
@@ -115,6 +120,7 @@ body.day .fl input{color-scheme:light}
     <div id="homeResults"></div>
     <div id="homeMain">
       <div id="favWrap"><h2>★ Αγαπημένα</h2><div class="chips" id="favs"></div></div>
+      <div id="notesWrap"><h2 class="hrow">📝 Σημειώσεις <button class="ib" id="notesExport">Εξαγωγή</button></h2><div id="notes"></div></div>
       <h2>Εγχειρίδια</h2>
       <div class="grid" id="docs"></div>
       <div class="note">Τα PDF μένουν μόνο σε αυτή τη συσκευή. Η εφαρμογή δουλεύει και χωρίς internet.</div>
@@ -134,6 +140,7 @@ body.day .fl input{color-scheme:light}
     <div id="docResults"></div>
     <div id="docMain">
       <div id="docFavWrap"><h2>★ Αγαπημένα</h2><div class="chips" id="docFavs"></div></div>
+      <div id="docNotesWrap"><h2 class="hrow">📝 Σημειώσεις <button class="ib" id="docNotesExport">Εξαγωγή</button></h2><div id="docNotes"></div></div>
       <h2>Κεφάλαια</h2>
       <div class="grid" id="chapters"></div>
     </div>
@@ -149,6 +156,7 @@ body.day .fl input{color-scheme:light}
     <button class="ib" id="pageInd">– / –</button>
     <button class="ib" id="zoomOut">−</button>
     <button class="ib" id="zoomIn">＋</button>
+    <button class="ib" id="noteBtn">📝</button>
     <button class="ib" id="favBtn">☆</button>
     <button class="ib" id="themeBtn2">☾</button>
   </div>

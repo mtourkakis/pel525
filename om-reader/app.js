@@ -13,13 +13,15 @@ const debounce = (fn, ms) => { let h; return (...a) => { clearTimeout(h); h = se
 let dbp;
 function db() {
   return dbp ||= new Promise((res, rej) => {
-    const r = indexedDB.open('omreader', 1);
+    const r = indexedDB.open('omreader', 2);
     r.onupgradeneeded = () => {
       const d = r.result;
-      d.createObjectStore('docs', { keyPath: 'id' });
-      d.createObjectStore('files');
-      d.createObjectStore('text');
-      d.createObjectStore('favs', { keyPath: 'id', autoIncrement: true });
+      const has = n => d.objectStoreNames.contains(n);
+      if (!has('docs')) d.createObjectStore('docs', { keyPath: 'id' });
+      if (!has('files')) d.createObjectStore('files');
+      if (!has('text')) d.createObjectStore('text');
+      if (!has('favs')) d.createObjectStore('favs', { keyPath: 'id', autoIncrement: true });
+      if (!has('notes')) d.createObjectStore('notes', { keyPath: 'key' });
     };
     r.onsuccess = () => res(r.result);
     r.onerror = () => rej(r.error);
@@ -38,7 +40,7 @@ const put = (st, v, k) => tx(st, 'readwrite', s => k === undefined ? s.put(v) : 
 const del = (st, k) => tx(st, 'readwrite', s => s.delete(k));
 
 /* ---------- state ---------- */
-const S = { docs: [], favs: [], doc: null, pdf: null, text: {}, zoom: 1, hits: [], hitIdx: 0, hitTerm: '', cur: 1 };
+const S = { docs: [], favs: [], notes: [], doc: null, pdf: null, text: {}, zoom: 1, hits: [], hitIdx: 0, hitTerm: '', cur: 1 };
 const LS = { get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
 
 /* ---------- theme ---------- */
@@ -127,6 +129,7 @@ function renameDoc(doc, isNew) {
     if (!confirm(`Διαγραφή του ${doc.short} από αυτή τη συσκευή;`)) return;
     await del('docs', doc.id); await del('files', doc.id); await del('text', doc.id);
     for (const f of S.favs.filter(f => f.docId === doc.id)) await del('favs', f.id);
+    for (const n of S.notes.filter(n => n.docId === doc.id)) await del('notes', n.key);
     delete S.text[doc.id]; closeModal(); await loadAll(); renderHome();
   };
 }
@@ -135,6 +138,7 @@ function renameDoc(doc, isNew) {
 async function loadAll() {
   S.docs = (await all('docs')).sort((a, b) => a.short.localeCompare(b.short));
   S.favs = await all('favs');
+  S.notes = (await all('notes')).sort((a, b) => b.updated - a.updated);
 }
 async function textOf(id) { return S.text[id] ||= await get('text', id) || []; }
 
@@ -172,6 +176,7 @@ function renderHome() {
   $('#favWrap').classList.toggle('hidden', !S.favs.length);
   $('#favs').innerHTML = S.favs.map(favChip).join('');
   bindFavs($('#favs'));
+  renderNotes(S.notes, $('#notesWrap'), $('#notes'));
   runSearch($('#qAll').value, null, $('#homeResults'), $('#homeMain'));
 }
 
@@ -198,10 +203,13 @@ function snippet(raw, at, len) {
 async function runSearch(q, docId, box, main) {
   if (q.trim().length < 2) { box.innerHTML = ''; main.classList.remove('hidden'); return; }
   const res = await search(q, docId);
+  const nq = norm(q.trim());
+  const nres = S.notes.filter(n => (!docId || n.docId === docId) && norm(n.text).includes(nq));
   main.classList.add('hidden');
   const total = res.reduce((s, r) => s + r.count, 0);
-  box.innerHTML = `<h2>${res.length ? `${total} αποτελέσματα σε ${res.length} σελίδες` : 'Κανένα αποτέλεσμα'}</h2>` +
+  box.innerHTML = (nres.length ? `<h2>📝 ${nres.length} σημειώσεις</h2>` + nres.map(n => noteCard(n, q.trim())).join('') : '') + `<h2>${res.length ? `${total} αποτελέσματα σε ${res.length} σελίδες` : 'Κανένα αποτέλεσμα'}</h2>` +
     res.slice(0, 300).map((r, i) => `<button class="res" data-i="${i}"><div class="h"><span><b>${esc(r.doc.short)}</b> · σελ. ${r.page}</span><span>${r.count}×</span></div><div class="x">${r.snip}</div></button>`).join('');
+  bindNotes(box);
   box.querySelectorAll('[data-i]').forEach(b => b.onclick = () => {
     const r = res[b.dataset.i];
     const hits = res.filter(x => x.doc.id === r.doc.id).map(x => x.page);
@@ -222,6 +230,7 @@ function openDoc(id) {
   const favs = S.favs.filter(f => f.docId === id);
   $('#docFavWrap').classList.toggle('hidden', !favs.length);
   $('#docFavs').innerHTML = favs.map(favChip).join(''); bindFavs($('#docFavs'));
+  renderNotes(S.notes.filter(n => n.docId === id), $('#docNotesWrap'), $('#docNotes'));
   const ch = d.outline?.length ? d.outline : autoChapters(d);
   $('#chapters').innerHTML = ch.map((c, i) => `
     <button class="tile" data-ch="${i}"><span class="pg">σ.${c.page ?? '–'}</span>
@@ -325,6 +334,7 @@ function setCur(p) {
   S.cur = p; $('#pageInd').textContent = `${p} / ${S.pdf.numPages}`;
   const fav = S.favs.find(f => f.docId === S.doc.id && f.page === p);
   $('#favBtn').textContent = fav ? '★' : '☆'; $('#favBtn').classList.toggle('on', !!fav);
+  $('#noteBtn').classList.toggle('on', !!S.notes.find(n => n.key === `${S.doc.id}:${p}`));
 }
 const saveLast = debounce(async () => { if (S.doc) { S.doc.last = S.cur; await put('docs', S.doc); } }, 800);
 $('#pages').addEventListener('scroll', () => {
@@ -354,9 +364,14 @@ $('#favBtn').onclick = async () => {
   const i = $('#mFav'); i.focus(); i.select(); $('#mCancel').onclick = closeModal;
   $('#mSave').onclick = async () => { await put('favs', { docId: S.doc.id, page: S.cur, title: i.value.trim() || `Σελ. ${S.cur}` }); closeModal(); await loadAll(); setCur(S.cur); toast('Αποθηκεύτηκε ★'); };
 };
-function sectionTitle(p) { // deepest outline entry starting at or before p
-  let best = ''; const walk = l => { for (const c of l) { if (c.page && c.page <= p) best = c.title; if (c.kids) walk(c.kids); } };
-  walk(S.doc.outline || []); return best;
+function sectionTitle(p) {
+  // first outline entry that starts on page p (descending into its first child if that starts on the same page);
+  // otherwise the last entry that started before p
+  const flat = []; const walk = (l, d) => { for (const c of l) { flat.push({ ...c, d }); if (c.kids) walk(c.kids, d + 1); } };
+  walk(S.doc.outline || [], 0);
+  let i = flat.findIndex(c => c.page === p);
+  if (i >= 0) { while (flat[i + 1] && flat[i + 1].page === p && flat[i + 1].d > flat[i].d) i++; return flat[i].title; }
+  let best = ''; for (const c of flat) if (c.page && c.page < p) best = c.title; return best;
 }
 function editFav(f) {
   modal(`<h3>Αγαπημένο</h3><input id="mFav" value="${esc(f.title)}"><div class="btns"><button class="ib" id="mDel" style="color:var(--red)">Διαγραφή</button><button class="ib" id="mCancel">Άκυρο</button><button class="ib acc" id="mSave">Αποθήκευση</button></div>`);
@@ -364,7 +379,7 @@ function editFav(f) {
   $('#mDel').onclick = async () => { await del('favs', f.id); closeModal(); await loadAll(); refreshCurrent(); };
   $('#mSave').onclick = async () => { f.title = $('#mFav').value.trim() || f.title; await put('favs', f); closeModal(); await loadAll(); refreshCurrent(); };
 }
-function refreshCurrent() { if (!$('#doc').classList.contains('hidden')) openDoc(S.doc.id); else renderHome(); }
+function refreshCurrent() { if (!$('#doc').classList.contains('hidden')) openDoc(S.doc.id); else if (!$('#reader').classList.contains('hidden')) setCur(S.cur); else renderHome(); }
 
 /* search hits navigation */
 function updateHitBar() { if (!S.hitTerm) return; $('#hitLbl').textContent = `«${S.hitTerm}» · ${S.hitIdx + 1}/${S.hits.length}`; }
@@ -443,3 +458,49 @@ function nextCheck(off, earliest, total, duty) {
   else t += `<br><span style="font-size:14px;font-weight:400">Δεν καλύπτεται ούτε με μείωση rest (7.2.4.4). Νωρίτερο report: ${fmtDT(earliest)}.</span>`;
   return t + '</div>';
 }
+
+/* ---------- notes ---------- */
+function noteCard(n, hl) {
+  const d = S.docs.find(x => x.id === n.docId);
+  let t = esc(n.text);
+  if (hl) { const i = norm(n.text).indexOf(norm(hl)); if (i >= 0) t = esc(n.text.slice(0, i)) + '<mark>' + esc(n.text.slice(i, i + hl.length)) + '</mark>' + esc(n.text.slice(i + hl.length)); }
+  const dt = new Date(n.updated);
+  return `<button class="res note-c" data-note="${esc(n.key)}"><div class="h"><span><b>${esc(d?.short || '?')}</b> · σελ. ${n.page}${n.section ? ' · ' + esc(n.section) : ''}</span><span>${dt.getDate()}/${dt.getMonth() + 1}/${String(dt.getFullYear()).slice(2)}</span></div><div class="x" style="white-space:pre-wrap">${t}</div></button>`;
+}
+function bindNotes(root) {
+  root.querySelectorAll('[data-note]').forEach(b => b.onclick = () => { const n = S.notes.find(x => x.key === b.dataset.note); if (n) openReader(n.docId, n.page); });
+}
+function renderNotes(list, wrap, box) {
+  wrap.classList.toggle('hidden', !list.length);
+  const MAX = 6;
+  box.innerHTML = list.slice(0, MAX).map(n => noteCard(n)).join('') +
+    (list.length > MAX ? `<button class="ib" data-allnotes style="width:100%">Όλες οι σημειώσεις (${list.length}) ›</button>` : '');
+  bindNotes(box);
+  const more = box.querySelector('[data-allnotes]');
+  if (more) more.onclick = () => { box.innerHTML = list.map(n => noteCard(n)).join(''); bindNotes(box); };
+}
+$('#noteBtn').onclick = () => {
+  const key = `${S.doc.id}:${S.cur}`, ex = S.notes.find(n => n.key === key);
+  modal(`<h3>📝 ${esc(S.doc.short)} · σελίδα ${S.cur}</h3><div class="s" style="margin:-8px 0 10px">${esc(sectionTitle(S.cur))}</div>
+    <textarea id="mNote" placeholder="Γράψε τη σημείωσή σου…">${esc(ex?.text || '')}</textarea>
+    <div class="btns">${ex ? '<button class="ib" id="mDel" style="color:var(--red)">Διαγραφή</button>' : ''}<button class="ib" id="mCancel">Άκυρο</button><button class="ib acc" id="mSave">Αποθήκευση</button></div>`);
+  const ta = $('#mNote'); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+  $('#mCancel').onclick = closeModal;
+  if (ex) $('#mDel').onclick = async () => { if (!confirm('Διαγραφή της σημείωσης;')) return; await del('notes', key); closeModal(); await loadAll(); setCur(S.cur); toast('Η σημείωση διαγράφηκε'); };
+  $('#mSave').onclick = async () => {
+    const text = ta.value.trim();
+    if (!text) { if (ex) await del('notes', key); }
+    else await put('notes', { key, docId: S.doc.id, page: S.cur, section: sectionTitle(S.cur), text, created: ex?.created || Date.now(), updated: Date.now() });
+    closeModal(); await loadAll(); setCur(S.cur); toast(text ? 'Η σημείωση αποθηκεύτηκε 📝' : 'Η σημείωση διαγράφηκε');
+  };
+};
+async function exportNotes(list) {
+  if (!list.length) return toast('Δεν υπάρχουν σημειώσεις');
+  const txt = list.slice().sort((a, b) => (a.docId + String(a.page).padStart(5, '0')).localeCompare(b.docId + String(b.page).padStart(5, '0')))
+    .map(n => `${S.docs.find(d => d.id === n.docId)?.short || ''} σελ. ${n.page}${n.section ? ' – ' + n.section : ''}\n${n.text}`).join('\n\n');
+  try { if (navigator.share) { await navigator.share({ title: 'Σημειώσεις OM', text: txt }); return; } } catch (e) { if (e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(txt); toast('Αντιγράφηκαν στο πρόχειρο'); } catch { toast('Η εξαγωγή απέτυχε'); }
+}
+$('#notesExport').onclick = () => exportNotes(S.notes);
+$('#docNotesExport').onclick = () => exportNotes(S.notes.filter(n => n.docId === S.doc.id));
+
