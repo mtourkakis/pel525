@@ -396,16 +396,16 @@ document.querySelectorAll('#rest .seg').forEach(g => g.onclick = e => {
 });
 $('#restBtn').onclick = () => {
   const saved = LS.get('rest', null);
-  if (saved) { $('#rOn').value = saved.on; $('#rOff').value = saved.off; }
+  if (saved) { $('#rOn').value = saved.on; $('#rOff').value = saved.off; $('#rNext').value = saved.next || ''; }
   else { const n = new Date(); n.setMinutes(0, 0, 0); $('#rOff').value = toLocalInput(n); n.setHours(n.getHours() - 10); $('#rOn').value = toLocalInput(n); }
   show('rest'); calcRest();
 };
 $('#restBack').onclick = () => renderHome();
-$('#rOn').oninput = $('#rOff').oninput = () => calcRest();
+$('#rOn').oninput = $('#rOff').oninput = $('#rNext').oninput = () => calcRest();
 function calcRest() {
   const on = new Date($('#rOn').value), off = new Date($('#rOff').value);
   if (isNaN(on) || isNaN(off) || off <= on) { $('#rOut').innerHTML = '<p class="s" style="margin:18px 4px">Βάλε duty on και duty off (το off μετά το on).</p>'; return; }
-  LS.set('rest', { on: $('#rOn').value, off: $('#rOff').value });
+  LS.set('rest', { on: $('#rOn').value, off: $('#rOff').value, next: $('#rNext').value });
   const duty = (off - on) / 60000;                       // minutes
   const home = segVal('rBase') === 'home';
   const floor = (home ? 12 : 10) * 60;
@@ -427,6 +427,19 @@ function calcRest() {
       <div class="s">Minimum rest</div><div class="big2">${hm(total)}</div>
       <div class="s" style="margin-top:6px">Νωρίτερο επόμενο report</div><div class="big2" style="font-size:32px">${fmtDT(next)}</div>
       <div style="margin-top:8px">${rows.map(r => `<div class="kv"><span>${r[0]}</span><span>${r[1]}</span></div>`).join('')}</div>
+      ${nextCheck(off, next, total, duty)}
       <div class="s" style="margin-top:10px">Πρέπει επίσης να μένουν 8 ώρες συνεχόμενου ύπνου, χωρίς τη μετακίνηση και τα γεύματα.</div>
     </div>`;
+}
+
+function nextCheck(off, earliest, total, duty) {
+  const nx = new Date($('#rNext').value); if (isNaN(nx)) return '';
+  const have = (nx - off) / 60000, diff = have - total;
+  if (have <= 0) return '<div class="chk bad">Το επόμενο report είναι πριν από το duty off.</div>';
+  if (diff >= 0) return `<div class="chk ok">✓ Πτήση ${fmtDT(nx)}: rest ${hm(have)}, <b>OK</b> με περιθώριο ${hm(diff)}</div>`;
+  const red = -diff, floorRed = Math.max(duty, 600);   // 7.2.4.4: not below preceding duty or 10h
+  let t = `<div class="chk bad">✗ Πτήση ${fmtDT(nx)}: rest μόνο ${hm(have)}, <b>λείπουν ${hm(red)}</b>`;
+  if (red <= 120 && have >= floorRed) t += `<br><span style="font-size:14px;font-weight:400">Μείωση έως ${red <= 60 ? '1 ώρα' : '2 ώρες (μόνο σε απρόβλεπτες συνθήκες)'} επιτρέπεται (7.2.4.4): το επόμενο rest αυξάνεται +${hm(red * 2)}, το πολύ 2 μειώσεις σε 7 ημέρες${red > 60 ? ', και Discretion Report' : ''}.</span>`;
+  else t += `<br><span style="font-size:14px;font-weight:400">Δεν καλύπτεται ούτε με μείωση rest (7.2.4.4). Νωρίτερο report: ${fmtDT(earliest)}.</span>`;
+  return t + '</div>';
 }
