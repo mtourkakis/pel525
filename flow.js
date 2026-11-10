@@ -17,7 +17,7 @@ display:flex;align-items:center;gap:10px;flex-wrap:wrap;box-shadow:0 -4px 18px r
 #pelflow button{font:inherit;border:0;border-radius:10px;padding:9px 13px;cursor:pointer;white-space:nowrap}
 #pelflow .go{background:#d99a3c;color:#14202e}#pelflow .go[disabled]{opacity:.45}
 #pelflow .alt{background:#22324a;color:#dfe7f2}#pelflow .x{background:transparent;color:#9fb0c8;padding:9px 6px}
-body.flowon{padding-bottom:84px}body.flowon .fab{bottom:calc(env(safe-area-inset-bottom) + 84px)!important}`;
+body.flowon{padding-bottom:calc(var(--flowh,84px) + 90px)}body.flowon .fab{bottom:calc(var(--flowh,84px) + 8px)!important}body.flowon .bar{bottom:var(--flowh,84px)!important;z-index:49}`;
 
   const STEPS = ['Εξέταση', 'Φόρμα & PDF', 'Χρέωση / Τιμολόγιο', '801'];
   function draw() {
@@ -26,6 +26,7 @@ body.flowon{padding-bottom:84px}body.flowon .fab{bottom:calc(env(safe-area-inset
     if (!document.getElementById('pelflowcss')) { const s = document.createElement('style'); s.id = 'pelflowcss'; s.textContent = css; document.head.appendChild(s); }
     if (!el) { el = document.createElement('div'); el.id = 'pelflow'; document.body.appendChild(el); }
     document.body.classList.add('flowon');
+    if (!el._ro && window.ResizeObserver) { el._ro = new ResizeObserver(() => document.body.style.setProperty('--flowh', el.offsetHeight + 'px')); el._ro.observe(el); }
     const off = page === 'office.html', cur = off ? (f.step === '801' ? 3 : 2) : 1;
     let btns;
     if (!off) btns = f.log ? `<button class="go" data-flow="next">Επόμενο: Χρέωση / Τιμολόγιο ›</button>`
