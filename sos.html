@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SOS Οικογένεια">
+<meta name="theme-color" content="#b3261e">
+<title>Κάρτα Έκτακτης Ανάγκης</title>
+<style>
+  :root{--red:#b3261e;--red2:#8c1d18;--bg:#f6f2ef;--card:#fff;--ink:#1d1b1a;--mut:#6b6461;--green:#1f7a4a;--blue:#1d5fa8;--line:#e6dfda}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.35 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  body{padding:calc(env(safe-area-inset-top) + 12px) 14px calc(env(safe-area-inset-bottom) + 20px)}
+  .wrap{max-width:480px;margin:0 auto}
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  h1{font-size:20px;margin:0;font-weight:800;letter-spacing:.2px}
+  h1 span{color:var(--red)}
+  .tabs{display:flex;background:#e9e2dd;border-radius:12px;padding:4px;gap:4px;margin-bottom:14px}
+  .tabs button{flex:1;border:0;background:transparent;padding:10px 6px;border-radius:9px;font:600 15px inherit;font-family:inherit;color:var(--mut)}
+  .tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .side{display:none}.side.on{display:block}
+  .sec{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--mut);margin:16px 4px 8px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  a.btn{display:flex;flex-direction:column;justify-content:center;text-decoration:none;color:#fff;border-radius:16px;padding:14px;min-height:84px}
+  a.btn b{font-size:28px;font-weight:800;line-height:1}
+  a.btn small{font-size:13px;opacity:.95;margin-top:4px}
+  .r{background:var(--red)}.r2{background:var(--red2)}.dk{background:#3a3533}
+  .big{grid-column:1/-1;flex-direction:row!important;align-items:center;gap:14px}
+  .big b{font-size:40px}
+  .list{background:var(--card);border-radius:16px;overflow:hidden;border:1px solid var(--line)}
+  a.row{display:flex;align-items:center;gap:12px;padding:13px 14px;text-decoration:none;color:var(--ink);border-top:1px solid var(--line)}
+  a.row:first-child{border-top:0}
+  .ic{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;flex:none;color:#fff;font-weight:700;font-size:16px}
+  .tx{flex:1;min-width:0}
+  .tx .n{font-weight:650;font-size:16px}
+  .tx .p{color:var(--mut);font-size:14px;font-variant-numeric:tabular-nums}
+  .go{flex:none;width:38px;height:38px;border-radius:50%;background:#e8f3ec;color:var(--green);display:grid;place-items:center;font-size:18px}
+  .go.web{background:#e7eef8;color:var(--blue)}
+  .muted{opacity:.55}
+  .addr{background:#fff7e6;border:1px solid #f0d9a8;border-radius:16px;padding:14px;margin-top:4px}
+  .addr .t{font-size:12px;font-weight:700;color:#8a5a00;text-transform:uppercase;letter-spacing:.6px}
+  .addr .a{font-size:19px;font-weight:750;margin-top:4px}
+  .addr .e{font-size:15px;color:#5c4a2a;margin-top:2px}
+  .note{font-size:13px;color:var(--mut);margin:14px 4px 0;line-height:1.45}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1><span>SOS</span> Οικογένεια</h1></header>
+
+  <div class="tabs">
+    <button id="tFront" class="on" onclick="show('front')">📞 Τηλέφωνα</button>
+    <button id="tBack" onclick="show('back')">🏥 Εφημερίες Χαϊδάρι</button>
+  </div>
+
+  <!-- ===== FRONT ===== -->
+  <div id="front" class="side on">
+    <div class="grid">
+      <a class="btn r big" href="tel:112"><b>112</b><span><strong>Έκτακτη ανάγκη</strong><br><small>Emergency · Any language</small></span></a>
+      <a class="btn r" href="tel:166"><b>166</b><small>ΕΚΑΒ · Ambulance</small></a>
+      <a class="btn r2" href="tel:100"><b>100</b><small>Αστυνομία · Police</small></a>
+      <a class="btn r2" href="tel:199"><b>199</b><small>Πυροσβεστική · Fire</small></a>
+      <a class="btn dk" href="tel:2107793777"><b style="font-size:19px">210 779 3777</b><small>Κέντρο Δηλητηριάσεων · Poison</small></a>
+    </div>
+
+    <div class="sec">Οικογένεια · Family</div>
+    <div class="list">
+      <a class="row" href="tel:+306932435383"><div class="ic" style="background:#c2185b">Κ</div><div class="tx"><div class="n">Κατερίνα Τσελίκα</div><div class="p">693 243 5383</div></div><div class="go">📞</div></a>
+      <a class="row" href="tel:+306983509839"><div class="ic" style="background:#1d5fa8">Μ</div><div class="tx"><div class="n">Μιχάλης Τουρκάκης</div><div class="p">698 350 9839</div></div><div class="go">📞</div></a>
+      <a class="row" href="tel:+306971831017"><div class="ic" style="background:#6a3fb5">Α</div><div class="tx"><div class="n">Αθανασία Τουρκάκη</div><div class="p">697 183 1017</div></div><div class="go">📞</div></a>
+      <a class="row" href="tel:+306983525603"><div class="ic" style="background:#2e7d32">Γ</div><div class="tx"><div class="n">Γιώργος Τσελίκας</div><div class="p">698 352 5603</div></div><div class="go">📞</div></a>
+      <a class="row muted" href="#" onclick="return false"><div class="ic" style="background:#9e8f88">A</div><div class="tx"><div class="n">Ariel</div><div class="p">— αριθμός σύντομα —</div></div><div class="go">📞</div></a>
+    </div>
+
+    <div class="sec">Γιατροί · Doctors</div>
+    <div class="list">
+      <a class="row" href="tel:+306932457701"><div class="ic" style="background:#e08a00">🩺</div><div class="tx"><div class="n">Δεληβελιώτη · Παιδίατρος</div><div class="p">693 245 7701</div></div><div class="go">📞</div></a>
+      <a class="row" href="tel:+302105320700"><div class="ic" style="background:#1d5fa8">✚</div><div class="tx"><div class="n">Life Check Χαϊδάρι</div><div class="p">210 532 0700</div></div><div class="go">📞</div></a>
+    </div>
+
+    <div class="addr">
+      <div class="t">Διεύθυνση σπιτιού · Home address</div>
+      <div class="a">Ικάρων 52, Χαϊδάρι · 4ος όροφος</div>
+      <div class="e">Ikaron 52, Chaidari · 4th floor</div>
+    </div>
+  </div>
+
+  <!-- ===== BACK ===== -->
+  <div id="back" class="side">
+    <div class="sec">Φαρμακείο · Pharmacy</div>
+    <div class="list">
+      <a class="row" href="https://www.vrisko.gr/efimeries-farmakeion/xaidari/"><div class="ic" style="background:#2e7d32">💊</div><div class="tx"><div class="n">Εφημερεύον φαρμακείο Χαϊδαρίου</div><div class="p">Σήμερα · διεύθυνση & χάρτης</div></div><div class="go web">↗</div></a>
+      <a class="row" href="tel:1434"><div class="ic" style="background:#2e7d32">☎</div><div class="tx"><div class="n">Τηλεφωνικά εφημερίες</div><div class="p">1434</div></div><div class="go">📞</div></a>
+    </div>
+
+    <div class="sec">Νοσοκομεία · Hospitals</div>
+    <div class="list">
+      <a class="row" href="https://www.vrisko.gr/efimeries-nosokomeion/athina/paidiatrikh/"><div class="ic" style="background:#e08a00">🧸</div><div class="tx"><div class="n">Εφημερεύον παιδιατρικό</div><div class="p">Σήμερα · Αττική</div></div><div class="go web">↗</div></a>
+      <a class="row" href="https://www.vrisko.gr/efimeries-nosokomeion/athina/oles-oi-efimeries-nosokomeion/"><div class="ic" style="background:#b3261e">🏥</div><div class="tx"><div class="n">Όλα τα εφημερεύοντα νοσοκομεία</div><div class="p">Σήμερα · ανά κλινική</div></div><div class="go web">↗</div></a>
+      <a class="row" href="tel:14944"><div class="ic" style="background:#b3261e">☎</div><div class="tx"><div class="n">Τηλεφωνικά εφημερίες νοσοκομείων</div><div class="p">14944</div></div><div class="go">📞</div></a>
+    </div>
+
+    <p class="note">Οι εφημερίες αλλάζουν κάθε μέρα. Τα κουμπιά ↗ ανοίγουν απευθείας τη σημερινή λίστα. Για επείγον περιστατικό πάρε πρώτα 166 ή 112.</p>
+  </div>
+</div>
+<script>
+function show(s){
+  document.getElementById('front').classList.toggle('on',s==='front');
+  document.getElementById('back').classList.toggle('on',s==='back');
+  document.getElementById('tFront').classList.toggle('on',s==='front');
+  document.getElementById('tBack').classList.toggle('on',s==='back');
+  try{history.replaceState(null,'',s==='back'?'#back':'#front')}catch(e){}
+}
+if(location.hash==='#back')show('back');
+</script>
+</body>
+</html>
