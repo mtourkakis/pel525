@@ -433,6 +433,11 @@ async function scanPick(fl, form) {
   if (!list.length) { alert('Δεν κατάλαβα τις σελίδες.'); return null; }
   const out = await PDFLib.PDFDocument.create(); (await out.copyPages(src, list)).forEach(p => out.addPage(p));
   if (list.length !== tplN) alert('Προσοχή: διάλεξες ' + list.length + ' σελίδες, το ' + form + ' έχει ' + tplN + '.');
+  /* οι υπόλοιπες σελίδες (διαβατήριο, logbook, email…) → συνημμένα υποψηφίου, στο τέλος του PDF */
+  const rest = []; for (let i = 0; i < n; i++) if (!list.includes(i)) rest.push(i);
+  if (rest.length && confirm('Οι υπόλοιπες ' + rest.length + ' σελίδες (' + rest.map(i => i + 1).join(', ') + ') να μπουν ως συνημμένα στο τέλος του PDF;')) {
+    const ex = await PDFLib.PDFDocument.create(); (await ex.copyPages(src, rest)).forEach(p => ex.addPage(p));
+    try { await PELDOCS.addCandFiles('cand:forms:' + cur().id, [new File([await ex.save()], form + '_συνημμένα.pdf', { type: 'application/pdf' })]); } catch (e) { alert('Τα συνημμένα δεν αποθηκεύτηκαν: ' + e.message); } }
   return [new File([await out.save()], form + '_scan.pdf', { type: 'application/pdf' })];
 }
 function setTitle() { const c = cur(); $('#ttl').innerHTML = esc(((c && c.applicant.surname) || 'Υποψήφιος').toUpperCase()) + '<small>' + (c && c.tests.rev && !c.tests.ppl && !c.tests.cpl && !c.tests.ir ? 'SEP reval.' : c && c.tests.ppl && !c.tests.cpl && !c.tests.ir ? (c.ppl.lic === 'LAPL' ? 'LAPL(A)' : 'PPL(A)') : c && c.course === 'modular' ? 'Modular' : 'Integrated') + '</small>'; }
