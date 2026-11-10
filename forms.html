@@ -427,6 +427,8 @@ setTimeout(() => { const q = new URLSearchParams(location.search), id = q.get('o
 async function scanPick(fl, form) {
   const files = Array.from(fl); if (files.length !== 1 || !/pdf/i.test(files[0].type + files[0].name)) return files;
   const src = await PDFLib.PDFDocument.load(await files[0].arrayBuffer(), { ignoreEncryption: true }); const n = src.getPageCount();
+  if (/^Form_/i.test(files[0].name) || /pdf-lib/i.test(src.getProducer() || '')) {
+    if (!confirm('Προσοχή: αυτό το PDF το έφτιαξε η ίδια η εφαρμογή (έχει ήδη τα δικά σου στοιχεία).\nΑν το ανεβάσεις ως σκαναρισμένο, όλα θα τυπωθούν ΔΙΠΛΑ.\n\nΑνέβασε το αρχικό αρχείο της σχολής.\n\nOK = συνέχεια παρ\' όλα αυτά · Άκυρο = σταματάω')) return null; }
   const tplN = (await PDFLib.PDFDocument.load(await pdfBytes(form))).getPageCount(); if (n === tplN) return files;
   const ans = prompt('Το αρχείο έχει ' + n + ' σελίδες, το ' + form + ' έχει ' + tplN + '.\nΠοιες σελίδες του αρχείου είναι το ' + form + ', με τη σειρά;\n(π.χ. 1-5,7,24,6,9,10)', '1-' + Math.min(n, tplN)); if (ans === null) return null;
   const list = []; ans.split(/[,; ]+/).filter(Boolean).forEach(t => { const m = /^(\d+)(?:-(\d+))?$/.exec(t); if (!m) return; const a = +m[1], b = m[2] ? +m[2] : a; for (let i = a; a <= b ? i <= b : i >= b; i += a <= b ? 1 : -1) if (i >= 1 && i <= n) list.push(i - 1); });
