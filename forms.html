@@ -439,7 +439,9 @@ async function scanPick(fl, form) {
   const rest = []; for (let i = 0; i < n; i++) if (!list.includes(i)) rest.push(i);
   if (rest.length && confirm('Οι υπόλοιπες ' + rest.length + ' σελίδες (' + rest.map(i => i + 1).join(', ') + ') να μπουν ως συνημμένα στο τέλος του PDF;')) {
     const ex = await PDFLib.PDFDocument.create(); (await ex.copyPages(src, rest)).forEach(p => ex.addPage(p));
-    try { await PELDOCS.addCandFiles('cand:forms:' + cur().id, [new File([await ex.save()], form + '_συνημμένα.pdf', { type: 'application/pdf' })]); } catch (e) { alert('Τα συνημμένα δεν αποθηκεύτηκαν: ' + e.message); } }
+    try { const ck = 'cand:forms:' + cur().id, old = await PELDOCS.candFiles(ck); /* παλιά αυτόματα συνημμένα του ίδιου εντύπου → φεύγουν */
+      for (let i = old.length - 1; i >= 0; i--) if (old[i].name === form + '_συνημμένα.pdf') await PELDOCS.removeCandFile(ck, i);
+      await PELDOCS.addCandFiles(ck, [new File([await ex.save()], form + '_συνημμένα.pdf', { type: 'application/pdf' })]); } catch (e) { alert('Τα συνημμένα δεν αποθηκεύτηκαν: ' + e.message); } }
   return [new File([await out.save()], form + '_scan.pdf', { type: 'application/pdf' })];
 }
 function setTitle() { const c = cur(); $('#ttl').innerHTML = esc(((c && c.applicant.surname) || 'Υποψήφιος').toUpperCase()) + '<small>' + (c && c.tests.rev && !c.tests.ppl && !c.tests.cpl && !c.tests.ir ? 'SEP reval.' : c && c.tests.ppl && !c.tests.cpl && !c.tests.ir ? (c.ppl.lic === 'LAPL' ? 'LAPL(A)' : 'PPL(A)') : c && c.course === 'modular' ? 'Modular' : 'Integrated') + '</small>'; }
